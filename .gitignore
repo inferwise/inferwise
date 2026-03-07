@@ -4,11 +4,14 @@ Inferwise-Business-Plan.md
 
 # Dependencies
 node_modules/
+**/node_modules/
 
 # Build output
 dist/
 build/
 out/
+**/dist/
+**/build/
 
 # Environment
 .env

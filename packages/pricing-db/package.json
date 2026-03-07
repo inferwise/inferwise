@@ -12,7 +12,22 @@
     },
     "./providers/*": "./providers/*"
   },
-  "files": ["dist", "providers", "schema.json"],
+  "files": ["dist", "providers", "schema.json", "README.md", "LICENSE"],
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "homepage": "https://inferwise.dev",
+  "bugs": {
+    "url": "https://github.com/inferwise/inferwise/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/inferwise/inferwise",
+    "directory": "packages/pricing-db"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "test": "vitest run",

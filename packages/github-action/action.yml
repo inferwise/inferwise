@@ -1,0 +1,39 @@
+name: "Inferwise Cost Diff"
+description: "Scan for LLM API calls and post a cost diff comment on pull requests"
+author: "Inferwise"
+
+branding:
+  icon: "dollar-sign"
+  color: "green"
+
+inputs:
+  github-token:
+    description: "GitHub token for posting PR comments"
+    required: true
+    default: ${{ github.token }}
+  base-ref:
+    description: "Base git ref to compare against (default: PR base branch)"
+    required: false
+    default: ""
+  volume:
+    description: "Requests per day for monthly cost projection"
+    required: false
+    default: "1000"
+  fail-on-increase:
+    description: "Fail if monthly cost increases by more than this USD amount"
+    required: false
+    default: ""
+  working-directory:
+    description: "Directory to scan (default: repo root)"
+    required: false
+    default: "."
+
+outputs:
+  net-monthly-delta:
+    description: "Net monthly cost delta in USD (negative = savings)"
+  report:
+    description: "Full cost diff report in markdown format"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"
