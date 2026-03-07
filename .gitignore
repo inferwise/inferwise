@@ -1,0 +1,20 @@
+# Local only — never commit
+Inferwise-Business-Plan.docx
+Inferwise-Business-Plan.md
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
