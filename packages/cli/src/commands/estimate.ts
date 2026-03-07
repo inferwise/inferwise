@@ -54,8 +54,8 @@ export function estimateCommand(): Command {
         let inputTokens: number;
         if (result.systemPrompt || result.userPrompt) {
           inputTokens = countMessageTokens(provider, modelId ?? "", {
-            system: result.systemPrompt ?? undefined,
-            user: result.userPrompt ?? undefined,
+            ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
+            ...(result.userPrompt ? { user: result.userPrompt } : {}),
           });
         } else {
           inputTokens = DEFAULT_INPUT_TOKENS;
