@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ProviderPricing",
+  "description": "Pricing data for an LLM provider. All costs are USD per million tokens.",
+  "type": "object",
+  "required": ["provider", "last_updated", "last_verified", "source", "models"],
+  "additionalProperties": false,
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": ["anthropic", "openai", "google", "xai"]
+    },
+    "last_updated": {
+      "description": "ISO date when this file was last written/synced by the sync script",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "last_verified": {
+      "description": "ISO date when prices were last manually verified against official source",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "source": {
+      "description": "URL of the official pricing page used to verify",
+      "type": "string"
+    },
+    "models": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "input_cost_per_million",
+          "output_cost_per_million",
+          "context_window",
+          "max_output_tokens",
+          "tier"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "description": "Canonical API model ID used in API calls",
+            "type": "string"
+          },
+          "name": {
+            "description": "Human-readable model name",
+            "type": "string"
+          },
+          "aliases": {
+            "description": "Alternative IDs (short aliases, dated versions, platform-specific IDs)",
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "status": {
+            "description": "Model lifecycle status",
+            "type": "string",
+            "enum": ["current", "legacy", "deprecated"]
+          },
+          "input_cost_per_million": {
+            "description": "USD per million input tokens (standard)",
+            "type": "number",
+            "minimum": 0
+          },
+          "output_cost_per_million": {
+            "description": "USD per million output tokens (standard)",
+            "type": "number",
+            "minimum": 0
+          },
+          "cache_read_input_cost_per_million": {
+            "description": "USD per million cached input tokens (cache hit / cache read)",
+            "type": "number",
+            "minimum": 0
+          },
+          "cache_write_input_cost_per_million": {
+            "description": "USD per million tokens written to cache (cache creation). Usually 25% more than standard input.",
+            "type": "number",
+            "minimum": 0
+          },
+          "batch_input_cost_per_million": {
+            "description": "USD per million input tokens via Batch API (typically 50% of standard)",
+            "type": "number",
+            "minimum": 0
+          },
+          "batch_output_cost_per_million": {
+            "description": "USD per million output tokens via Batch API",
+            "type": "number",
+            "minimum": 0
+          },
+          "input_cost_above_200k_per_million": {
+            "description": "USD per million input tokens for requests exceeding 200K tokens (long-context pricing tier)",
+            "type": "number",
+            "minimum": 0
+          },
+          "output_cost_above_200k_per_million": {
+            "description": "USD per million output tokens for requests exceeding 200K tokens",
+            "type": "number",
+            "minimum": 0
+          },
+          "context_window": {
+            "description": "Maximum input context in tokens",
+            "type": "integer",
+            "minimum": 1
+          },
+          "max_output_tokens": {
+            "description": "Maximum output tokens per request",
+            "type": "integer",
+            "minimum": 1
+          },
+          "supports_vision": { "type": "boolean" },
+          "supports_tools": { "type": "boolean" },
+          "supports_prompt_caching": { "type": "boolean" },
+          "supports_reasoning": { "type": "boolean" },
+          "supports_computer_use": { "type": "boolean" },
+          "tier": {
+            "description": "Cost tier for routing decisions",
+            "type": "string",
+            "enum": ["budget", "mid", "premium"]
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": ["code", "reasoning", "general", "creative", "vision", "search", "audio"]
+            }
+          },
+          "knowledge_cutoff": {
+            "description": "ISO date of reliable knowledge cutoff",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

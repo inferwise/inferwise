@@ -1,0 +1,159 @@
+{
+  "provider": "google",
+  "last_updated": "2026-03-07",
+  "last_verified": "2026-03-07",
+  "source": "https://ai.google.dev/pricing",
+  "models": [
+    {
+      "id": "gemini-2.5-pro",
+      "name": "Gemini 2.5 Pro",
+      "aliases": [
+        "gemini-2.5-pro-preview"
+      ],
+      "status": "current",
+      "input_cost_per_million": 1.25,
+      "output_cost_per_million": 10,
+      "cache_read_input_cost_per_million": 0.125,
+      "input_cost_above_200k_per_million": 2.5,
+      "output_cost_above_200k_per_million": 15,
+      "context_window": 1048576,
+      "max_output_tokens": 65535,
+      "supports_vision": true,
+      "supports_tools": true,
+      "supports_prompt_caching": true,
+      "supports_reasoning": true,
+      "supports_computer_use": false,
+      "tier": "premium",
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ]
+    },
+    {
+      "id": "gemini-2.5-flash",
+      "name": "Gemini 2.5 Flash",
+      "aliases": [
+        "gemini-2.5-flash-preview"
+      ],
+      "status": "current",
+      "input_cost_per_million": 0.3,
+      "output_cost_per_million": 2.5,
+      "cache_read_input_cost_per_million": 0.03,
+      "context_window": 1048576,
+      "max_output_tokens": 65535,
+      "supports_vision": true,
+      "supports_tools": true,
+      "supports_prompt_caching": true,
+      "supports_reasoning": true,
+      "supports_computer_use": false,
+      "tier": "budget",
+      "capabilities": [
+        "code",
+        "general",
+        "vision",
+        "reasoning"
+      ]
+    },
+    {
+      "id": "gemini-2.0-flash",
+      "name": "Gemini 2.0 Flash",
+      "aliases": [
+        "gemini-2.0-flash-001"
+      ],
+      "status": "current",
+      "input_cost_per_million": 0.1,
+      "output_cost_per_million": 0.4,
+      "cache_read_input_cost_per_million": 0.025,
+      "context_window": 1048576,
+      "max_output_tokens": 8192,
+      "supports_vision": true,
+      "supports_tools": true,
+      "supports_prompt_caching": true,
+      "supports_reasoning": false,
+      "supports_computer_use": false,
+      "tier": "budget",
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ]
+    },
+    {
+      "id": "gemini-2.0-flash-lite",
+      "name": "Gemini 2.0 Flash Lite",
+      "aliases": [],
+      "status": "current",
+      "input_cost_per_million": 0.075,
+      "output_cost_per_million": 0.3,
+      "context_window": 1048576,
+      "max_output_tokens": 8192,
+      "supports_vision": true,
+      "supports_tools": true,
+      "supports_prompt_caching": true,
+      "supports_reasoning": false,
+      "supports_computer_use": false,
+      "tier": "budget",
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ],
+      "cache_read_input_cost_per_million": 0.0188
+    },
+    {
+      "id": "gemini-1.5-pro",
+      "name": "Gemini 1.5 Pro",
+      "aliases": [
+        "gemini-1.5-pro-002"
+      ],
+      "status": "legacy",
+      "input_cost_per_million": 3.5,
+      "output_cost_per_million": 10.5,
+      "cache_read_input_cost_per_million": 0.3125,
+      "input_cost_above_200k_per_million": 2.5,
+      "output_cost_above_200k_per_million": 10,
+      "context_window": 2097152,
+      "max_output_tokens": 8192,
+      "supports_vision": true,
+      "supports_tools": true,
+      "supports_prompt_caching": true,
+      "supports_reasoning": false,
+      "supports_computer_use": false,
+      "tier": "mid",
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ]
+    },
+    {
+      "id": "gemini-1.5-flash",
+      "name": "Gemini 1.5 Flash",
+      "aliases": [
+        "gemini-1.5-flash-002"
+      ],
+      "status": "legacy",
+      "input_cost_per_million": 0.075,
+      "output_cost_per_million": 0.3,
+      "cache_read_input_cost_per_million": 0.01875,
+      "context_window": 1048576,
+      "max_output_tokens": 8192,
+      "supports_vision": true,
+      "supports_tools": true,
+      "supports_prompt_caching": true,
+      "supports_reasoning": false,
+      "supports_computer_use": false,
+      "tier": "budget",
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ]
+    }
+  ]
+}

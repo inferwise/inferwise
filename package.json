@@ -1,0 +1,35 @@
+{
+  "name": "inferwise",
+  "version": "0.0.1",
+  "description": "Know your LLM costs before you commit.",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "keywords": [
+    "llm",
+    "tokens",
+    "cost",
+    "finops",
+    "ai"
+  ],
+  "author": "Peter Kim",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/inferwise/inferwise"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "biome check --write .",
+    "lint:ci": "biome ci .",
+    "typecheck": "pnpm -r typecheck",
+    "clean": "pnpm -r clean",
+    "sync-pricing": "pnpm --filter @inferwise/scripts sync-pricing",
+    "sync-pricing:dry": "pnpm --filter @inferwise/scripts sync-pricing:dry"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@types/node": "^25.3.5",
+    "typescript": "^5.7.0"
+  }
+}

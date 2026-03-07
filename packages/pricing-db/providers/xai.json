@@ -1,0 +1,125 @@
+{
+  "provider": "xai",
+  "last_updated": "2026-03-07",
+  "last_verified": "2026-03-07",
+  "source": "https://docs.x.ai/docs/models",
+  "models": [
+    {
+      "id": "grok-3",
+      "name": "Grok 3",
+      "aliases": [],
+      "status": "current",
+      "input_cost_per_million": 3,
+      "output_cost_per_million": 15,
+      "cache_read_input_cost_per_million": 0.75,
+      "batch_input_cost_per_million": 1.5,
+      "batch_output_cost_per_million": 7.5,
+      "context_window": 131072,
+      "max_output_tokens": 131072,
+      "supports_vision": false,
+      "supports_tools": true,
+      "supports_prompt_caching": true,
+      "supports_reasoning": false,
+      "supports_computer_use": false,
+      "tier": "mid",
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative"
+      ]
+    },
+    {
+      "id": "grok-3-mini",
+      "name": "Grok 3 Mini",
+      "aliases": [],
+      "status": "current",
+      "input_cost_per_million": 0.3,
+      "output_cost_per_million": 0.5,
+      "cache_read_input_cost_per_million": 0.075,
+      "batch_input_cost_per_million": 0.15,
+      "batch_output_cost_per_million": 0.25,
+      "context_window": 131072,
+      "max_output_tokens": 131072,
+      "supports_vision": false,
+      "supports_tools": true,
+      "supports_prompt_caching": true,
+      "supports_reasoning": true,
+      "supports_computer_use": false,
+      "tier": "budget",
+      "capabilities": [
+        "code",
+        "general",
+        "reasoning"
+      ]
+    },
+    {
+      "id": "grok-3-vision",
+      "name": "Grok 3 Vision",
+      "aliases": [],
+      "status": "current",
+      "input_cost_per_million": 3,
+      "output_cost_per_million": 15,
+      "cache_read_input_cost_per_million": 0.75,
+      "context_window": 32768,
+      "max_output_tokens": 16384,
+      "supports_vision": true,
+      "supports_tools": true,
+      "supports_prompt_caching": true,
+      "supports_reasoning": false,
+      "supports_computer_use": false,
+      "tier": "mid",
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ]
+    },
+    {
+      "id": "grok-2",
+      "name": "Grok 2",
+      "aliases": [
+        "grok-2-1212"
+      ],
+      "status": "legacy",
+      "input_cost_per_million": 2,
+      "output_cost_per_million": 10,
+      "context_window": 131072,
+      "max_output_tokens": 131072,
+      "supports_vision": false,
+      "supports_tools": true,
+      "supports_prompt_caching": false,
+      "supports_reasoning": false,
+      "supports_computer_use": false,
+      "tier": "mid",
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general"
+      ]
+    },
+    {
+      "id": "grok-2-vision",
+      "name": "Grok 2 Vision",
+      "aliases": [
+        "grok-2-vision-1212"
+      ],
+      "status": "legacy",
+      "input_cost_per_million": 2,
+      "output_cost_per_million": 10,
+      "context_window": 32768,
+      "max_output_tokens": 32768,
+      "supports_vision": true,
+      "supports_tools": true,
+      "supports_prompt_caching": false,
+      "supports_reasoning": false,
+      "supports_computer_use": false,
+      "tier": "mid",
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "@inferwise/scripts",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "sync-pricing": "tsx sync-pricing.ts",
+    "sync-pricing:dry": "tsx sync-pricing.ts --dry-run"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
