@@ -28,6 +28,33 @@ pnpm add -g inferwise
 
 ---
 
+## Why Inferwise?
+
+### AI Agents Don't Think About Cost
+
+When AI coding agents (Cursor, Claude Code, Copilot, Devin) generate code, they optimize for correctness — not cost. They'll reach for `claude-opus-4` on every call because it's the most capable model. Without a cost gate in your workflow, expensive model choices ship silently into production.
+
+### The Real Workflow
+
+1. Developer (or AI agent) writes code with LLM API calls
+2. `inferwise estimate` shows projected costs before committing
+3. `inferwise diff` runs in CI on every pull request
+4. GitHub Action posts a cost comment on the PR
+5. Team reviews cost impact alongside the code diff
+6. `--fail-on-increase` gates prevent budget blowouts from merging
+
+### Concrete Example
+
+An AI agent builds a RAG pipeline and picks Opus for every call — embeddings, retrieval, summarization, response generation.
+
+Inferwise flags: **"+$2,400/mo in new LLM costs"** on the PR.
+
+The developer asks the agent to use Sonnet where Opus isn't needed (embeddings, summarization). Cost drops to **$600/mo**.
+
+**$1,800/mo saved before a single line ships.**
+
+---
+
 ## Commands
 
 ### `inferwise estimate [path]`
@@ -93,6 +120,41 @@ inferwise audit ./src --format markdown
 
 ---
 
+### `inferwise price [provider] [model]`
+
+Look up model pricing instantly. Designed for both humans and AI agents to make cost-aware model decisions.
+
+```bash
+# Look up a model's pricing
+inferwise price anthropic claude-sonnet-4
+
+# Calculate cost for specific token counts
+inferwise price anthropic claude-sonnet-4 --input-tokens 2000 --output-tokens 1000
+
+# Compare models side by side
+inferwise price --compare anthropic/claude-sonnet-4 openai/gpt-4o
+
+# List all models for a provider
+inferwise price --list anthropic
+
+# List all models
+inferwise price --list-all
+```
+
+**Flags:**
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--input-tokens <n>` | `1000` | Number of input tokens |
+| `--output-tokens <n>` | `1000` | Number of output tokens |
+| `--volume <n>` | `1000` | Requests/day for monthly projection |
+| `--compare` | off | Compare multiple provider/model pairs |
+| `--list <provider>` | — | List all models for a provider |
+| `--list-all` | off | List all models across all providers |
+| `--format <table\|json>` | `table` | Output format |
+
+---
+
 ## GitHub Action
 
 Add automatic cost diff comments to every pull request.
@@ -144,6 +206,30 @@ jobs:
 
 **Net monthly impact: -$11,100/mo**
 ```
+
+---
+
+## AI Agent Integration
+
+The `inferwise price` command and `@inferwise/pricing-db` package are designed to be called by AI agents mid-generation — so they can make cost-aware model decisions in real-time rather than discovering costs after code ships.
+
+**CLI (for tool-use agents):**
+
+```bash
+inferwise price openai gpt-4o --input-tokens 2000 --output-tokens 1000 --format json
+```
+
+**SDK (for programmatic use):**
+
+```typescript
+import { getModel, calculateCost } from "@inferwise/pricing-db";
+
+const model = getModel("anthropic", "claude-sonnet-4-20250514");
+const cost = calculateCost({ model, inputTokens: 2000, outputTokens: 1000 });
+// Agent can now decide: is this model worth the cost for this task?
+```
+
+An AI agent can query Inferwise before choosing a model — checking cost per call, comparing alternatives, and selecting the most cost-effective option that meets the task requirements. The JSON output format is optimized for machine consumption.
 
 ---
 
