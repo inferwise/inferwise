@@ -299,7 +299,7 @@ async function main(): Promise<void> {
   if (!isDryRun) {
     console.log("Done. Commit these changes:");
     console.log("  git add packages/pricing-db/providers/");
-    console.log(`  git commit -m "chore(pricing): sync from litellm $(date +%Y-%m-%d)"`);
+    console.log(`  git commit -m "chore(pricing): sync provider pricing $(date +%Y-%m-%d)"`);
   }
 }
 

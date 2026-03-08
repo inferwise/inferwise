@@ -6,7 +6,7 @@
 [![npm](https://img.shields.io/npm/v/inferwise)](https://www.npmjs.com/package/inferwise)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-Inferwise is a FinOps CLI for LLM inference costs. It scans your codebase for LLM API calls, estimates token costs, and shows cost diffs in pull requests — like [Infracost](https://www.infracost.io/) but for tokens.
+Inferwise is a FinOps CLI for LLM inference costs. It scans your codebase for LLM API calls, estimates token costs, and shows cost diffs in pull requests — before a single line ships.
 
 ---
 
@@ -188,7 +188,7 @@ Create `inferwise.config.json` in your project root:
 
 ## Pricing Database
 
-The [`@inferwise/pricing-db`](packages/pricing-db) package ships bundled pricing for all supported providers and is updated daily via automated sync from [LiteLLM](https://github.com/BerriAI/litellm).
+The [`@inferwise/pricing-db`](packages/pricing-db) package ships bundled pricing for all supported providers and is updated daily via automated sync.
 
 ```bash
 npm install @inferwise/pricing-db
@@ -242,7 +242,7 @@ pnpm typecheck
 ```bash
 pnpm --filter @inferwise/cli build       # Build CLI only
 pnpm --filter @inferwise/pricing-db test # Test pricing-db only
-pnpm --filter @inferwise/scripts sync-pricing  # Sync pricing from LiteLLM
+pnpm --filter @inferwise/scripts sync-pricing  # Sync provider pricing
 ```
 
 ---

@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   sync:
-    name: Sync from LiteLLM
+    name: Sync Provider Pricing
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -46,10 +46,10 @@ jobs:
         if: steps.diff.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
-          commit-message: "chore(pricing): sync from litellm ${{ github.run_started_at }}"
-          title: "chore(pricing): sync pricing from LiteLLM"
+          commit-message: "chore(pricing): sync provider pricing ${{ github.run_started_at }}"
+          title: "chore(pricing): update provider pricing data"
           body: |
-            Automated pricing sync from [LiteLLM](https://github.com/BerriAI/litellm).
+            Automated pricing data sync.
 
             This PR was created automatically by the daily sync workflow.
             Review the changes and merge to update bundled pricing data.
