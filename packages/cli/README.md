@@ -1,6 +1,6 @@
 # inferwise
 
-**Know your LLM costs before you commit.**
+**Know and control your LLM costs before they ship.**
 
 Inferwise is a FinOps CLI for LLM inference costs. Scan your codebase for LLM API calls, estimate token costs, and show cost diffs in pull requests.
 

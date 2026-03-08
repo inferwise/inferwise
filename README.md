@@ -1,6 +1,6 @@
 # Inferwise
 
-**Know your LLM costs before you commit.**
+**Know and control your LLM costs before they ship.**
 
 [![CI](https://github.com/inferwise/inferwise/actions/workflows/ci.yml/badge.svg)](https://github.com/inferwise/inferwise/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/inferwise)](https://www.npmjs.com/package/inferwise)
@@ -444,4 +444,8 @@ Apache 2.0 — see [LICENSE](LICENSE)
 
 ---
 
-Built with care by the Inferwise team. Visit [inferwise.dev](https://inferwise.dev) for the full platform.
+## About
+
+Inferwise is the FinOps layer for LLM inference. We help developers and teams see, control, and optimize what they spend on AI — before it hits production.
+
+[inferwise.dev](https://inferwise.dev) · [GitHub](https://github.com/inferwise/inferwise) · [npm](https://www.npmjs.com/package/inferwise)

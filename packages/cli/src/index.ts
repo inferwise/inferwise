@@ -16,7 +16,7 @@ const program = new Command();
 
 program
   .name("inferwise")
-  .description("Know your LLM costs before you commit.")
+  .description("Know and control your LLM costs before they ship.")
   .version(pkg.version);
 
 program.addCommand(estimateCommand());

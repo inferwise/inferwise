@@ -1,8 +1,6 @@
 import { getAllProviders, getPricingAgeInDays, getProviderMeta } from "@inferwise/pricing-db";
 import { Command } from "commander";
 
-const LITELLM_URL =
-  "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";
 const STALE_THRESHOLD_DAYS = 7;
 
 export function updatePricingCommand(): Command {
@@ -40,7 +38,7 @@ export function updatePricingCommand(): Command {
         console.log(
           "Run the sync script to refresh:\n  pnpm --filter @inferwise/scripts sync-pricing\n",
         );
-        console.log(`Source: ${LITELLM_URL}`);
+        console.log("Source: https://github.com/inferwise/inferwise/tree/main/packages/pricing-db");
 
         if (options.check) {
           process.exit(1);

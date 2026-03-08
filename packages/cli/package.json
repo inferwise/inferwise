@@ -1,7 +1,7 @@
 {
   "name": "inferwise",
   "version": "0.1.0",
-  "description": "Know your LLM costs before you commit.",
+  "description": "Know and control your LLM costs before they ship.",
   "type": "module",
   "bin": {
     "inferwise": "./dist/index.js"
