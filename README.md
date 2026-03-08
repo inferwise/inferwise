@@ -30,11 +30,17 @@ pnpm add -g inferwise
 
 ## Why Inferwise?
 
-### AI Agents Don't Think About Cost
+LLM API calls are the new cloud resource — but unlike EC2 instances or database queries, there's no built-in cost visibility. A single model swap can 10x your bill. Whether you're a developer building a chatbot, a team automating workflows via API, or an AI agent generating code — you need to know what it costs before it ships.
 
-When AI coding agents (Cursor, Claude Code, Copilot, Devin) generate code, they optimize for correctness — not cost. They'll reach for `claude-opus-4` on every call because it's the most capable model. Without a cost gate in your workflow, expensive model choices ship silently into production.
+### Who This Is For
 
-### The Real Workflow
+**Developers building LLM-powered features.** You're adding a summarization endpoint, a chat interface, or a RAG pipeline. You pick a model, write the integration, and ship it. But do you know the per-call cost? The monthly projection at scale? Inferwise shows you before you commit.
+
+**Teams running LLM-powered automation.** Customer support bots, document processing pipelines, content generation workflows — any system making LLM API calls at volume. One team member upgrades a model for "better quality" and the monthly bill jumps $5,000. Inferwise catches that in the PR.
+
+**AI coding agents.** When tools like Cursor, Claude Code, Copilot, or Devin generate code, they optimize for correctness — not cost. They'll reach for `claude-opus-4` on every call because it's the most capable. Without a cost gate, expensive model choices ship silently.
+
+### The Workflow
 
 1. Developer (or AI agent) writes code with LLM API calls
 2. `inferwise estimate` shows projected costs before committing
@@ -52,6 +58,29 @@ Inferwise flags: **"+$2,400/mo in new LLM costs"** on the PR.
 The developer asks the agent to use Sonnet where Opus isn't needed (embeddings, summarization). Cost drops to **$600/mo**.
 
 **$1,800/mo saved before a single line ships.**
+
+### What About Auto-Model Selection?
+
+Tools like Cursor's "auto" model and custom model routers select models dynamically at runtime — the model choice isn't visible in your source code. Inferwise handles this differently depending on the pattern:
+
+- **Hardcoded model strings** (`model: "claude-opus-4"`) — fully detected and priced.
+- **Config-driven models** (`model: config.chatModel`) — detected as a call site, flagged as dynamic. You see where LLM calls happen even if the exact model isn't statically known.
+- **Runtime routers** (Cursor auto, custom routers) — the routing decision happens outside your code. Inferwise can't see it, but this is where `inferwise price --compare` helps: you can pre-evaluate which models the router might select and understand the cost range.
+
+Inferwise is most accurate for **explicit model selection in source code**, which is how the majority of production LLM integrations work today. For dynamic routing, it serves as a planning and comparison tool rather than an exact estimator.
+
+### Accuracy and Limitations
+
+Inferwise uses static analysis — it reads your source code, not your runtime traffic. Here's what that means:
+
+| What It Does Well | Where Estimates Are Rough |
+|-------------------|--------------------------|
+| Detects every LLM API call site in your codebase | Dynamic prompts (variable-length user input) use default token estimates |
+| Exact pricing from bundled provider data (updated daily) | Output tokens estimated via multiplier (configurable, default 2x input) |
+| Accurate cost/call for static prompts and system messages | Volume is uniform across call sites (override per-path in config) |
+| Relative cost comparison between models and PRs | Can't resolve model names from variables or config files |
+
+The estimates are **directionally accurate** — they catch the right order of magnitude and surface the expensive decisions. For exact runtime costs, pair Inferwise with provider dashboards or usage APIs (Phase 2 roadmap).
 
 ---
 
@@ -209,27 +238,43 @@ jobs:
 
 ---
 
-## AI Agent Integration
+## Programmatic and Agent Integration
 
-The `inferwise price` command and `@inferwise/pricing-db` package are designed to be called by AI agents mid-generation — so they can make cost-aware model decisions in real-time rather than discovering costs after code ships.
+Inferwise isn't just a CLI — `inferwise price` and `@inferwise/pricing-db` are designed to be called by any system that needs cost-aware model selection: AI agents, workflow automation, custom model routers, or your own tooling.
 
-**CLI (for tool-use agents):**
+**CLI (for tool-use agents and scripts):**
 
 ```bash
+# AI agent queries cost before choosing a model
 inferwise price openai gpt-4o --input-tokens 2000 --output-tokens 1000 --format json
+
+# Compare options in a CI script or automation pipeline
+inferwise price --compare anthropic/claude-sonnet-4 openai/gpt-4o --format json
 ```
 
-**SDK (for programmatic use):**
+**SDK (for applications, routers, and pipelines):**
 
 ```typescript
-import { getModel, calculateCost } from "@inferwise/pricing-db";
+import { getModel, calculateCost, getAllModels } from "@inferwise/pricing-db";
 
+// Pre-flight cost check in a workflow automation
 const model = getModel("anthropic", "claude-sonnet-4-20250514");
 const cost = calculateCost({ model, inputTokens: 2000, outputTokens: 1000 });
-// Agent can now decide: is this model worth the cost for this task?
+
+// Build a cost-aware model router
+const budget = 0.01; // max $/call
+const candidates = getAllModels()
+  .filter(m => m.tier === "mid" && m.supports_tools)
+  .sort((a, b) => a.input_cost_per_million - b.input_cost_per_million);
 ```
 
-An AI agent can query Inferwise before choosing a model — checking cost per call, comparing alternatives, and selecting the most cost-effective option that meets the task requirements. The JSON output format is optimized for machine consumption.
+**Use cases:**
+
+- **AI coding agents** — query cost before selecting a model in generated code
+- **Workflow automation** — n8n, Zapier, or custom pipelines that call LLM APIs at volume
+- **Custom model routers** — select the cheapest model that meets task requirements
+- **Budget enforcement** — reject requests that exceed a per-call or per-month threshold
+- **Cost dashboards** — feed pricing data into internal reporting tools
 
 ---
 
