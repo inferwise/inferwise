@@ -1,0 +1,18 @@
+# Enforce LF line endings for all text files on all platforms
+* text=auto eol=lf
+
+# Explicitly LF for code and config
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.mjs text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.sh text eol=lf
+
+# Binaries
+*.node binary
+*.wasm binary

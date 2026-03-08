@@ -1,7 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { glob } from "glob";
 import type { Provider } from "@inferwise/pricing-db";
+import { glob } from "glob";
 
 export interface ScanResult {
   filePath: string;
@@ -69,12 +69,7 @@ function extractString(lines: string[], pattern: RegExp): string | null {
 function inferProviderFromModel(modelId: string): Provider | null {
   const id = modelId.toLowerCase();
   if (id.startsWith("claude")) return "anthropic";
-  if (
-    id.startsWith("gpt-") ||
-    id.startsWith("o1") ||
-    id.startsWith("o3") ||
-    id.startsWith("o4")
-  )
+  if (id.startsWith("gpt-") || id.startsWith("o1") || id.startsWith("o3") || id.startsWith("o4"))
     return "openai";
   if (id.startsWith("gemini")) return "google";
   if (id.startsWith("grok")) return "xai";
@@ -164,10 +159,7 @@ async function scanFile(filePath: string, relativeBase: string): Promise<ScanRes
   return results;
 }
 
-export async function scanDirectory(
-  dirPath: string,
-  ignore: string[] = [],
-): Promise<ScanResult[]> {
+export async function scanDirectory(dirPath: string, ignore: string[] = []): Promise<ScanResult[]> {
   const absoluteDir = path.resolve(dirPath);
   const patterns = SUPPORTED_EXTENSIONS.map((ext) => `**/*.${ext}`);
 

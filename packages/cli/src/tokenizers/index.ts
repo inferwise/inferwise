@@ -1,5 +1,5 @@
-import { encoding_for_model, get_encoding, type Tiktoken, type TiktokenModel } from "tiktoken";
 import type { Provider } from "@inferwise/pricing-db";
+import { type Tiktoken, type TiktokenModel, encoding_for_model, get_encoding } from "tiktoken";
 
 // Correction factor for Google models (cl100k_base underestimates)
 const GOOGLE_CORRECTION_FACTOR = 1.1;

@@ -31,9 +31,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run pricing sync
-        run: node scripts/sync-pricing.ts
-        env:
-          NODE_OPTIONS: "--import tsx/esm"
+        run: pnpm --filter @inferwise/scripts sync-pricing
 
       - name: Check for changes
         id: diff

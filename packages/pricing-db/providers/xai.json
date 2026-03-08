@@ -22,12 +22,7 @@
       "supports_reasoning": false,
       "supports_computer_use": false,
       "tier": "mid",
-      "capabilities": [
-        "code",
-        "reasoning",
-        "general",
-        "creative"
-      ]
+      "capabilities": ["code", "reasoning", "general", "creative"]
     },
     {
       "id": "grok-3-mini",
@@ -47,11 +42,7 @@
       "supports_reasoning": true,
       "supports_computer_use": false,
       "tier": "budget",
-      "capabilities": [
-        "code",
-        "general",
-        "reasoning"
-      ]
+      "capabilities": ["code", "general", "reasoning"]
     },
     {
       "id": "grok-3-vision",
@@ -69,18 +60,12 @@
       "supports_reasoning": false,
       "supports_computer_use": false,
       "tier": "mid",
-      "capabilities": [
-        "code",
-        "general",
-        "vision"
-      ]
+      "capabilities": ["code", "general", "vision"]
     },
     {
       "id": "grok-2",
       "name": "Grok 2",
-      "aliases": [
-        "grok-2-1212"
-      ],
+      "aliases": ["grok-2-1212"],
       "status": "legacy",
       "input_cost_per_million": 2,
       "output_cost_per_million": 10,
@@ -92,18 +77,12 @@
       "supports_reasoning": false,
       "supports_computer_use": false,
       "tier": "mid",
-      "capabilities": [
-        "code",
-        "reasoning",
-        "general"
-      ]
+      "capabilities": ["code", "reasoning", "general"]
     },
     {
       "id": "grok-2-vision",
       "name": "Grok 2 Vision",
-      "aliases": [
-        "grok-2-vision-1212"
-      ],
+      "aliases": ["grok-2-vision-1212"],
       "status": "legacy",
       "input_cost_per_million": 2,
       "output_cost_per_million": 10,
@@ -115,11 +94,7 @@
       "supports_reasoning": false,
       "supports_computer_use": false,
       "tier": "mid",
-      "capabilities": [
-        "code",
-        "general",
-        "vision"
-      ]
+      "capabilities": ["code", "general", "vision"]
     }
   ]
 }

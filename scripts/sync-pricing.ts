@@ -18,9 +18,9 @@
  * Run automatically via .github/workflows/sync-pricing.yml (daily at 06:00 UTC).
  */
 
-import { writeFileSync, readFileSync } from "fs";
-import { join, dirname } from "path";
-import { fileURLToPath } from "url";
+import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROVIDERS_DIR = join(__dirname, "../packages/pricing-db/providers");
@@ -31,9 +31,7 @@ const LITELLM_URL =
 const args = process.argv.slice(2);
 const isDryRun = args.includes("--dry-run");
 const providerArg = args.find((a) => a.startsWith("--provider="))?.split("=")[1];
-const PROVIDERS_TO_SYNC = providerArg
-  ? [providerArg]
-  : ["anthropic", "openai", "google", "xai"];
+const PROVIDERS_TO_SYNC = providerArg ? [providerArg] : ["anthropic", "openai", "google", "xai"];
 
 // --- LiteLLM model entry type (per-token, not per-million) ---
 interface LiteLLMEntry {
@@ -144,10 +142,7 @@ function toPerMillion(perToken: number | undefined): number | undefined {
   return Math.round(perToken * 1_000_000 * 10000) / 10000; // 4 decimal places
 }
 
-function findLiteLLMEntry(
-  prices: LiteLLMPrices,
-  keys: string[],
-): [string, LiteLLMEntry] | null {
+function findLiteLLMEntry(prices: LiteLLMPrices, keys: string[]): [string, LiteLLMEntry] | null {
   for (const key of keys) {
     const entry = prices[key];
     if (entry && entry.mode === "chat" && entry.input_cost_per_token !== undefined) {
@@ -205,7 +200,9 @@ async function syncProvider(provider: string, prices: LiteLLMPrices): Promise<vo
 
     const found = findLiteLLMEntry(prices, config.litellmKeys);
     if (!found) {
-      console.warn(`  [NOT FOUND] ${model.id} — no matching LiteLLM entry. Keeping existing prices.`);
+      console.warn(
+        `  [NOT FOUND] ${model.id} — no matching LiteLLM entry. Keeping existing prices.`,
+      );
       notFoundCount++;
       return model;
     }
@@ -275,7 +272,7 @@ async function syncProvider(provider: string, prices: LiteLLMPrices): Promise<vo
   );
 
   if (!isDryRun) {
-    writeFileSync(filePath, JSON.stringify(output, null, 2) + "\n", "utf-8");
+    writeFileSync(filePath, `${JSON.stringify(output, null, 2)}\n`, "utf-8");
     console.log(`  Written: ${filePath}`);
   } else {
     console.log("  [DRY RUN] No files written.");
@@ -301,7 +298,7 @@ async function main(): Promise<void> {
 
   if (!isDryRun) {
     console.log("Done. Commit these changes:");
-    console.log(`  git add packages/pricing-db/providers/`);
+    console.log("  git add packages/pricing-db/providers/");
     console.log(`  git commit -m "chore(pricing): sync from litellm $(date +%Y-%m-%d)"`);
   }
 }

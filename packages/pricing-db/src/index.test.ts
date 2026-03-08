@@ -1,11 +1,11 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
+  calculateCost,
   getAllModels,
   getAllProviders,
   getModel,
-  getProviderMeta,
-  calculateCost,
   getPricingAgeInDays,
+  getProviderMeta,
 } from "./index.js";
 
 describe("getAllProviders", () => {
@@ -154,9 +154,7 @@ describe("calculateCost", () => {
   });
 
   it("auto-detects long context when inputTokens > 200k", () => {
-    const model = getAllModels().find(
-      (m) => m.input_cost_above_200k_per_million !== undefined,
-    );
+    const model = getAllModels().find((m) => m.input_cost_above_200k_per_million !== undefined);
     if (!model) return; // Skip if no model has long-context pricing
 
     const standard = calculateCost({ model, inputTokens: 1000, outputTokens: 100 });

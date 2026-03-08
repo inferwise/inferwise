@@ -1,5 +1,5 @@
-import Table from "cli-table3";
 import chalk from "chalk";
+import Table from "cli-table3";
 
 export type OutputFormat = "table" | "json" | "markdown";
 
@@ -99,7 +99,9 @@ export function formatMarkdown(summary: EstimateSummary): string {
   lines.push(
     `| File | Line | Provider | Model | Input Tokens | Output Tokens | Cost/Call | Monthly (${summary.volume.toLocaleString()}/day) |`,
   );
-  lines.push("|------|------|----------|-------|-------------|--------------|-----------|---------|");
+  lines.push(
+    "|------|------|----------|-------|-------------|--------------|-----------|---------|",
+  );
 
   for (const row of summary.rows) {
     const modelDisplay = row.isDynamic ? `${row.model ?? "unknown"} ~` : (row.model ?? "unknown");

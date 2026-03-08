@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { mkdtemp, writeFile, rm, mkdir } from "node:fs/promises";
-import path from "node:path";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
+import path from "node:path";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { scanDirectory } from "./index.js";
 
 let tmpDir: string;
@@ -255,8 +255,9 @@ const r2 = await client.messages.create({
   it("results are sorted by file path then line number", async () => {
     const results = await scanDirectory(tmpDir);
     for (let i = 1; i < results.length; i++) {
-      const prev = results[i - 1]!;
-      const curr = results[i]!;
+      const prev = results[i - 1];
+      const curr = results[i];
+      if (!prev || !curr) continue;
       const fileOrder = prev.filePath.localeCompare(curr.filePath);
       if (fileOrder === 0) {
         expect(prev.lineNumber).toBeLessThanOrEqual(curr.lineNumber);

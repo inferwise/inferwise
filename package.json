@@ -4,13 +4,7 @@
   "description": "Know your LLM costs before you commit.",
   "private": true,
   "packageManager": "pnpm@9.15.0",
-  "keywords": [
-    "llm",
-    "tokens",
-    "cost",
-    "finops",
-    "ai"
-  ],
+  "keywords": ["llm", "tokens", "cost", "finops", "ai"],
   "author": "Peter Kim",
   "license": "Apache-2.0",
   "repository": {

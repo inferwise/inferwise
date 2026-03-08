@@ -1,11 +1,11 @@
-import { Command } from "commander";
-import chalk from "chalk";
 import { calculateCost, getModel } from "@inferwise/pricing-db";
 import type { Provider } from "@inferwise/pricing-db";
+import chalk from "chalk";
+import { Command } from "commander";
+import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
+import type { EstimateRow, EstimateSummary, OutputFormat } from "../formatters/index.js";
 import { scanDirectory } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
-import { formatTable, formatMarkdown, formatJson } from "../formatters/index.js";
-import type { EstimateRow, EstimateSummary, OutputFormat } from "../formatters/index.js";
 
 // Default token estimates when prompts are dynamic
 const DEFAULT_INPUT_TOKENS = 500;
@@ -30,7 +30,7 @@ export function estimateCommand(): Command {
     .option("--format <table|json|markdown>", "Output format", "table")
     .option("--config <path>", "Path to inferwise.config.json")
     .action(async (scanPath: string, options: EstimateOptions) => {
-      const volume = Math.max(1, parseInt(options.volume, 10) || 1000);
+      const volume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
       const format = resolveFormat(options.format);
 
       if (format === "table") {
@@ -117,6 +117,6 @@ export function estimateCommand(): Command {
         output = formatTable(summary);
       }
 
-      process.stdout.write(output + "\n");
+      process.stdout.write(`${output}\n`);
     });
 }

@@ -1,12 +1,12 @@
-import { Command } from "commander";
-import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
-import path from "node:path";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
+import path from "node:path";
+import { calculateCost, getModel } from "@inferwise/pricing-db";
+import type { Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import Table from "cli-table3";
+import { Command } from "commander";
 import { simpleGit } from "simple-git";
-import { getModel, calculateCost } from "@inferwise/pricing-db";
-import type { Provider } from "@inferwise/pricing-db";
 import { scanDirectory } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
 
@@ -101,9 +101,7 @@ async function getFileCosts(dirPath: string, volume: number): Promise<Map<string
     const outputTokens = Math.round(inputTokens * DEFAULT_OUTPUT_MULTIPLIER);
 
     const pricing = modelId ? getModel(provider, modelId) : undefined;
-    const costPerCall = pricing
-      ? calculateCost({ model: pricing, inputTokens, outputTokens })
-      : 0;
+    const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
     const monthlyCost = costPerCall * volume * 30;
 
     const entry: FileCost = {
@@ -236,8 +234,7 @@ function formatDiffTable(summary: DiffSummary): string {
 
   for (const row of summary.rows) {
     const deltaStr = formatCostDelta(row.monthlyDelta);
-    const deltaColored =
-      row.monthlyDelta > 0 ? chalk.red(deltaStr) : chalk.green(deltaStr);
+    const deltaColored = row.monthlyDelta > 0 ? chalk.red(deltaStr) : chalk.green(deltaStr);
 
     table.push([
       chalk.cyan(row.file),
@@ -256,8 +253,7 @@ function formatDiffTable(summary: DiffSummary): string {
   const lines = [table.toString()];
 
   const netStr = formatCostDelta(summary.netMonthlyDelta);
-  const netColored =
-    summary.netMonthlyDelta > 0 ? chalk.red(netStr) : chalk.green(netStr);
+  const netColored = summary.netMonthlyDelta > 0 ? chalk.red(netStr) : chalk.green(netStr);
   lines.push(chalk.bold("Net monthly impact: ") + chalk.bold(netColored));
 
   return lines.join("\n");
@@ -328,7 +324,7 @@ export function diffCommand(): Command {
     .option("--format <table|json|markdown>", "Output format", "table")
     .option("--fail-on-increase <amount>", "Exit 1 if monthly increase exceeds this USD amount")
     .action(async (options: DiffOptions) => {
-      const volume = Math.max(1, parseInt(options.volume, 10) || 1000);
+      const volume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
       const format = resolveFormat(options.format);
       const base = options.base;
       const head = options.head;
@@ -350,7 +346,8 @@ export function diffCommand(): Command {
 
         // Head: use working directory if HEAD (captures uncommitted changes)
         if (head === "HEAD") {
-          if (format === "table") process.stderr.write(chalk.dim("Scanning working directory...\n"));
+          if (format === "table")
+            process.stderr.write(chalk.dim("Scanning working directory...\n"));
           [baseCosts, headCosts] = await Promise.all([
             getFileCosts(baseDir, volume),
             getFileCosts(gitRoot, volume),
@@ -377,10 +374,10 @@ export function diffCommand(): Command {
           output = formatDiffTable(summary);
         }
 
-        process.stdout.write(output + "\n");
+        process.stdout.write(`${output}\n`);
 
         if (options.failOnIncrease !== undefined) {
-          const threshold = parseFloat(options.failOnIncrease);
+          const threshold = Number.parseFloat(options.failOnIncrease);
           if (!Number.isNaN(threshold) && netMonthlyDelta > threshold) {
             process.stderr.write(
               chalk.red(

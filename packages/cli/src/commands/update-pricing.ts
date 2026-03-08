@@ -1,5 +1,5 @@
+import { getAllProviders, getPricingAgeInDays, getProviderMeta } from "@inferwise/pricing-db";
 import { Command } from "commander";
-import { getAllProviders, getProviderMeta, getPricingAgeInDays } from "@inferwise/pricing-db";
 
 const LITELLM_URL =
   "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json";

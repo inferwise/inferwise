@@ -79,10 +79,7 @@ export function getProviderModels(provider: Provider): ModelPricing[] {
  */
 export function getModel(provider: Provider, modelId: string): ModelPricing | undefined {
   const models = getProviderModels(provider);
-  return (
-    models.find((m) => m.id === modelId) ??
-    models.find((m) => m.aliases.includes(modelId))
-  );
+  return models.find((m) => m.id === modelId) ?? models.find((m) => m.aliases.includes(modelId));
 }
 
 /** Get all models across all providers. */
@@ -130,13 +127,7 @@ export interface CostParams {
  * Cache savings are applied to the cached portion of input separately.
  */
 export function calculateCost(params: CostParams): number {
-  const {
-    model,
-    inputTokens,
-    outputTokens,
-    cachedInputTokens = 0,
-    useBatch = false,
-  } = params;
+  const { model, inputTokens, outputTokens, cachedInputTokens = 0, useBatch = false } = params;
 
   // Auto-detect long context if not explicitly set
   const isLongContext = params.isLongContext ?? inputTokens > 200_000;

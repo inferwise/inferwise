@@ -1,11 +1,11 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
-import path from "node:path";
-import os from "node:os";
-import { simpleGit } from "simple-git";
-import { getModel, calculateCost } from "@inferwise/pricing-db";
+import { calculateCost, getModel } from "@inferwise/pricing-db";
 import type { Provider } from "@inferwise/pricing-db";
+import { simpleGit } from "simple-git";
 
 const DEFAULT_INPUT_TOKENS = 500;
 const DEFAULT_OUTPUT_MULTIPLIER = 2.0;
@@ -156,19 +156,14 @@ async function inlineScan(dirPath: string): Promise<ScanResult[]> {
   return results;
 }
 
-function computeFileCosts(
-  results: ScanResult[],
-  volume: number,
-): Map<string, FileCostEntry[]> {
+function computeFileCosts(results: ScanResult[], volume: number): Map<string, FileCostEntry[]> {
   const byFile = new Map<string, FileCostEntry[]>();
 
   for (const r of results) {
     const inputTokens = DEFAULT_INPUT_TOKENS;
     const outputTokens = Math.round(inputTokens * DEFAULT_OUTPUT_MULTIPLIER);
     const pricing = r.model ? getModel(r.provider, r.model) : undefined;
-    const costPerCall = pricing
-      ? calculateCost({ model: pricing, inputTokens, outputTokens })
-      : 0;
+    const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
 
     const existing = byFile.get(r.filePath) ?? [];
     existing.push({ model: r.model ?? "unknown", monthlyCost: costPerCall * volume * 30 });
@@ -214,7 +209,12 @@ function buildMarkdownReport(
 
   const fmt = (usd: number): string => {
     const abs = Math.abs(usd);
-    const s = abs < 1 ? `$${abs.toFixed(4)}` : abs < 100 ? `$${abs.toFixed(2)}` : `$${Math.round(abs).toLocaleString()}`;
+    const s =
+      abs < 1
+        ? `$${abs.toFixed(4)}`
+        : abs < 100
+          ? `$${abs.toFixed(2)}`
+          : `$${Math.round(abs).toLocaleString()}`;
     return `${usd >= 0 ? "+" : "-"}${s}/mo`;
   };
 
@@ -283,7 +283,7 @@ async function postComment(
 async function run(): Promise<void> {
   const token = core.getInput("github-token", { required: true });
   const volumeStr = core.getInput("volume") || "1000";
-  const volume = Math.max(1, parseInt(volumeStr, 10) || 1000);
+  const volume = Math.max(1, Number.parseInt(volumeStr, 10) || 1000);
   const failOnIncreaseStr = core.getInput("fail-on-increase");
   const workingDir = core.getInput("working-directory") || ".";
 
@@ -327,7 +327,7 @@ async function run(): Promise<void> {
     }
 
     if (failOnIncreaseStr) {
-      const threshold = parseFloat(failOnIncreaseStr);
+      const threshold = Number.parseFloat(failOnIncreaseStr);
       if (!Number.isNaN(threshold) && netDelta > threshold) {
         core.setFailed(
           `Monthly cost increase $${netDelta.toFixed(2)} exceeds threshold $${threshold.toFixed(2)}.`,
