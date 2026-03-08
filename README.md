@@ -30,15 +30,19 @@ pnpm add -g inferwise
 
 ## Why Inferwise?
 
-LLM API calls are the new cloud resource — but unlike EC2 instances or database queries, there's no built-in cost visibility. A single model swap can 10x your bill. Whether you're a developer building a chatbot, a team automating workflows via API, or an AI agent generating code — you need to know what it costs before it ships.
+Your LLM bill is climbing and you're not sure why. You hit your API rate limit last Tuesday. Someone on the team swapped `gpt-4o-mini` for `claude-opus-4` and nobody noticed until the invoice arrived. You're shipping features faster than ever — but every new endpoint is another open tab on a credit card you can't see.
+
+**This is LLM cost anxiety.** You know you're spending, but you don't know where, how much, or whether it's worth it. And unlike cloud infrastructure where you can check a dashboard before deploying, there's no cost visibility built into the LLM development workflow. The bill shows up after the code ships.
+
+Inferwise fixes this. One command tells you what every LLM call in your codebase costs — before you commit, before you merge, before it hits production.
 
 ### Who This Is For
 
-**Developers building LLM-powered features.** You're adding a summarization endpoint, a chat interface, or a RAG pipeline. You pick a model, write the integration, and ship it. But do you know the per-call cost? The monthly projection at scale? Inferwise shows you before you commit.
+**Developers building LLM-powered features.** You're adding a summarization endpoint, a chat interface, or a RAG pipeline. You pick a model, write the integration, and ship it. But do you know the per-call cost? The monthly projection at 1,000 requests/day? At 10,000? Inferwise shows you before you commit.
 
-**Teams running LLM-powered automation.** Customer support bots, document processing pipelines, content generation workflows — any system making LLM API calls at volume. One team member upgrades a model for "better quality" and the monthly bill jumps $5,000. Inferwise catches that in the PR.
+**Teams hitting spending limits.** Your Anthropic or OpenAI bill doubled last month. You're not sure which endpoint is responsible. One team member upgraded a model for "better quality" and the monthly bill jumped $5,000. Nobody caught it in code review because there's no cost diff in the PR. Inferwise adds that missing layer.
 
-**AI coding agents.** When tools like Cursor, Claude Code, Copilot, or Codex generate code, they optimize for correctness — not cost. They'll reach for `claude-opus-4` on every call because it's the most capable. Without a cost gate, expensive model choices ship silently.
+**AI coding agents.** When tools like Cursor, Claude Code, Copilot, or Codex generate code, they optimize for correctness — not cost. They'll reach for `claude-opus-4` on every call because it's the most capable. Without a cost gate, expensive model choices ship silently into production.
 
 ### The Workflow
 
