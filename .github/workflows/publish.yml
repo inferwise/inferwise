@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # For npm provenance
+  id-token: write # For npm provenance
 
 jobs:
   publish:
@@ -38,11 +38,18 @@ jobs:
         run: pnpm test
 
       - name: Publish @inferwise/pricing-db
-        run: pnpm --filter @inferwise/pricing-db publish --no-git-checks --provenance
+        run: pnpm --filter @inferwise/pricing-db publish --no-git-checks --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
+
+      - name: Publish @inferwise/github-action
+        run: pnpm --filter @inferwise/github-action publish --no-git-checks --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        continue-on-error: true
 
       - name: Publish inferwise (CLI)
-        run: pnpm --filter inferwise publish --no-git-checks --provenance
+        run: pnpm --filter inferwise publish --no-git-checks --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

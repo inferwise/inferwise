@@ -1,6 +1,6 @@
 {
   "name": "inferwise",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Know your LLM costs before you commit.",
   "type": "module",
   "bin": {
