@@ -249,23 +249,11 @@ pnpm --filter @inferwise/scripts sync-pricing  # Sync provider pricing
 
 ## Contributing
 
-Contributions are welcome. Please:
+Contributions welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide.
 
-1. Fork the repo and create a feature branch
-2. Follow the existing code style (TypeScript strict, Biome for lint/format)
-3. Write tests for any new public functions (Vitest)
-4. Use conventional commits: `feat:`, `fix:`, `docs:`, `chore:`
-5. Open a PR — the Inferwise Action will post a cost diff automatically
+**Quick start:** fork, branch, make changes, run `pnpm lint && pnpm build && pnpm typecheck && pnpm test`, open a PR.
 
-### Updating Pricing Data
-
-The pricing database lives in [`packages/pricing-db/providers/`](packages/pricing-db/providers/) as human-readable JSON files. Community corrections and additions are encouraged:
-
-1. Edit the relevant provider JSON file (e.g., `anthropic.json`, `openai.json`)
-2. All files must conform to [`schema.json`](packages/pricing-db/schema.json) — CI validates this automatically
-3. Update `last_verified` to today's date and include the official pricing page URL in `source`
-4. Run `pnpm test` to verify schema validation passes
-5. Open a PR with the pricing page link as evidence
+**Pricing data corrections** are especially valuable — edit the JSON files in [`packages/pricing-db/providers/`](packages/pricing-db/providers/) and open a PR with evidence from the official pricing page. CI validates against [`schema.json`](packages/pricing-db/schema.json) automatically.
 
 ---
 
