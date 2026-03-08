@@ -44,6 +44,52 @@ Inferwise fixes this. One command tells you what every LLM call in your codebase
 
 **AI coding agents.** When tools like Cursor, Claude Code, Copilot, or Codex generate code, they optimize for correctness — not cost. They'll reach for `claude-opus-4` on every call because it's the most capable. Without a cost gate, expensive model choices ship silently into production.
 
+### How It Works
+
+```
+ WHO WRITES THE CODE                     WHAT CALLS THE LLMs
+ ────────────────────                    ──────────────────────
+ Developers                              Chatbots / Support Agents
+ AI Coding Agents (Cursor, Codex...)     RAG Pipelines
+ Platform Teams                          Document Processing
+                                         Content Generation
+                                         Workflow Automation (n8n, Zapier)
+                │                                    │
+                └──────────┐          ┌──────────────┘
+                           ▼          ▼
+                  ┌─────────────────────────┐
+                  │      Your Codebase       │
+                  │                          │
+                  │  client.messages.create(  │
+                  │    model: "claude-opus-4" │
+                  │  )                        │
+                  └────────────┬─────────────┘
+                               │
+                               ▼
+              ┌─────────────────────────────────┐
+              │           Inferwise              │
+              │                                  │
+              │  npx inferwise estimate .         │
+              │  npx inferwise diff               │
+              │  npx inferwise price --compare    │
+              └──────┬──────────┬───────────┬────┘
+                     │          │           │
+                     ▼          ▼           ▼
+               CLI Output   PR Comment   JSON API
+               (terminal)   (GitHub CI)  (agents &
+                                          tooling)
+                     │          │           │
+                     ▼          ▼           ▼
+              ┌─────────────────────────────────┐
+              │          Decisions               │
+              │                                  │
+              │  ✓ Swap Opus → Sonnet (-$117/mo) │
+              │  ✓ Block PR over $500 increase   │
+              │  ✓ Agent picks cheapest model    │
+              │  ✓ Team sets per-endpoint budget  │
+              └─────────────────────────────────┘
+```
+
 ### The Workflow
 
 1. Developer (or AI agent) writes code with LLM API calls
