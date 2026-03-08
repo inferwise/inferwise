@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   calculateCost,
@@ -7,6 +10,10 @@ import {
   getPricingAgeInDays,
   getProviderMeta,
 } from "./index.js";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const PROVIDERS_DIR = join(__dirname, "../providers");
+const SCHEMA_PATH = join(__dirname, "../schema.json");
 
 describe("getAllProviders", () => {
   it("returns the four supported providers", () => {
@@ -169,5 +176,98 @@ describe("calculateCost", () => {
     expect(longCtx).toBeGreaterThan(0);
     // Standard 1000 tokens should be cheaper overall than 250k tokens at any rate
     expect(longCtx).toBeGreaterThan(standard);
+  });
+});
+
+describe("schema validation", () => {
+  const schema = JSON.parse(readFileSync(SCHEMA_PATH, "utf-8")) as Record<string, unknown>;
+  const schemaProps = (schema.properties as Record<string, unknown>) ?? {};
+  const modelSchema = (
+    (schemaProps.models as Record<string, unknown>)?.items as Record<string, unknown>
+  )?.properties as Record<string, unknown>;
+  const requiredModelFields = (
+    (schemaProps.models as Record<string, unknown>)?.items as Record<string, unknown>
+  )?.required as string[];
+  const providerFiles = readdirSync(PROVIDERS_DIR).filter((f) => f.endsWith(".json"));
+
+  it("every provider JSON has required top-level fields", () => {
+    const requiredFields = schema.required as string[];
+    for (const file of providerFiles) {
+      const data = JSON.parse(readFileSync(join(PROVIDERS_DIR, file), "utf-8")) as Record<
+        string,
+        unknown
+      >;
+      for (const field of requiredFields) {
+        expect(data, `${file} missing "${field}"`).toHaveProperty(field);
+      }
+    }
+  });
+
+  it("every model has all required schema fields", () => {
+    for (const file of providerFiles) {
+      const data = JSON.parse(readFileSync(join(PROVIDERS_DIR, file), "utf-8")) as {
+        models: Record<string, unknown>[];
+      };
+      for (const model of data.models) {
+        for (const field of requiredModelFields) {
+          expect(model, `${file} model "${model.id}" missing "${field}"`).toHaveProperty(field);
+        }
+      }
+    }
+  });
+
+  it("no model has extra fields not in schema", () => {
+    const allowedFields = Object.keys(modelSchema);
+    for (const file of providerFiles) {
+      const data = JSON.parse(readFileSync(join(PROVIDERS_DIR, file), "utf-8")) as {
+        models: Record<string, unknown>[];
+      };
+      for (const model of data.models) {
+        for (const key of Object.keys(model)) {
+          expect(allowedFields, `${file} model "${model.id}" has unknown field "${key}"`).toContain(
+            key,
+          );
+        }
+      }
+    }
+  });
+
+  it("no duplicate model IDs within a provider", () => {
+    for (const file of providerFiles) {
+      const data = JSON.parse(readFileSync(join(PROVIDERS_DIR, file), "utf-8")) as {
+        models: { id: string }[];
+      };
+      const ids = data.models.map((m) => m.id);
+      const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
+      expect(dupes, `${file} has duplicate model IDs`).toEqual([]);
+    }
+  });
+
+  it("all costs are non-negative numbers", () => {
+    const costFields = Object.keys(modelSchema).filter((k) => k.includes("cost"));
+    for (const file of providerFiles) {
+      const data = JSON.parse(readFileSync(join(PROVIDERS_DIR, file), "utf-8")) as {
+        models: Record<string, unknown>[];
+      };
+      for (const model of data.models) {
+        for (const field of costFields) {
+          if (field in model) {
+            const val = model[field] as number;
+            expect(val, `${file} "${model.id}" ${field} is negative`).toBeGreaterThanOrEqual(0);
+          }
+        }
+      }
+    }
+  });
+
+  it("last_updated and last_verified are valid ISO dates", () => {
+    for (const file of providerFiles) {
+      const data = JSON.parse(readFileSync(join(PROVIDERS_DIR, file), "utf-8")) as {
+        last_updated: string;
+        last_verified: string;
+      };
+      expect(data.last_updated, `${file} last_updated`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(data.last_verified, `${file} last_verified`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
   });
 });
