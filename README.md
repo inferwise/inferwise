@@ -38,7 +38,7 @@ LLM API calls are the new cloud resource — but unlike EC2 instances or databas
 
 **Teams running LLM-powered automation.** Customer support bots, document processing pipelines, content generation workflows — any system making LLM API calls at volume. One team member upgrades a model for "better quality" and the monthly bill jumps $5,000. Inferwise catches that in the PR.
 
-**AI coding agents.** When tools like Cursor, Claude Code, Copilot, or Devin generate code, they optimize for correctness — not cost. They'll reach for `claude-opus-4` on every call because it's the most capable. Without a cost gate, expensive model choices ship silently.
+**AI coding agents.** When tools like Cursor, Claude Code, Copilot, or Codex generate code, they optimize for correctness — not cost. They'll reach for `claude-opus-4` on every call because it's the most capable. Without a cost gate, expensive model choices ship silently.
 
 ### The Workflow
 
