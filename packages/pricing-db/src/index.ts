@@ -73,13 +73,35 @@ export function getProviderModels(provider: Provider): ModelPricing[] {
   return data.models.map((model) => ({ ...model, provider }));
 }
 
+/** Strip common prefixes that frameworks add to model IDs. */
+function normalizeModelId(modelId: string): string {
+  return modelId.replace(/^(models\/|gemini\/|xai\/|openai\/)/, "");
+}
+
 /**
  * Look up a model by canonical ID or alias.
- * Checks canonical ID first, then aliases array.
+ * Checks canonical ID first, then aliases, then tries with stripped prefixes.
  */
 export function getModel(provider: Provider, modelId: string): ModelPricing | undefined {
   const models = getProviderModels(provider);
-  return models.find((m) => m.id === modelId) ?? models.find((m) => m.aliases.includes(modelId));
+
+  // Exact match on ID
+  const byId = models.find((m) => m.id === modelId);
+  if (byId) return byId;
+
+  // Exact match on alias
+  const byAlias = models.find((m) => m.aliases.includes(modelId));
+  if (byAlias) return byAlias;
+
+  // Fuzzy: strip common prefixes and retry
+  const normalized = normalizeModelId(modelId);
+  if (normalized !== modelId) {
+    const byNormId = models.find((m) => m.id === normalized);
+    if (byNormId) return byNormId;
+    return models.find((m) => m.aliases.includes(normalized));
+  }
+
+  return undefined;
 }
 
 /** Get all models across all providers. */

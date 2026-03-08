@@ -7,7 +7,7 @@
     {
       "id": "grok-3",
       "name": "Grok 3",
-      "aliases": [],
+      "aliases": ["xai/grok-3"],
       "status": "current",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -27,7 +27,7 @@
     {
       "id": "grok-3-mini",
       "name": "Grok 3 Mini",
-      "aliases": [],
+      "aliases": ["xai/grok-3-mini"],
       "status": "current",
       "input_cost_per_million": 0.3,
       "output_cost_per_million": 0.5,
@@ -47,7 +47,7 @@
     {
       "id": "grok-3-vision",
       "name": "Grok 3 Vision",
-      "aliases": [],
+      "aliases": ["xai/grok-3-vision"],
       "status": "current",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -65,7 +65,7 @@
     {
       "id": "grok-2",
       "name": "Grok 2",
-      "aliases": ["grok-2-1212"],
+      "aliases": ["grok-2-1212", "xai/grok-2"],
       "status": "legacy",
       "input_cost_per_million": 2,
       "output_cost_per_million": 10,
@@ -82,7 +82,7 @@
     {
       "id": "grok-2-vision",
       "name": "Grok 2 Vision",
-      "aliases": ["grok-2-vision-1212"],
+      "aliases": ["grok-2-vision-1212", "xai/grok-2-vision"],
       "status": "legacy",
       "input_cost_per_million": 2,
       "output_cost_per_million": 10,

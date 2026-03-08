@@ -7,7 +7,7 @@
     {
       "id": "gemini-2.5-pro",
       "name": "Gemini 2.5 Pro",
-      "aliases": ["gemini-2.5-pro-preview"],
+      "aliases": ["gemini-2.5-pro-preview", "models/gemini-2.5-pro", "gemini/gemini-2.5-pro"],
       "status": "current",
       "input_cost_per_million": 1.25,
       "output_cost_per_million": 10,
@@ -27,7 +27,7 @@
     {
       "id": "gemini-2.5-flash",
       "name": "Gemini 2.5 Flash",
-      "aliases": ["gemini-2.5-flash-preview"],
+      "aliases": ["gemini-2.5-flash-preview", "models/gemini-2.5-flash", "gemini/gemini-2.5-flash"],
       "status": "current",
       "input_cost_per_million": 0.3,
       "output_cost_per_million": 2.5,
@@ -45,7 +45,7 @@
     {
       "id": "gemini-2.0-flash",
       "name": "Gemini 2.0 Flash",
-      "aliases": ["gemini-2.0-flash-001"],
+      "aliases": ["gemini-2.0-flash-001", "models/gemini-2.0-flash", "gemini/gemini-2.0-flash"],
       "status": "current",
       "input_cost_per_million": 0.1,
       "output_cost_per_million": 0.4,
@@ -63,7 +63,7 @@
     {
       "id": "gemini-2.0-flash-lite",
       "name": "Gemini 2.0 Flash Lite",
-      "aliases": [],
+      "aliases": ["models/gemini-2.0-flash-lite", "gemini/gemini-2.0-flash-lite"],
       "status": "current",
       "input_cost_per_million": 0.075,
       "output_cost_per_million": 0.3,
@@ -81,7 +81,7 @@
     {
       "id": "gemini-1.5-pro",
       "name": "Gemini 1.5 Pro",
-      "aliases": ["gemini-1.5-pro-002"],
+      "aliases": ["gemini-1.5-pro-002", "gemini-1.5-pro-001", "models/gemini-1.5-pro", "gemini/gemini-1.5-pro"],
       "status": "legacy",
       "input_cost_per_million": 3.5,
       "output_cost_per_million": 10.5,
@@ -101,7 +101,7 @@
     {
       "id": "gemini-1.5-flash",
       "name": "Gemini 1.5 Flash",
-      "aliases": ["gemini-1.5-flash-002"],
+      "aliases": ["gemini-1.5-flash-002", "gemini-1.5-flash-001", "models/gemini-1.5-flash", "gemini/gemini-1.5-flash"],
       "status": "legacy",
       "input_cost_per_million": 0.075,
       "output_cost_per_million": 0.3,

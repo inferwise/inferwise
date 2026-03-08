@@ -7,7 +7,7 @@
     {
       "id": "gpt-4o",
       "name": "GPT-4o",
-      "aliases": ["gpt-4o-2024-11-20"],
+      "aliases": ["gpt-4o-2024-11-20", "gpt-4o-2024-08-06", "gpt-4o-2024-05-13"],
       "status": "current",
       "input_cost_per_million": 2.5,
       "output_cost_per_million": 10,
@@ -145,7 +145,7 @@
     {
       "id": "gpt-4-turbo",
       "name": "GPT-4 Turbo",
-      "aliases": ["gpt-4-turbo-2024-04-09"],
+      "aliases": ["gpt-4-turbo-2024-04-09", "gpt-4", "gpt-4-turbo-preview"],
       "status": "legacy",
       "input_cost_per_million": 10,
       "output_cost_per_million": 30,
