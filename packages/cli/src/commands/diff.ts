@@ -1,8 +1,8 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { calculateCost, getModel } from "@inferwise/pricing-db";
-import type { Provider } from "@inferwise/pricing-db";
+import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
+import type { ModelPricing, Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import Table from "cli-table3";
 import { Command } from "commander";
@@ -80,6 +80,14 @@ async function checkoutRefToDir(gitRoot: string, ref: string): Promise<string> {
   return tmpDir;
 }
 
+/** Use cheapest current model for a provider when model ID is unknown. */
+function fallbackModel(provider: Provider): ModelPricing | undefined {
+  const models = getProviderModels(provider).filter((m) => m.status === "current");
+  if (models.length === 0) return undefined;
+  models.sort((a, b) => a.input_cost_per_million - b.input_cost_per_million);
+  return models[0];
+}
+
 /** Compute cost for a single scan result. */
 function computeFileCostEntry(
   result: {
@@ -98,15 +106,17 @@ function computeFileCostEntry(
   const modelId = result.model;
   const volume = resolveVolume(config, result.filePath, cliVolume, cliVolumeExplicit);
 
+  const pricing = modelId ? getModel(provider, modelId) : fallbackModel(provider);
+
   let inputTokens = 0;
   if (result.systemPrompt || result.userPrompt) {
     inputTokens = countMessageTokens(provider, modelId ?? "", {
       ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
       ...(result.userPrompt ? { user: result.userPrompt } : {}),
     });
+  } else if (pricing) {
+    inputTokens = pricing.context_window - pricing.max_output_tokens;
   }
-
-  const pricing = modelId ? getModel(provider, modelId) : undefined;
 
   let outputTokens = 0;
   if (result.maxOutputTokens) {

@@ -70,13 +70,14 @@ function resolveFormat(raw: string): AuditOutputFormat {
 
 // ── Token + cost helpers ────────────────────────────────────────────
 
-function resolveInputTokens(result: ScanResult): number {
+function resolveInputTokens(result: ScanResult, model: ModelPricing | undefined): number {
   if (result.systemPrompt || result.userPrompt) {
     return countMessageTokens(result.provider, result.model ?? "", {
       ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
       ...(result.userPrompt ? { user: result.userPrompt } : {}),
     });
   }
+  if (model) return model.context_window - model.max_output_tokens;
   return 0;
 }
 
@@ -133,7 +134,7 @@ function detectCheaperModels(results: ScanResult[], volume: number): CheaperMode
     const alt = findCheaperAlternative(provider, pricing.id, pricing.tier);
     if (!alt) continue;
 
-    const inputTokens = resolveInputTokens(result);
+    const inputTokens = resolveInputTokens(result, pricing);
     const outputTokens = resolveOutputTokens(result, pricing);
     const currentCost = monthlyCostForModel(pricing, inputTokens, outputTokens, volume);
     const altCost = monthlyCostForModel(alt, inputTokens, outputTokens, volume);
@@ -185,7 +186,7 @@ function detectCachingOpportunities(results: ScanResult[], volume: number): Cach
     if (!pricing || !pricing.supports_prompt_caching) continue;
     if (pricing.cache_read_input_cost_per_million === undefined) continue;
 
-    const inputTokens = resolveInputTokens(result);
+    const inputTokens = resolveInputTokens(result, pricing);
     const outputTokens = resolveOutputTokens(result, pricing);
     const standardCost = monthlyCostForModel(pricing, inputTokens, outputTokens, volume);
     const totalStandardCost = standardCost * locations.length;
@@ -255,7 +256,7 @@ function detectBatchOpportunities(results: ScanResult[], volume: number): BatchF
     let totalBatchCost = 0;
 
     for (const result of group.results) {
-      const inputTokens = resolveInputTokens(result);
+      const inputTokens = resolveInputTokens(result, pricing);
       const outputTokens = resolveOutputTokens(result, pricing);
       const standard = calculateCost({
         model: pricing,
