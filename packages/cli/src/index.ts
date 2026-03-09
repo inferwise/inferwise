@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
+import { auditCommand } from "./commands/audit.js";
 import { diffCommand } from "./commands/diff.js";
 import { estimateCommand } from "./commands/estimate.js";
 import { priceCommand } from "./commands/price.js";
@@ -21,6 +22,7 @@ program
 
 program.addCommand(estimateCommand());
 program.addCommand(diffCommand());
+program.addCommand(auditCommand());
 program.addCommand(priceCommand());
 program.addCommand(updatePricingCommand());
 

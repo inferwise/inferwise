@@ -1,0 +1,146 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { z } from "zod";
+
+const overrideSchema = z.object({
+  pattern: z.string(),
+  volume: z.number().positive().optional(),
+  outputTokenMultiplier: z.number().positive().optional(),
+});
+
+const configSchema = z.object({
+  defaultVolume: z.number().positive().optional(),
+  outputTokenEstimation: z
+    .object({
+      method: z.literal("multiplier"),
+      multiplier: z.number().positive(),
+    })
+    .optional(),
+  ignore: z.array(z.string()).optional(),
+  overrides: z.array(overrideSchema).optional(),
+});
+
+export type InferwiseConfig = z.infer<typeof configSchema>;
+
+const CONFIG_FILENAME = "inferwise.config.json";
+const DEFAULT_OUTPUT_MULTIPLIER = 2.0;
+
+/** Search for inferwise.config.json from startDir up to filesystem root. */
+async function findConfigFile(startDir: string): Promise<string | null> {
+  let current = path.resolve(startDir);
+
+  while (true) {
+    const candidate = path.join(current, CONFIG_FILENAME);
+    try {
+      await readFile(candidate, "utf-8");
+      return candidate;
+    } catch {
+      // File doesn't exist at this level — go up
+    }
+
+    const parent = path.dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+}
+
+/** Parse and validate config JSON, throwing a helpful error on invalid input. */
+function parseConfig(raw: string, filePath: string): InferwiseConfig {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`Invalid JSON in ${filePath}`);
+  }
+
+  const result = configSchema.safeParse(parsed);
+  if (!result.success) {
+    const issues = result.error.issues
+      .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
+      .join("\n");
+    throw new Error(`Invalid config in ${filePath}:\n${issues}`);
+  }
+
+  return result.data;
+}
+
+/**
+ * Load inferwise.config.json.
+ * - If configPath provided, reads that file directly.
+ * - Otherwise walks up from CWD looking for inferwise.config.json.
+ * - Returns {} if no file found (zero config to start).
+ */
+export async function loadConfig(configPath?: string): Promise<InferwiseConfig> {
+  if (configPath) {
+    const resolved = path.resolve(configPath);
+    const raw = await readFile(resolved, "utf-8");
+    return parseConfig(raw, resolved);
+  }
+
+  const found = await findConfigFile(process.cwd());
+  if (!found) return {};
+
+  const raw = await readFile(found, "utf-8");
+  return parseConfig(raw, found);
+}
+
+/** Check if a file path matches a glob-like pattern (simple prefix + wildcard). */
+function matchesPattern(filePath: string, pattern: string): boolean {
+  // Normalize separators to forward slashes for consistent matching
+  const normalized = filePath.replace(/\\/g, "/");
+  const normalizedPattern = pattern.replace(/\\/g, "/");
+
+  // Convert glob pattern to regex
+  const regexStr = normalizedPattern
+    .replace(/\./g, "\\.")
+    .replace(/\*\*/g, "\0")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\0/g, ".*");
+
+  const regex = new RegExp(`^${regexStr}$`);
+  return regex.test(normalized);
+}
+
+/** Find the first matching override for a file path. */
+function findOverride(
+  overrides: InferwiseConfig["overrides"],
+  filePath: string,
+): z.infer<typeof overrideSchema> | undefined {
+  if (!overrides) return undefined;
+  return overrides.find((o) => matchesPattern(filePath, o.pattern));
+}
+
+/**
+ * Resolve the daily request volume for a given file.
+ * Priority: CLI explicit flag > matching override > config default > fallback.
+ */
+export function resolveVolume(
+  config: InferwiseConfig,
+  filePath: string,
+  cliVolume: number,
+  cliVolumeExplicit: boolean,
+): number {
+  if (cliVolumeExplicit) return cliVolume;
+
+  const override = findOverride(config.overrides, filePath);
+  if (override?.volume) return override.volume;
+
+  if (config.defaultVolume) return config.defaultVolume;
+
+  return cliVolume;
+}
+
+/**
+ * Resolve the output token multiplier for a given file.
+ * Priority: matching override > config global > default 2.0.
+ */
+export function resolveOutputMultiplier(config: InferwiseConfig, filePath: string): number {
+  const override = findOverride(config.overrides, filePath);
+  if (override?.outputTokenMultiplier) return override.outputTokenMultiplier;
+
+  if (config.outputTokenEstimation?.multiplier) {
+    return config.outputTokenEstimation.multiplier;
+  }
+
+  return DEFAULT_OUTPUT_MULTIPLIER;
+}

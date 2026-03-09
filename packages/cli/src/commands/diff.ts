@@ -7,11 +7,12 @@ import chalk from "chalk";
 import Table from "cli-table3";
 import { Command } from "commander";
 import { simpleGit } from "simple-git";
+import type { InferwiseConfig } from "../config.js";
+import { loadConfig, resolveOutputMultiplier, resolveVolume } from "../config.js";
 import { scanDirectory } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
 
 const DEFAULT_INPUT_TOKENS = 500;
-const DEFAULT_OUTPUT_MULTIPLIER = 2.0;
 const SUPPORTED_EXTENSIONS = new Set(["ts", "tsx", "js", "jsx", "mjs", "cjs", "py"]);
 
 interface DiffOptions {
@@ -20,6 +21,7 @@ interface DiffOptions {
   volume: string;
   format: string;
   failOnIncrease?: string;
+  config?: string;
 }
 
 export type DiffOutputFormat = "table" | "json" | "markdown";
@@ -79,38 +81,65 @@ async function checkoutRefToDir(gitRoot: string, ref: string): Promise<string> {
   return tmpDir;
 }
 
+/** Compute cost for a single scan result using config-aware multiplier and volume. */
+function computeFileCostEntry(
+  result: {
+    filePath: string;
+    provider: Provider;
+    model: string | null;
+    systemPrompt: string | null;
+    userPrompt: string | null;
+  },
+  config: InferwiseConfig,
+  cliVolume: number,
+  cliVolumeExplicit: boolean,
+): FileCost {
+  const provider = result.provider;
+  const modelId = result.model;
+  const multiplier = resolveOutputMultiplier(config, result.filePath);
+  const volume = resolveVolume(config, result.filePath, cliVolume, cliVolumeExplicit);
+
+  let inputTokens: number;
+  if (result.systemPrompt || result.userPrompt) {
+    inputTokens = countMessageTokens(provider, modelId ?? "", {
+      ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
+      ...(result.userPrompt ? { user: result.userPrompt } : {}),
+    });
+  } else {
+    inputTokens = DEFAULT_INPUT_TOKENS;
+  }
+
+  const outputTokens = Math.round(inputTokens * multiplier);
+  const pricing = modelId ? getModel(provider, modelId) : undefined;
+  const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
+  const monthlyCost = costPerCall * volume * 30;
+
+  return {
+    file: result.filePath,
+    model: modelId ?? "unknown",
+    provider,
+    costPerCall,
+    monthlyCost,
+  };
+}
+
 /** Aggregate per-file costs from a scan directory. */
-async function getFileCosts(dirPath: string, volume: number): Promise<Map<string, FileCost[]>> {
-  const results = await scanDirectory(dirPath);
+async function getFileCosts(
+  dirPath: string,
+  config: InferwiseConfig,
+  cliVolume: number,
+  cliVolumeExplicit: boolean,
+): Promise<Map<string, FileCost[]>> {
+  const results = await scanDirectory(dirPath, config.ignore);
   const byFile = new Map<string, FileCost[]>();
 
   for (const result of results) {
-    const provider = result.provider as Provider;
-    const modelId = result.model;
-
-    let inputTokens: number;
-    if (result.systemPrompt || result.userPrompt) {
-      inputTokens = countMessageTokens(provider, modelId ?? "", {
-        ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
-        ...(result.userPrompt ? { user: result.userPrompt } : {}),
-      });
-    } else {
-      inputTokens = DEFAULT_INPUT_TOKENS;
-    }
-
-    const outputTokens = Math.round(inputTokens * DEFAULT_OUTPUT_MULTIPLIER);
-
-    const pricing = modelId ? getModel(provider, modelId) : undefined;
-    const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
-    const monthlyCost = costPerCall * volume * 30;
-
-    const entry: FileCost = {
-      file: result.filePath,
-      model: modelId ?? "unknown",
-      provider,
-      costPerCall,
-      monthlyCost,
-    };
+    const entry = computeFileCostEntry(
+      { ...result, provider: result.provider as Provider },
+      config,
+      cliVolume,
+      cliVolumeExplicit,
+    );
 
     const existing = byFile.get(result.filePath) ?? [];
     existing.push(entry);
@@ -323,11 +352,15 @@ export function diffCommand(): Command {
     .option("--volume <number>", "Requests per day for monthly projection", "1000")
     .option("--format <table|json|markdown>", "Output format", "table")
     .option("--fail-on-increase <amount>", "Exit 1 if monthly increase exceeds this USD amount")
+    .option("--config <path>", "Path to inferwise.config.json")
     .action(async (options: DiffOptions) => {
-      const volume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
+      const cliVolume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
+      const cliVolumeExplicit = options.volume !== "1000";
       const format = resolveFormat(options.format);
       const base = options.base;
       const head = options.head;
+
+      const config = await loadConfig(options.config);
 
       if (format === "table") {
         process.stderr.write(chalk.dim(`Comparing ${base} → ${head}...\n`));
@@ -349,21 +382,21 @@ export function diffCommand(): Command {
           if (format === "table")
             process.stderr.write(chalk.dim("Scanning working directory...\n"));
           [baseCosts, headCosts] = await Promise.all([
-            getFileCosts(baseDir, volume),
-            getFileCosts(gitRoot, volume),
+            getFileCosts(baseDir, config, cliVolume, cliVolumeExplicit),
+            getFileCosts(gitRoot, config, cliVolume, cliVolumeExplicit),
           ]);
         } else {
           if (format === "table") process.stderr.write(chalk.dim(`Checking out ${head}...\n`));
           headDir = await checkoutRefToDir(gitRoot, head);
           [baseCosts, headCosts] = await Promise.all([
-            getFileCosts(baseDir, volume),
-            getFileCosts(headDir, volume),
+            getFileCosts(baseDir, config, cliVolume, cliVolumeExplicit),
+            getFileCosts(headDir, config, cliVolume, cliVolumeExplicit),
           ]);
         }
 
         const rows = buildDiff(baseCosts, headCosts);
         const netMonthlyDelta = rows.reduce((sum, r) => sum + r.monthlyDelta, 0);
-        const summary: DiffSummary = { rows, netMonthlyDelta, volume };
+        const summary: DiffSummary = { rows, netMonthlyDelta, volume: cliVolume };
 
         let output: string;
         if (format === "json") {

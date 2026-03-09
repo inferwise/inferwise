@@ -2,14 +2,16 @@ import { calculateCost, getModel } from "@inferwise/pricing-db";
 import type { Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import { Command } from "commander";
+import type { InferwiseConfig } from "../config.js";
+import { loadConfig, resolveOutputMultiplier, resolveVolume } from "../config.js";
 import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
 import type { EstimateRow, EstimateSummary, OutputFormat } from "../formatters/index.js";
 import { scanDirectory } from "../scanners/index.js";
+import type { ScanResult } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
 
 // Default token estimates when prompts are dynamic
 const DEFAULT_INPUT_TOKENS = 500;
-const DEFAULT_OUTPUT_MULTIPLIER = 2.0;
 
 interface EstimateOptions {
   volume: string;
@@ -22,6 +24,54 @@ function resolveFormat(raw: string): OutputFormat {
   return "table";
 }
 
+function computeRowCost(
+  result: ScanResult,
+  config: InferwiseConfig,
+  cliVolume: number,
+  cliVolumeExplicit: boolean,
+): EstimateRow {
+  const provider = result.provider as Provider;
+  const modelId = result.model;
+  const multiplier = resolveOutputMultiplier(config, result.filePath);
+  const volume = resolveVolume(config, result.filePath, cliVolume, cliVolumeExplicit);
+
+  let inputTokens: number;
+  if (result.systemPrompt || result.userPrompt) {
+    inputTokens = countMessageTokens(provider, modelId ?? "", {
+      ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
+      ...(result.userPrompt ? { user: result.userPrompt } : {}),
+    });
+  } else {
+    inputTokens = DEFAULT_INPUT_TOKENS;
+  }
+
+  const outputTokens = Math.round(inputTokens * multiplier);
+  const pricing = modelId ? getModel(provider, modelId) : undefined;
+  const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
+  const monthlyCost = costPerCall * volume * 30;
+
+  return {
+    file: result.filePath,
+    line: result.lineNumber,
+    provider,
+    model: modelId ?? "unknown",
+    inputTokens,
+    outputTokens,
+    costPerCall,
+    monthlyCost,
+    isDynamic: result.isDynamic,
+  };
+}
+
+function buildEstimateRows(
+  results: ScanResult[],
+  config: InferwiseConfig,
+  cliVolume: number,
+  cliVolumeExplicit: boolean,
+): EstimateRow[] {
+  return results.map((r) => computeRowCost(r, config, cliVolume, cliVolumeExplicit));
+}
+
 export function estimateCommand(): Command {
   return new Command("estimate")
     .description("Scan a directory for LLM API calls and estimate costs")
@@ -30,83 +80,27 @@ export function estimateCommand(): Command {
     .option("--format <table|json|markdown>", "Output format", "table")
     .option("--config <path>", "Path to inferwise.config.json")
     .action(async (scanPath: string, options: EstimateOptions) => {
-      const volume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
+      const cliVolume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
+      const cliVolumeExplicit = options.volume !== "1000";
       const format = resolveFormat(options.format);
+
+      const config = await loadConfig(options.config);
 
       if (format === "table") {
         process.stderr.write(chalk.dim(`Scanning ${scanPath}...\n`));
       }
 
-      const results = await scanDirectory(scanPath);
+      const results = await scanDirectory(scanPath, config.ignore);
 
       if (format === "table" && results.length === 0) {
         process.stdout.write(chalk.yellow("No LLM API calls detected.\n"));
         return;
       }
 
-      const rows: EstimateRow[] = [];
-
-      for (const result of results) {
-        const provider = result.provider as Provider;
-        const modelId = result.model;
-
-        // Count input tokens from static prompts, or fall back to defaults
-        let inputTokens: number;
-        if (result.systemPrompt || result.userPrompt) {
-          inputTokens = countMessageTokens(provider, modelId ?? "", {
-            ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
-            ...(result.userPrompt ? { user: result.userPrompt } : {}),
-          });
-        } else {
-          inputTokens = DEFAULT_INPUT_TOKENS;
-        }
-
-        const outputTokens = Math.round(inputTokens * DEFAULT_OUTPUT_MULTIPLIER);
-
-        // Look up pricing — skip if model unknown
-        if (!modelId) {
-          rows.push({
-            file: result.filePath,
-            line: result.lineNumber,
-            provider,
-            model: "unknown",
-            inputTokens,
-            outputTokens,
-            costPerCall: 0,
-            monthlyCost: 0,
-            isDynamic: true,
-          });
-          continue;
-        }
-
-        const pricing = getModel(provider, modelId);
-
-        let costPerCall = 0;
-        if (pricing) {
-          costPerCall = calculateCost({
-            model: pricing,
-            inputTokens,
-            outputTokens,
-          });
-        }
-
-        const monthlyCost = costPerCall * volume * 30;
-
-        rows.push({
-          file: result.filePath,
-          line: result.lineNumber,
-          provider,
-          model: modelId,
-          inputTokens,
-          outputTokens,
-          costPerCall,
-          monthlyCost,
-          isDynamic: result.isDynamic,
-        });
-      }
+      const rows: EstimateRow[] = buildEstimateRows(results, config, cliVolume, cliVolumeExplicit);
 
       const totalMonthlyCost = rows.reduce((sum, r) => sum + r.monthlyCost, 0);
-      const summary: EstimateSummary = { rows, totalMonthlyCost, volume };
+      const summary: EstimateSummary = { rows, totalMonthlyCost, volume: cliVolume };
 
       let output: string;
       if (format === "json") {
