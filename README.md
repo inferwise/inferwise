@@ -1,4 +1,4 @@
-# Inferwise
+# 🧠💲 Inferwise
 
 **Know and control your LLM costs before they ship.**
 
