@@ -121,16 +121,11 @@ Test the model router: classify a prompt, show which model would be selected.
 ```json
 {
   "defaultVolume": 1000,
-  "outputTokenEstimation": {
-    "method": "multiplier",
-    "multiplier": 2.0
-  },
   "ignore": ["node_modules", "test", "__tests__", "*.test.ts", "*.spec.ts"],
   "overrides": [
     {
       "pattern": "src/chat/**",
-      "volume": 5000,
-      "outputTokenMultiplier": 3.0
+      "volume": 5000
     }
   ]
 }
@@ -166,12 +161,27 @@ Always validate against `packages/pricing-db/schema.json` when updating pricing 
 
 ---
 
-## Tokenizer Strategy
+## Token Estimation Strategy
 
+All token counts are derived from code extraction or model spec data — no hardcoded defaults or multipliers.
+
+**Input tokens (priority order):**
+1. Static prompt found in code → tokenized for exact count (source: `code`)
+2. Dynamic prompt → `context_window - max_output_tokens` from model spec (source: `model_limit`)
+3. Unknown model → cheapest current model for the provider used as floor
+
+**Output tokens (priority order):**
+1. `max_tokens` / `maxTokens` / `max_output_tokens` extracted from code → exact (source: `code`)
+2. No max_tokens in code → `max_output_tokens` from model spec (source: `model_limit`)
+3. Unknown model → cheapest current model for the provider used as floor
+
+**Tokenizer implementations:**
 - **OpenAI models:** `tiktoken` with correct encoding per model
 - **Anthropic models:** `cl100k_base` approximation (±5%). `--precise` flag calls Anthropic's token counting API for exact counts.
 - **Google models:** `cl100k_base` + 1.1x correction factor
 - **Unified interface:** `countTokens(provider, model, text): number`
+
+**TokenSource tracking:** Every estimate is tagged as `"code"` (exact) or `"model_limit"` (worst-case ceiling). Model-limit values display with `*` in output so users know which costs are ceilings vs exact.
 
 ---
 
@@ -192,7 +202,8 @@ Regex-based pattern matching (not AST parsing) for speed.
 - Provider + model name
 - System prompt (if statically defined)
 - User prompt / template (if statically defined)
-- Flag dynamic prompts as "dynamic — needs baseline"
+- `max_tokens` / `maxTokens` / `max_output_tokens` / `maxOutputTokens` (if present)
+- Dynamic flag: true when model or prompts are not statically resolvable
 
 **Supported file types:** `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.mjs`, `.cjs`
 

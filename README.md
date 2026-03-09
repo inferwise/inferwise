@@ -125,12 +125,12 @@ Inferwise uses static analysis — it reads your source code, not your runtime t
 
 | What It Does Well | Where Estimates Are Rough |
 |-------------------|--------------------------|
-| Detects every LLM API call site in your codebase | Dynamic prompts (variable-length user input) use default token estimates |
-| Exact pricing from bundled provider data (updated daily) | Output tokens estimated via multiplier (configurable, default 2x input) |
-| Accurate cost/call for static prompts and system messages | Volume is uniform across call sites (override per-path in config) |
-| Relative cost comparison between models and PRs | Can't resolve model names from variables or config files |
+| Detects every LLM API call site in your codebase | Dynamic prompts use worst-case model limits (`context_window − max_output_tokens`) |
+| Exact pricing from bundled provider data (updated daily) | Unknown models fall back to cheapest current model for the provider |
+| Static prompts tokenized for exact input cost | Volume is uniform across call sites (override per-path in config) |
+| `max_tokens` extracted from code for exact output cost | Can't resolve model names from variables or config files |
 
-The estimates are **directionally accurate** — they catch the right order of magnitude and surface the expensive decisions. For exact runtime costs, pair Inferwise with provider dashboards or usage APIs (Phase 2 roadmap).
+Every call site always produces a real dollar value — no placeholders, no $0. Static prompts and `max_tokens` from code give exact costs. Dynamic prompts use worst-case ceilings from the model spec (marked with `*` in output). Unknown models fall back to the cheapest current model for the provider as a floor estimate. For exact runtime costs, pair Inferwise with provider dashboards or usage APIs (Phase 2 roadmap).
 
 ---
 
@@ -350,16 +350,11 @@ Create `inferwise.config.json` in your project root:
 ```json
 {
   "defaultVolume": 1000,
-  "outputTokenEstimation": {
-    "method": "multiplier",
-    "multiplier": 2.0
-  },
   "ignore": ["node_modules", "test", "__tests__", "*.test.ts", "*.spec.ts"],
   "overrides": [
     {
       "pattern": "src/chat/**",
-      "volume": 5000,
-      "outputTokenMultiplier": 3.0
+      "volume": 5000
     }
   ]
 }

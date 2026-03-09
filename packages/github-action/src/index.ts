@@ -3,12 +3,10 @@ import os from "node:os";
 import path from "node:path";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import { calculateCost, getModel } from "@inferwise/pricing-db";
-import type { Provider } from "@inferwise/pricing-db";
+import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
+import type { ModelPricing, Provider } from "@inferwise/pricing-db";
 import { simpleGit } from "simple-git";
 
-const DEFAULT_INPUT_TOKENS = 500;
-const DEFAULT_OUTPUT_MULTIPLIER = 2.0;
 const SUPPORTED_EXTENSIONS = new Set(["ts", "tsx", "js", "jsx", "mjs", "cjs", "py"]);
 const PR_COMMENT_MARKER = "<!-- inferwise-cost-diff -->";
 
@@ -19,7 +17,28 @@ interface ScanResult {
   model: string | null;
   systemPrompt: string | null;
   userPrompt: string | null;
+  maxOutputTokens: number | null;
   isDynamic: boolean;
+}
+
+/** When model is unknown, use the cheapest current model for the provider as a floor. */
+function fallbackModel(provider: Provider): ModelPricing | undefined {
+  const models = getProviderModels(provider).filter((m) => m.status === "current");
+  if (models.length === 0) return undefined;
+  models.sort((a, b) => a.input_cost_per_million - b.input_cost_per_million);
+  return models[0];
+}
+
+function extractMaxOutputTokens(window: string[]): number | null {
+  const joined = window.join("\n");
+  const match = joined.match(
+    /(?:max_tokens|maxTokens|max_output_tokens|maxOutputTokens)\s*[:=]\s*(\d+)/,
+  );
+  if (match?.[1]) {
+    const value = Number.parseInt(match[1], 10);
+    if (value > 0) return value;
+  }
+  return null;
 }
 
 interface FileCostEntry {
@@ -135,6 +154,8 @@ async function inlineScan(dirPath: string): Promise<ScanResult[]> {
             }
             if (!provider) continue;
 
+            const maxOutputTokens = extractMaxOutputTokens(window);
+
             results.push({
               filePath: path.relative(dirPath, full),
               lineNumber: i + 1,
@@ -142,6 +163,7 @@ async function inlineScan(dirPath: string): Promise<ScanResult[]> {
               model: modelId,
               systemPrompt: null,
               userPrompt: null,
+              maxOutputTokens,
               isDynamic: !modelId,
             });
             break;
@@ -160,13 +182,20 @@ function computeFileCosts(results: ScanResult[], volume: number): Map<string, Fi
   const byFile = new Map<string, FileCostEntry[]>();
 
   for (const r of results) {
-    const inputTokens = DEFAULT_INPUT_TOKENS;
-    const outputTokens = Math.round(inputTokens * DEFAULT_OUTPUT_MULTIPLIER);
-    const pricing = r.model ? getModel(r.provider, r.model) : undefined;
+    // Resolve model — exact match or cheapest current model for the provider
+    const pricing = r.model ? getModel(r.provider, r.model) : fallbackModel(r.provider);
+
+    // Input tokens: context_window - max_output_tokens (worst-case ceiling from model spec)
+    const inputTokens = pricing ? pricing.context_window - pricing.max_output_tokens : 0;
+
+    // Output tokens: max_tokens from code, or model's max_output_tokens as ceiling
+    const outputTokens = r.maxOutputTokens ?? (pricing ? pricing.max_output_tokens : 0);
+
     const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
+    const modelLabel = r.model ?? (pricing ? `${pricing.id} (inferred)` : "unknown");
 
     const existing = byFile.get(r.filePath) ?? [];
-    existing.push({ model: r.model ?? "unknown", monthlyCost: costPerCall * volume * 30 });
+    existing.push({ model: modelLabel, monthlyCost: costPerCall * volume * 30 });
     byFile.set(r.filePath, existing);
   }
 

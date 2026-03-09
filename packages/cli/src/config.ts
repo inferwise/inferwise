@@ -5,17 +5,10 @@ import { z } from "zod";
 const overrideSchema = z.object({
   pattern: z.string(),
   volume: z.number().positive().optional(),
-  outputTokenMultiplier: z.number().positive().optional(),
 });
 
 const configSchema = z.object({
   defaultVolume: z.number().positive().optional(),
-  outputTokenEstimation: z
-    .object({
-      method: z.literal("multiplier"),
-      multiplier: z.number().positive(),
-    })
-    .optional(),
   ignore: z.array(z.string()).optional(),
   overrides: z.array(overrideSchema).optional(),
 });
@@ -23,7 +16,6 @@ const configSchema = z.object({
 export type InferwiseConfig = z.infer<typeof configSchema>;
 
 const CONFIG_FILENAME = "inferwise.config.json";
-const DEFAULT_OUTPUT_MULTIPLIER = 2.0;
 
 /** Search for inferwise.config.json from startDir up to filesystem root. */
 async function findConfigFile(startDir: string): Promise<string | null> {
@@ -128,19 +120,4 @@ export function resolveVolume(
   if (config.defaultVolume) return config.defaultVolume;
 
   return cliVolume;
-}
-
-/**
- * Resolve the output token multiplier for a given file.
- * Priority: matching override > config global > default 2.0.
- */
-export function resolveOutputMultiplier(config: InferwiseConfig, filePath: string): number {
-  const override = findOverride(config.overrides, filePath);
-  if (override?.outputTokenMultiplier) return override.outputTokenMultiplier;
-
-  if (config.outputTokenEstimation?.multiplier) {
-    return config.outputTokenEstimation.multiplier;
-  }
-
-  return DEFAULT_OUTPUT_MULTIPLIER;
 }
