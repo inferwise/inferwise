@@ -88,6 +88,16 @@
             "type": "number",
             "minimum": 0
           },
+          "fast_input_cost_per_million": {
+            "description": "USD per million input tokens in fast/priority processing mode",
+            "type": "number",
+            "minimum": 0
+          },
+          "fast_output_cost_per_million": {
+            "description": "USD per million output tokens in fast/priority processing mode",
+            "type": "number",
+            "minimum": 0
+          },
           "input_cost_above_200k_per_million": {
             "description": "USD per million input tokens for requests exceeding 200K tokens (long-context pricing tier)",
             "type": "number",

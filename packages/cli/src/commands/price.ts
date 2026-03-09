@@ -22,6 +22,7 @@ interface PriceOptions {
   format: string;
   batch?: boolean;
   cache?: boolean;
+  fast?: boolean;
 }
 
 const DAYS_PER_MONTH = 30;
@@ -115,6 +116,15 @@ function computeCachedCost(
   });
 }
 
+function computeFastCost(
+  model: ModelPricing,
+  inputTokens: number,
+  outputTokens: number,
+): number | undefined {
+  if (model.fast_input_cost_per_million === undefined) return undefined;
+  return calculateCost({ model, inputTokens, outputTokens, useFast: true });
+}
+
 // ── Single model output ─────────────────────────────────────────────
 
 function singleModelTable(
@@ -124,6 +134,7 @@ function singleModelTable(
   volume: number,
   showBatch: boolean,
   showCache: boolean,
+  showFast: boolean,
 ): string {
   const lines: string[] = [];
   lines.push(chalk.bold(`Model: ${model.id}`) + chalk.dim(` (${model.provider})`));
@@ -145,6 +156,10 @@ function singleModelTable(
     lines.push(`  Batch Input:  ${formatRate(model.batch_input_cost_per_million)}`);
     lines.push(`  Batch Output: ${formatRate(model.batch_output_cost_per_million)}`);
   }
+  if (showFast || model.fast_input_cost_per_million !== undefined) {
+    lines.push(`  Fast Input:   ${formatRate(model.fast_input_cost_per_million)}`);
+    lines.push(`  Fast Output:  ${formatRate(model.fast_output_cost_per_million)}`);
+  }
 
   lines.push("");
   const costPerCall = computeCostPerCall(model, inputTokens, outputTokens);
@@ -165,6 +180,13 @@ function singleModelTable(
   if (cachedCost !== undefined) {
     lines.push(
       `  Cached:    ${formatDollars(cachedCost)}/call  →  ${formatMonthly(cachedCost, volume)} at ${volume.toLocaleString()} req/day`,
+    );
+  }
+
+  const fastCost = computeFastCost(model, inputTokens, outputTokens);
+  if (fastCost !== undefined) {
+    lines.push(
+      `  Fast:      ${formatDollars(fastCost)}/call  →  ${formatMonthly(fastCost, volume)} at ${volume.toLocaleString()} req/day`,
     );
   }
 
@@ -192,6 +214,8 @@ function singleModelJson(
         cacheWritePerMillion: model.cache_write_input_cost_per_million ?? null,
         batchInputPerMillion: model.batch_input_cost_per_million ?? null,
         batchOutputPerMillion: model.batch_output_cost_per_million ?? null,
+        fastInputPerMillion: model.fast_input_cost_per_million ?? null,
+        fastOutputPerMillion: model.fast_output_cost_per_million ?? null,
       },
       estimate: {
         inputTokens,
@@ -229,6 +253,21 @@ function singleModelMarkdown(
   lines.push(
     `**Cost:** ${formatDollars(costPerCall)}/call → ${formatDollars(monthly)}/mo at ${volume.toLocaleString()} req/day`,
   );
+
+  if (model.fast_input_cost_per_million !== undefined) {
+    lines.push("");
+    lines.push(`| Fast Input/1M | $${model.fast_input_cost_per_million.toFixed(2)} |`);
+    lines.push(`| Fast Output/1M | $${(model.fast_output_cost_per_million ?? 0).toFixed(2)} |`);
+    const fastCost = computeFastCost(model, inputTokens, outputTokens);
+    if (fastCost !== undefined) {
+      const fastMonthly = fastCost * volume * DAYS_PER_MONTH;
+      lines.push("");
+      lines.push(
+        `**Fast Cost:** ${formatDollars(fastCost)}/call → ${formatDollars(fastMonthly)}/mo at ${volume.toLocaleString()} req/day`,
+      );
+    }
+  }
+
   return lines.join("\n");
 }
 
@@ -482,6 +521,7 @@ function handleSingleModel(
       volume,
       options.batch === true,
       options.cache === true,
+      options.fast === true,
     );
   }
   process.stdout.write(`${output}\n`);
@@ -503,6 +543,7 @@ export function priceCommand(): Command {
     .option("--format <table|json|markdown>", "Output format", "table")
     .option("--batch", "Show batch pricing if available")
     .option("--cache", "Show cache pricing if available")
+    .option("--fast", "Show fast/priority mode pricing if available")
     .allowUnknownOption(false)
     .action(
       (

@@ -43,6 +43,10 @@ export interface ModelPricing {
   batch_input_cost_per_million?: number;
   /** USD per million output tokens via Batch API */
   batch_output_cost_per_million?: number;
+  /** USD per million input tokens in fast/priority mode */
+  fast_input_cost_per_million?: number;
+  /** USD per million output tokens in fast/priority mode */
+  fast_output_cost_per_million?: number;
   /** USD per million input tokens above 200K context (long-context tier) */
   input_cost_above_200k_per_million?: number;
   /** USD per million output tokens above 200K context */
@@ -150,6 +154,8 @@ export interface CostParams {
   cachedInputTokens?: number;
   /** Use Batch API pricing if available. Defaults to false. */
   useBatch?: boolean;
+  /** Use fast/priority mode pricing if available. Defaults to false. */
+  useFast?: boolean;
   /**
    * Request exceeds 200K tokens — use long-context pricing tier if available.
    * Defaults to false (auto-detected if inputTokens > 200_000).
@@ -160,11 +166,18 @@ export interface CostParams {
 /**
  * Calculate total USD cost for a request.
  *
- * Priority for each dimension: batch > long-context > standard.
+ * Priority for each dimension: fast > batch > long-context > standard.
  * Cache savings are applied to the cached portion of input separately.
  */
 export function calculateCost(params: CostParams): number {
-  const { model, inputTokens, outputTokens, cachedInputTokens = 0, useBatch = false } = params;
+  const {
+    model,
+    inputTokens,
+    outputTokens,
+    cachedInputTokens = 0,
+    useBatch = false,
+    useFast = false,
+  } = params;
 
   // Auto-detect long context if not explicitly set
   const isLongContext = params.isLongContext ?? inputTokens > 200_000;
@@ -172,7 +185,9 @@ export function calculateCost(params: CostParams): number {
 
   // Input cost (uncached portion)
   let inputRatePerMillion: number;
-  if (useBatch && model.batch_input_cost_per_million !== undefined) {
+  if (useFast && model.fast_input_cost_per_million !== undefined) {
+    inputRatePerMillion = model.fast_input_cost_per_million;
+  } else if (useBatch && model.batch_input_cost_per_million !== undefined) {
     inputRatePerMillion = model.batch_input_cost_per_million;
   } else if (isLongContext && model.input_cost_above_200k_per_million !== undefined) {
     inputRatePerMillion = model.input_cost_above_200k_per_million;
@@ -182,7 +197,9 @@ export function calculateCost(params: CostParams): number {
 
   // Output cost
   let outputRatePerMillion: number;
-  if (useBatch && model.batch_output_cost_per_million !== undefined) {
+  if (useFast && model.fast_output_cost_per_million !== undefined) {
+    outputRatePerMillion = model.fast_output_cost_per_million;
+  } else if (useBatch && model.batch_output_cost_per_million !== undefined) {
     outputRatePerMillion = model.batch_output_cost_per_million;
   } else if (isLongContext && model.output_cost_above_200k_per_million !== undefined) {
     outputRatePerMillion = model.output_cost_above_200k_per_million;

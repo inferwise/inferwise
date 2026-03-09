@@ -15,6 +15,8 @@
       "cache_write_input_cost_per_million": 6.25,
       "batch_input_cost_per_million": 2.5,
       "batch_output_cost_per_million": 12.5,
+      "fast_input_cost_per_million": 30,
+      "fast_output_cost_per_million": 150,
       "input_cost_above_200k_per_million": 10,
       "output_cost_above_200k_per_million": 37.5,
       "context_window": 1000000,
