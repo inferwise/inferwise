@@ -11,6 +11,8 @@ const configSchema = z.object({
   defaultVolume: z.number().positive().optional(),
   ignore: z.array(z.string()).optional(),
   overrides: z.array(overrideSchema).optional(),
+  apiUrl: z.string().url().optional(),
+  apiKey: z.string().optional(),
 });
 
 export type InferwiseConfig = z.infer<typeof configSchema>;

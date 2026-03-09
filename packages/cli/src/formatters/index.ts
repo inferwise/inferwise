@@ -6,7 +6,8 @@ export type OutputFormat = "table" | "json" | "markdown";
 /** How token counts were determined. */
 export type TokenSource =
   | "code" // Extracted from code — exact value
-  | "model_limit"; // Derived from model spec — worst-case ceiling
+  | "model_limit" // Derived from model spec — worst-case ceiling
+  | "production"; // Averaged from production usage data
 
 export interface EstimateRow {
   file: string;
@@ -44,6 +45,9 @@ function formatTokenCount(tokens: number, source: TokenSource): string {
   const count = tokens.toLocaleString();
   if (source === "model_limit") {
     return chalk.yellow(`${count} *`);
+  }
+  if (source === "production") {
+    return chalk.cyan(`${count} †`);
   }
   return count;
 }
@@ -99,6 +103,13 @@ export function formatTable(summary: EstimateSummary): string {
     );
   }
 
+  const hasProduction = summary.rows.some(
+    (r) => r.inputTokenSource === "production" || r.outputTokenSource === "production",
+  );
+  if (hasProduction) {
+    lines.push(chalk.dim("† Averaged from production usage data via Inferwise Cloud."));
+  }
+
   return lines.join("\n");
 }
 
@@ -121,8 +132,18 @@ export function formatMarkdown(summary: EstimateSummary): string {
   );
 
   for (const row of summary.rows) {
-    const inputSuffix = row.inputTokenSource === "model_limit" ? " \\*" : "";
-    const outputSuffix = row.outputTokenSource === "model_limit" ? " \\*" : "";
+    const inputSuffix =
+      row.inputTokenSource === "model_limit"
+        ? " \\*"
+        : row.inputTokenSource === "production"
+          ? " †"
+          : "";
+    const outputSuffix =
+      row.outputTokenSource === "model_limit"
+        ? " \\*"
+        : row.outputTokenSource === "production"
+          ? " †"
+          : "";
     lines.push(
       `| \`${row.file}\` | ${row.line} | ${row.provider} | ${row.model} | ${row.inputTokens.toLocaleString()}${inputSuffix} | ${row.outputTokens.toLocaleString()}${outputSuffix} | ${formatCost(row.costPerCall)} | ${formatMonthlyCost(row.monthlyCost)} |`,
     );
@@ -139,6 +160,14 @@ export function formatMarkdown(summary: EstimateSummary): string {
     lines.push(
       "> \\* Worst-case ceiling from model spec. Set `max_tokens` and use static prompts for exact cost.",
     );
+  }
+
+  const hasProduction = summary.rows.some(
+    (r) => r.inputTokenSource === "production" || r.outputTokenSource === "production",
+  );
+  if (hasProduction) {
+    lines.push("");
+    lines.push("> † Averaged from production usage data via Inferwise Cloud.");
   }
 
   lines.push("");
