@@ -174,16 +174,11 @@ function classifyChange(baseModel: string | null, headModel: string | null): Dif
   return "modified";
 }
 
-function sumMonthlyCost(costs: FileCost[]): number {
-  return costs.reduce((sum, c) => sum + c.monthlyCost, 0);
-}
-
-function primaryModel(costs: FileCost[]): string | null {
-  if (costs.length === 0) return null;
-  // Return the most expensive model's ID as the representative
-  return costs.reduce((a, b) => (a.monthlyCost >= b.monthlyCost ? a : b)).model;
-}
-
+/**
+ * Build diff rows per call site, not per file.
+ * Matches base and head call sites by model within each file,
+ * so model changes (e.g., Opus → Sonnet) surface as separate rows.
+ */
 function buildDiff(
   baseCosts: Map<string, FileCost[]>,
   headCosts: Map<string, FileCost[]>,
@@ -192,30 +187,88 @@ function buildDiff(
   const rows: DiffRow[] = [];
 
   for (const file of allFiles) {
-    const base = baseCosts.get(file) ?? [];
-    const head = headCosts.get(file) ?? [];
+    const base = [...(baseCosts.get(file) ?? [])];
+    const head = [...(headCosts.get(file) ?? [])];
 
-    const baseMonthlyCost = sumMonthlyCost(base);
-    const headMonthlyCost = sumMonthlyCost(head);
-    const monthlyDelta = headMonthlyCost - baseMonthlyCost;
+    // Match call sites by model — pair identical models first
+    const matchedBase = new Set<number>();
+    const matchedHead = new Set<number>();
 
-    const baseModel = primaryModel(base);
-    const headModel = primaryModel(head);
+    for (let h = 0; h < head.length; h++) {
+      for (let b = 0; b < base.length; b++) {
+        if (matchedBase.has(b)) continue;
+        if (head[h]?.model === base[b]?.model) {
+          matchedBase.add(b);
+          matchedHead.add(h);
+          // Same model, check for cost change (e.g., pricing update)
+          const delta = (head[h]?.monthlyCost ?? 0) - (base[b]?.monthlyCost ?? 0);
+          if (delta !== 0) {
+            rows.push({
+              file,
+              baseModel: base[b]?.model ?? null,
+              headModel: head[h]?.model ?? null,
+              change: "unchanged",
+              baseMonthlyCost: base[b]?.monthlyCost ?? 0,
+              headMonthlyCost: head[h]?.monthlyCost ?? 0,
+              monthlyDelta: delta,
+            });
+          }
+          break;
+        }
+      }
+    }
 
-    // Skip files with no cost change and same model
-    if (monthlyDelta === 0 && baseModel === headModel) continue;
+    // Unmatched base entries = removed or changed call sites
+    const unmatchedBase = base.filter((_, i) => !matchedBase.has(i));
+    // Unmatched head entries = added or changed call sites
+    const unmatchedHead = head.filter((_, i) => !matchedHead.has(i));
 
-    const change = classifyChange(baseModel, headModel);
+    // Pair remaining by position (model changed at same call site)
+    const pairCount = Math.min(unmatchedBase.length, unmatchedHead.length);
+    for (let i = 0; i < pairCount; i++) {
+      const b = unmatchedBase[i];
+      const h = unmatchedHead[i];
+      if (!b || !h) continue;
+      rows.push({
+        file,
+        baseModel: b.model,
+        headModel: h.model,
+        change: classifyChange(b.model, h.model),
+        baseMonthlyCost: b.monthlyCost,
+        headMonthlyCost: h.monthlyCost,
+        monthlyDelta: h.monthlyCost - b.monthlyCost,
+      });
+    }
 
-    rows.push({
-      file,
-      baseModel,
-      headModel,
-      change,
-      baseMonthlyCost,
-      headMonthlyCost,
-      monthlyDelta,
-    });
+    // Remaining unmatched base = purely removed
+    for (let i = pairCount; i < unmatchedBase.length; i++) {
+      const b = unmatchedBase[i];
+      if (!b) continue;
+      rows.push({
+        file,
+        baseModel: b.model,
+        headModel: null,
+        change: "removed",
+        baseMonthlyCost: b.monthlyCost,
+        headMonthlyCost: 0,
+        monthlyDelta: -b.monthlyCost,
+      });
+    }
+
+    // Remaining unmatched head = purely added
+    for (let i = pairCount; i < unmatchedHead.length; i++) {
+      const h = unmatchedHead[i];
+      if (!h) continue;
+      rows.push({
+        file,
+        baseModel: null,
+        headModel: h.model,
+        change: "added",
+        baseMonthlyCost: 0,
+        headMonthlyCost: h.monthlyCost,
+        monthlyDelta: h.monthlyCost,
+      });
+    }
   }
 
   rows.sort((a, b) => Math.abs(b.monthlyDelta) - Math.abs(a.monthlyDelta));

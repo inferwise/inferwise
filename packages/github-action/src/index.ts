@@ -77,12 +77,26 @@ async function checkoutRefToDir(gitRoot: string, ref: string): Promise<string> {
 }
 
 function inferProvider(modelId: string): Provider | null {
-  const id = modelId.toLowerCase();
+  const raw = modelId.toLowerCase();
+
+  // Platform prefix detection
+  if (raw.startsWith("bedrock/anthropic.") || raw.startsWith("anthropic.")) return "anthropic";
+  if (raw.startsWith("azure/") || raw.startsWith("azure_ai/")) return "openai";
+  if (raw.startsWith("vertex_ai/")) return "google";
+
+  // Normalize: strip routing prefixes, provider prefixes, and version suffixes
+  const id = raw
+    .replace(/^(bedrock\/|azure\/|vertex_ai\/|azure_ai\/)/, "")
+    .replace(/^(models\/|gemini\/|xai\/|openai\/|perplexity\/)/, "")
+    .replace(/^(anthropic|amazon|meta|cohere|ai21|mistral|stability)\./, "")
+    .replace(/-v\d+:\d+$/, "");
+
   if (id.startsWith("claude")) return "anthropic";
   if (id.startsWith("gpt-") || id.startsWith("o1") || id.startsWith("o3") || id.startsWith("o4"))
     return "openai";
   if (id.startsWith("gemini")) return "google";
   if (id.startsWith("grok")) return "xai";
+  if (id.startsWith("sonar")) return "perplexity";
   return null;
 }
 
@@ -100,25 +114,34 @@ async function scanDir(dirPath: string): Promise<ScanResult[]> {
   return scanDirectory(dirPath) as Promise<ScanResult[]>;
 }
 
-const PATTERNS = [
+const PATTERNS: Array<{ regex: RegExp; provider: Provider | null }> = [
   // Anthropic SDK (TS/JS and Python)
-  { regex: /\.messages\.create\s*\(/, provider: "anthropic" as Provider },
-  // OpenAI SDK (TS/JS and Python) — also matches xAI SDK (OpenAI-compatible); provider resolved from model ID
-  { regex: /\.chat\.completions\.create\s*\(/, provider: "openai" as Provider },
+  { regex: /\.messages\.create\s*\(/, provider: "anthropic" },
+  // OpenAI SDK (TS/JS and Python) — also matches xAI/Perplexity (OpenAI-compatible); provider resolved from model ID
+  { regex: /\.chat\.completions\.create\s*\(/, provider: "openai" },
   // Google GenAI SDK
-  { regex: /\.generateContent\s*\(/, provider: "google" as Provider },
-  { regex: /genai\.GenerativeModel\s*\(/, provider: "google" as Provider },
-  { regex: /GenerativeModel\s*\(/, provider: "google" as Provider },
+  { regex: /\.generateContent\s*\(/, provider: "google" },
+  { regex: /genai\.GenerativeModel\s*\(/, provider: "google" },
+  { regex: /GenerativeModel\s*\(/, provider: "google" },
   // Vercel AI SDK — provider inferred from model factory
   { regex: /\bgenerateText\s*\(/, provider: null },
   { regex: /\bstreamText\s*\(/, provider: null },
   { regex: /\bgenerateObject\s*\(/, provider: null },
   { regex: /\bstreamObject\s*\(/, provider: null },
   // LangChain
-  { regex: /new\s+ChatAnthropic\s*\(/, provider: "anthropic" as Provider },
-  { regex: /new\s+ChatOpenAI\s*\(/, provider: "openai" as Provider },
-  { regex: /new\s+ChatGoogleGenerativeAI\s*\(/, provider: "google" as Provider },
-  { regex: /new\s+ChatXAI\s*\(/, provider: "xai" as Provider },
+  { regex: /new\s+ChatAnthropic\s*\(/, provider: "anthropic" },
+  { regex: /new\s+ChatOpenAI\s*\(/, provider: "openai" },
+  { regex: /new\s+ChatGoogleGenerativeAI\s*\(/, provider: "google" },
+  { regex: /new\s+ChatXAI\s*\(/, provider: "xai" },
+  // LangChain Bedrock / Azure
+  { regex: /new\s+ChatBedrock(?:Converse)?\s*\(/, provider: null },
+  { regex: /new\s+AzureChatOpenAI\s*\(/, provider: "openai" },
+  // AWS Bedrock SDK (Python boto3)
+  { regex: /\binvoke_model(?:_with_response_stream)?\s*\(/, provider: null },
+  // Azure OpenAI SDK
+  { regex: /new\s+AzureOpenAI\s*\(/, provider: "openai" },
+  // LiteLLM (Python)
+  { regex: /\blitellm\.(?:a?completion|atext_completion)\s*\(/, provider: null },
 ];
 
 const IGNORE = new Set([".git", "node_modules", "dist", "build", "out"]);
@@ -156,13 +179,13 @@ async function inlineScan(dirPath: string): Promise<ScanResult[]> {
 
             const modelMatch =
               joined.match(/model\s*[:=]\s*["']([^"'\n]+)["']/) ??
+              joined.match(/modelId\s*[:=]\s*["']([^"'\n]+)["']/) ??
               joined.match(/model\s*:\s*\w+\(\s*["']([^"'\n]+)["']/);
             const modelId = modelMatch?.[1] ?? null;
 
-            let provider = pat.provider;
-            if (!provider && modelId) {
-              provider = inferProvider(modelId);
-            }
+            // Model-name inference overrides pattern provider
+            const inferred = modelId ? inferProvider(modelId) : null;
+            const provider = inferred ?? pat.provider;
             if (!provider) continue;
 
             const maxOutputTokens = extractMaxOutputTokens(window);

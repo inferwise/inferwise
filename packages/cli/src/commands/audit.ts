@@ -2,6 +2,7 @@ import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-d
 import type { ModelPricing, ModelTier, Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import { Command } from "commander";
+import { loadConfig, resolveVolume } from "../config.js";
 import { scanDirectory } from "../scanners/index.js";
 import type { ScanResult } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
@@ -13,6 +14,7 @@ type AuditOutputFormat = "table" | "json" | "markdown";
 interface AuditOptions {
   volume: string;
   format: string;
+  config?: string;
 }
 
 interface CheaperModelFinding {
@@ -469,15 +471,17 @@ export function auditCommand(): Command {
     .argument("[path]", "Path to scan", ".")
     .option("--volume <number>", "Requests per day for savings projection", "1000")
     .option("--format <table|json|markdown>", "Output format", "table")
+    .option("--config <path>", "Path to inferwise.config.json")
     .action(async (scanPath: string, options: AuditOptions) => {
       const volume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
       const format = resolveFormat(options.format);
+      const config = await loadConfig(options.config);
 
       if (format === "table") {
         process.stderr.write(chalk.dim(`Scanning ${scanPath} for optimizations...\n`));
       }
 
-      const results = await scanDirectory(scanPath);
+      const results = await scanDirectory(scanPath, config.ignore);
 
       if (format === "table" && results.length === 0) {
         process.stdout.write(chalk.yellow("No LLM API calls detected.\n"));
