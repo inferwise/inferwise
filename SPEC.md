@@ -176,10 +176,16 @@ All token counts are derived from code extraction or model spec data — no hard
 3. Unknown model → cheapest current model for the provider used as floor
 
 **Tokenizer implementations:**
-- **OpenAI models:** `tiktoken` with correct encoding per model
-- **Anthropic models:** `cl100k_base` approximation (±5%). `--precise` flag calls Anthropic's token counting API for exact counts.
-- **Google models:** `cl100k_base` approximation
+
+| Provider | Tokenizer | Notes |
+|----------|-----------|-------|
+| OpenAI (GPT-4o, o3, o4-mini, etc.) | `tiktoken` with native model encoding | Exact — OpenAI publishes their tokenizer |
+| Anthropic (Claude Opus, Sonnet, Haiku) | `cl100k_base` approximation | ±5% — Anthropic does not publish a tokenizer |
+| Google (Gemini 2.5 Pro, Flash, etc.) | `cl100k_base` approximation | Google does not publish a tokenizer |
+| xAI (Grok 3, Grok 3 Mini, etc.) | `cl100k_base` approximation | xAI does not publish a tokenizer |
+
 - **Unified interface:** `countTokens(provider, model, text): number`
+- Non-OpenAI providers all use the same `cl100k_base` encoding from `tiktoken` as a best-available approximation. No unvalidated correction factors are applied.
 
 **TokenSource tracking:** Every estimate is tagged as `"code"` (exact) or `"model_limit"` (worst-case ceiling). Model-limit values display with `*` in output so users know which costs are ceilings vs exact.
 
@@ -189,13 +195,16 @@ All token counts are derived from code extraction or model spec data — no hard
 
 Regex-based pattern matching (not AST parsing) for speed.
 
-**Patterns to detect:**
-- `anthropic.messages.create` / `client.messages.create`
-- `openai.chat.completions.create` / `client.chat.completions.create`
-- `google.generativeai` / `genai.GenerativeModel`
-- LangChain: `ChatAnthropic`, `ChatOpenAI`
-- Vercel AI SDK: `generateText`, `streamText`
-- LlamaIndex patterns
+**Detected patterns:**
+
+| Provider | SDK / Framework | Patterns |
+|----------|----------------|----------|
+| Anthropic | Anthropic SDK (TS/JS/Python) | `.messages.create()` |
+| OpenAI | OpenAI SDK (TS/JS/Python) | `.chat.completions.create()` |
+| Google | Google GenAI SDK | `.generateContent()`, `genai.GenerativeModel()`, `GenerativeModel()` |
+| xAI | LangChain | `new ChatXAI()` |
+| Multi-provider | Vercel AI SDK | `generateText()`, `streamText()`, `generateObject()`, `streamObject()` (provider inferred from model) |
+| Multi-provider | LangChain | `new ChatAnthropic()`, `new ChatOpenAI()`, `new ChatGoogleGenerativeAI()`, `new ChatXAI()` |
 
 **Extract per call:**
 - File path + line number
