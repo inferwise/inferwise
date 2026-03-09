@@ -32,19 +32,51 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Run pricing sync
+        id: sync
+        continue-on-error: true
         run: pnpm --filter @inferwise/scripts sync-pricing
 
+      - name: Abort on sync failure
+        if: steps.sync.outcome == 'failure'
+        run: |
+          echo "::warning::Pricing sync failed (upstream may be unavailable). Skipping PR/issue creation."
+          exit 0
+
       - name: Check for changes
+        if: steps.sync.outcome == 'success'
         id: diff
         run: |
           if git diff --quiet packages/pricing-db/providers/; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "No pricing changes detected."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Pricing changes detected:"
+            git diff --stat packages/pricing-db/providers/
           fi
+
+      - name: Ensure labels exist
+        if: steps.diff.outputs.changed == 'true'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [
+              { name: 'pricing', color: '0e8a16', description: 'Pricing database changes' },
+              { name: 'automated', color: 'bfdadc', description: 'Automated by CI' },
+            ];
+            for (const label of labels) {
+              try {
+                await github.rest.issues.getLabel({ ...context.repo, name: label.name });
+              } catch {
+                await github.rest.issues.createLabel({ ...context.repo, ...label });
+                console.log(`Created label: ${label.name}`);
+              }
+            }
 
       - name: Create PR if pricing changed
         if: steps.diff.outputs.changed == 'true'
+        continue-on-error: true
         uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "chore(pricing): sync provider pricing ${{ github.run_started_at }}"
@@ -59,6 +91,7 @@ jobs:
           labels: pricing,automated
 
       - name: Check for new models
+        if: steps.sync.outcome == 'success'
         id: new-models
         run: |
           if [ -f new-models-report.txt ]; then
@@ -70,8 +103,26 @@ jobs:
             echo "found=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Ensure new-models label exists
+        if: steps.new-models.outputs.found == 'true'
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.getLabel({ ...context.repo, name: 'new-models' });
+            } catch {
+              await github.rest.issues.createLabel({
+                ...context.repo,
+                name: 'new-models',
+                color: 'd876e3',
+                description: 'New models detected by sync',
+              });
+            }
+
       - name: Open issue for new models
         if: steps.new-models.outputs.found == 'true'
+        continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |

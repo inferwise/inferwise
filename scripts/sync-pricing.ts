@@ -186,6 +186,8 @@ interface ExistingModel {
   cache_write_input_cost_per_million?: number;
   batch_input_cost_per_million?: number;
   batch_output_cost_per_million?: number;
+  fast_input_cost_per_million?: number;
+  fast_output_cost_per_million?: number;
   input_cost_above_200k_per_million?: number;
   output_cost_above_200k_per_million?: number;
   context_window: number;
@@ -283,7 +285,7 @@ async function syncProvider(provider: string, prices: LiteLLMPrices): Promise<vo
 
   const output: ProviderFile = {
     ...existing,
-    last_updated: today,
+    ...(updatedCount > 0 ? { last_updated: today } : {}),
     models: updatedModels,
   };
 
