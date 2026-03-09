@@ -49,6 +49,7 @@ export function countTokens(provider: Provider, modelId: string, text: string): 
     case "google":
       return countGoogleTokens(text);
     case "xai":
+    case "perplexity":
       return countWithCl100k(text);
     default: {
       const _exhaustive: never = provider;
