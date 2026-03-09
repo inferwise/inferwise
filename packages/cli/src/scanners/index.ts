@@ -10,6 +10,7 @@ export interface ScanResult {
   model: string | null;
   systemPrompt: string | null;
   userPrompt: string | null;
+  maxOutputTokens: number | null;
   isDynamic: boolean;
   framework: string;
 }
@@ -96,6 +97,23 @@ function extractModelId(window: string[]): string | null {
   return null;
 }
 
+function extractMaxOutputTokens(window: string[]): number | null {
+  const joined = window.join("\n");
+
+  // max_tokens: 500 / max_tokens=500 (Anthropic, OpenAI, Python kwargs)
+  // maxTokens: 500 (Vercel AI SDK, LangChain JS)
+  // max_output_tokens: 500 / maxOutputTokens: 500 (Google, various SDKs)
+  const match = joined.match(
+    /(?:max_tokens|maxTokens|max_output_tokens|maxOutputTokens)\s*[:=]\s*(\d+)/,
+  );
+  if (match?.[1]) {
+    const value = Number.parseInt(match[1], 10);
+    if (value > 0) return value;
+  }
+
+  return null;
+}
+
 function extractPrompts(window: string[]): {
   systemPrompt: string | null;
   userPrompt: string | null;
@@ -137,6 +155,7 @@ async function scanFile(filePath: string, relativeBase: string): Promise<ScanRes
       if (!provider) continue;
 
       const { systemPrompt, userPrompt } = extractPrompts(window);
+      const maxOutputTokens = extractMaxOutputTokens(window);
 
       // A result is dynamic if the model is unresolved or no static prompts found
       const isDynamic = !modelId || (!systemPrompt && !userPrompt);
@@ -148,6 +167,7 @@ async function scanFile(filePath: string, relativeBase: string): Promise<ScanRes
         model: modelId,
         systemPrompt,
         userPrompt,
+        maxOutputTokens,
         isDynamic,
         framework: pattern.framework,
       });

@@ -3,15 +3,17 @@ import type { Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import { Command } from "commander";
 import type { InferwiseConfig } from "../config.js";
-import { loadConfig, resolveOutputMultiplier, resolveVolume } from "../config.js";
+import { loadConfig, resolveVolume } from "../config.js";
 import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
-import type { EstimateRow, EstimateSummary, OutputFormat } from "../formatters/index.js";
+import type {
+  EstimateRow,
+  EstimateSummary,
+  OutputFormat,
+  OutputTokenSource,
+} from "../formatters/index.js";
 import { scanDirectory } from "../scanners/index.js";
 import type { ScanResult } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
-
-// Default token estimates when prompts are dynamic
-const DEFAULT_INPUT_TOKENS = 500;
 
 interface EstimateOptions {
   volume: string;
@@ -32,21 +34,33 @@ function computeRowCost(
 ): EstimateRow {
   const provider = result.provider as Provider;
   const modelId = result.model;
-  const multiplier = resolveOutputMultiplier(config, result.filePath);
   const volume = resolveVolume(config, result.filePath, cliVolume, cliVolumeExplicit);
 
-  let inputTokens: number;
+  // Input tokens: tokenize static prompts, or 0 if dynamic (unknown)
+  let inputTokens = 0;
   if (result.systemPrompt || result.userPrompt) {
     inputTokens = countMessageTokens(provider, modelId ?? "", {
       ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
       ...(result.userPrompt ? { user: result.userPrompt } : {}),
     });
-  } else {
-    inputTokens = DEFAULT_INPUT_TOKENS;
   }
 
-  const outputTokens = Math.round(inputTokens * multiplier);
   const pricing = modelId ? getModel(provider, modelId) : undefined;
+
+  // Output tokens: explicit max_tokens > model's max_output_tokens > unavailable
+  let outputTokens = 0;
+  let outputTokenSource: OutputTokenSource;
+
+  if (result.maxOutputTokens) {
+    outputTokens = result.maxOutputTokens;
+    outputTokenSource = "max_tokens";
+  } else if (pricing) {
+    outputTokens = pricing.max_output_tokens;
+    outputTokenSource = "model_limit";
+  } else {
+    outputTokenSource = "unavailable";
+  }
+
   const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
   const monthlyCost = costPerCall * volume * 30;
 
@@ -57,6 +71,7 @@ function computeRowCost(
     model: modelId ?? "unknown",
     inputTokens,
     outputTokens,
+    outputTokenSource,
     costPerCall,
     monthlyCost,
     isDynamic: result.isDynamic,

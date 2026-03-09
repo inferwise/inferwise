@@ -8,11 +8,10 @@ import Table from "cli-table3";
 import { Command } from "commander";
 import { simpleGit } from "simple-git";
 import type { InferwiseConfig } from "../config.js";
-import { loadConfig, resolveOutputMultiplier, resolveVolume } from "../config.js";
+import { loadConfig, resolveVolume } from "../config.js";
 import { scanDirectory } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
 
-const DEFAULT_INPUT_TOKENS = 500;
 const SUPPORTED_EXTENSIONS = new Set(["ts", "tsx", "js", "jsx", "mjs", "cjs", "py"]);
 
 interface DiffOptions {
@@ -81,7 +80,7 @@ async function checkoutRefToDir(gitRoot: string, ref: string): Promise<string> {
   return tmpDir;
 }
 
-/** Compute cost for a single scan result using config-aware multiplier and volume. */
+/** Compute cost for a single scan result. */
 function computeFileCostEntry(
   result: {
     filePath: string;
@@ -89,6 +88,7 @@ function computeFileCostEntry(
     model: string | null;
     systemPrompt: string | null;
     userPrompt: string | null;
+    maxOutputTokens?: number | null;
   },
   config: InferwiseConfig,
   cliVolume: number,
@@ -96,21 +96,25 @@ function computeFileCostEntry(
 ): FileCost {
   const provider = result.provider;
   const modelId = result.model;
-  const multiplier = resolveOutputMultiplier(config, result.filePath);
   const volume = resolveVolume(config, result.filePath, cliVolume, cliVolumeExplicit);
 
-  let inputTokens: number;
+  let inputTokens = 0;
   if (result.systemPrompt || result.userPrompt) {
     inputTokens = countMessageTokens(provider, modelId ?? "", {
       ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
       ...(result.userPrompt ? { user: result.userPrompt } : {}),
     });
-  } else {
-    inputTokens = DEFAULT_INPUT_TOKENS;
   }
 
-  const outputTokens = Math.round(inputTokens * multiplier);
   const pricing = modelId ? getModel(provider, modelId) : undefined;
+
+  let outputTokens = 0;
+  if (result.maxOutputTokens) {
+    outputTokens = result.maxOutputTokens;
+  } else if (pricing) {
+    outputTokens = pricing.max_output_tokens;
+  }
+
   const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
   const monthlyCost = costPerCall * volume * 30;
 

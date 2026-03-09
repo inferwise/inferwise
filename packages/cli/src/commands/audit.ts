@@ -6,8 +6,6 @@ import { scanDirectory } from "../scanners/index.js";
 import type { ScanResult } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
 
-const DEFAULT_INPUT_TOKENS = 500;
-const DEFAULT_OUTPUT_MULTIPLIER = 2.0;
 const DAYS_PER_MONTH = 30;
 
 type AuditOutputFormat = "table" | "json" | "markdown";
@@ -72,18 +70,28 @@ function resolveFormat(raw: string): AuditOutputFormat {
 
 // ── Token + cost helpers ────────────────────────────────────────────
 
-function estimateInputTokens(result: ScanResult): number {
+function resolveInputTokens(result: ScanResult): number {
   if (result.systemPrompt || result.userPrompt) {
     return countMessageTokens(result.provider, result.model ?? "", {
       ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
       ...(result.userPrompt ? { user: result.userPrompt } : {}),
     });
   }
-  return DEFAULT_INPUT_TOKENS;
+  return 0;
 }
 
-function monthlyCostForModel(model: ModelPricing, inputTokens: number, volume: number): number {
-  const outputTokens = Math.round(inputTokens * DEFAULT_OUTPUT_MULTIPLIER);
+function resolveOutputTokens(result: ScanResult, model: ModelPricing | undefined): number {
+  if (result.maxOutputTokens) return result.maxOutputTokens;
+  if (model) return model.max_output_tokens;
+  return 0;
+}
+
+function monthlyCostForModel(
+  model: ModelPricing,
+  inputTokens: number,
+  outputTokens: number,
+  volume: number,
+): number {
   const costPerCall = calculateCost({ model, inputTokens, outputTokens });
   return costPerCall * volume * DAYS_PER_MONTH;
 }
@@ -125,9 +133,10 @@ function detectCheaperModels(results: ScanResult[], volume: number): CheaperMode
     const alt = findCheaperAlternative(provider, pricing.id, pricing.tier);
     if (!alt) continue;
 
-    const inputTokens = estimateInputTokens(result);
-    const currentCost = monthlyCostForModel(pricing, inputTokens, volume);
-    const altCost = monthlyCostForModel(alt, inputTokens, volume);
+    const inputTokens = resolveInputTokens(result);
+    const outputTokens = resolveOutputTokens(result, pricing);
+    const currentCost = monthlyCostForModel(pricing, inputTokens, outputTokens, volume);
+    const altCost = monthlyCostForModel(alt, inputTokens, outputTokens, volume);
     const savings = currentCost - altCost;
 
     if (savings <= 0) continue;
@@ -176,8 +185,9 @@ function detectCachingOpportunities(results: ScanResult[], volume: number): Cach
     if (!pricing || !pricing.supports_prompt_caching) continue;
     if (pricing.cache_read_input_cost_per_million === undefined) continue;
 
-    const inputTokens = estimateInputTokens(result);
-    const standardCost = monthlyCostForModel(pricing, inputTokens, volume);
+    const inputTokens = resolveInputTokens(result);
+    const outputTokens = resolveOutputTokens(result, pricing);
+    const standardCost = monthlyCostForModel(pricing, inputTokens, outputTokens, volume);
     const totalStandardCost = standardCost * locations.length;
 
     const cachedSavingsRatio =
@@ -245,8 +255,8 @@ function detectBatchOpportunities(results: ScanResult[], volume: number): BatchF
     let totalBatchCost = 0;
 
     for (const result of group.results) {
-      const inputTokens = estimateInputTokens(result);
-      const outputTokens = Math.round(inputTokens * DEFAULT_OUTPUT_MULTIPLIER);
+      const inputTokens = resolveInputTokens(result);
+      const outputTokens = resolveOutputTokens(result, pricing);
       const standard = calculateCost({
         model: pricing,
         inputTokens,

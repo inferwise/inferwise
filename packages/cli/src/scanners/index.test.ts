@@ -49,6 +49,7 @@ const response = await client.messages.create({
     expect(hit?.model).toBe("claude-sonnet-4-20250514");
     expect(hit?.framework).toBe("anthropic-sdk");
     expect(hit?.systemPrompt).toBe("You are a helpful assistant.");
+    expect(hit?.maxOutputTokens).toBe(1024);
   });
 
   it("detects OpenAI SDK chat.completions.create", async () => {
@@ -70,6 +71,7 @@ const completion = await client.chat.completions.create({
     expect(hit?.provider).toBe("openai");
     expect(hit?.model).toBe("gpt-4o");
     expect(hit?.framework).toBe("openai-sdk");
+    expect(hit?.maxOutputTokens).toBeNull();
   });
 
   it("detects Vercel AI SDK generateText with provider factory", async () => {
@@ -133,6 +135,7 @@ const llm = new ChatAnthropic({
     expect(hit?.provider).toBe("anthropic");
     expect(hit?.model).toBe("claude-haiku-4-5-20251001");
     expect(hit?.framework).toBe("langchain");
+    expect(hit?.maxOutputTokens).toBe(512);
   });
 
   it("detects LangChain ChatOpenAI", async () => {
@@ -171,6 +174,7 @@ message = client.messages.create(
     expect(hit).toBeDefined();
     expect(hit?.provider).toBe("anthropic");
     expect(hit?.model).toBe("claude-opus-4-20250514");
+    expect(hit?.maxOutputTokens).toBe(1024);
   });
 
   it("detects Python OpenAI SDK", async () => {
@@ -265,6 +269,47 @@ const r2 = await client.messages.create({
         expect(fileOrder).toBeLessThanOrEqual(0);
       }
     }
+  });
+
+  it("extracts max_output_tokens from Google GenAI calls", async () => {
+    await writeFixture(
+      "google-genai.ts",
+      `
+import { GoogleGenerativeAI } from "@google/generative-ai";
+const genai = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+const model = genai.GenerativeModel({
+  model: "gemini-2.5-pro",
+  max_output_tokens: 256,
+});
+const result = await model.generateContent("Summarize this.");
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "google-genai.ts");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("google");
+    expect(hit?.maxOutputTokens).toBe(256);
+  });
+
+  it("extracts maxTokens from Vercel AI SDK calls", async () => {
+    await writeFixture(
+      "vercel-max-tokens.ts",
+      `
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+const { text } = await generateText({
+  model: openai("gpt-4o"),
+  maxTokens: 200,
+  prompt: "Classify this text.",
+});
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "vercel-max-tokens.ts");
+    expect(hit).toBeDefined();
+    expect(hit?.maxOutputTokens).toBe(200);
   });
 
   it("handles subdirectories", async () => {
