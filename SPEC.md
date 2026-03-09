@@ -2,7 +2,7 @@
 
 ## Overview
 
-Inferwise is a FinOps platform purpose-built for LLM inference costs. Like Infracost for infrastructure, but for tokens.
+Inferwise is a FinOps platform purpose-built for LLM inference costs.
 
 **Website:** inferwise.dev
 **GitHub:** github.com/inferwise
