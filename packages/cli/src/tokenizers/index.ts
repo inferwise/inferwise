@@ -1,9 +1,6 @@
 import type { Provider } from "@inferwise/pricing-db";
 import { type Tiktoken, type TiktokenModel, encoding_for_model, get_encoding } from "tiktoken";
 
-// Correction factor for Google models (cl100k_base underestimates)
-const GOOGLE_CORRECTION_FACTOR = 1.1;
-
 // Cache encoders — creating them is expensive (WASM init)
 let cl100kEncoder: Tiktoken | null = null;
 
@@ -38,7 +35,7 @@ function isTiktokenNativeModel(modelId: string): boolean {
  *
  * - OpenAI models: tiktoken with native model encoding
  * - Anthropic models: cl100k_base approximation (±5%)
- * - Google models: cl100k_base + 1.1x correction factor
+ * - Google models: cl100k_base approximation
  * - xAI / unknown: cl100k_base approximation
  */
 export function countTokens(provider: Provider, modelId: string, text: string): number {
@@ -74,8 +71,7 @@ function countOpenAiTokens(modelId: string, text: string): number {
 }
 
 function countGoogleTokens(text: string): number {
-  const raw = countWithCl100k(text);
-  return Math.ceil(raw * GOOGLE_CORRECTION_FACTOR);
+  return countWithCl100k(text);
 }
 
 function countWithCl100k(text: string): number {

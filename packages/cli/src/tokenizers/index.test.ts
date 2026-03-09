@@ -64,19 +64,18 @@ describe("countTokens", () => {
   });
 
   describe("google", () => {
-    it("applies 1.1x correction factor vs cl100k baseline", () => {
+    it("uses same cl100k_base tokenizer as anthropic", () => {
       const text = "This is a test sentence for token counting purposes.";
       const google = countTokens("google", "gemini-2.5-pro", text);
       const anthropic = countTokens("anthropic", "claude-sonnet-4-6", text);
-      // Google should be ceil(anthropic * 1.1)
-      expect(google).toBe(Math.ceil(anthropic * 1.1));
+      expect(google).toBe(anthropic);
     });
 
-    it("counts tokens greater than or equal to anthropic for same text", () => {
+    it("produces same count as anthropic for same text", () => {
       const text = "A moderately long sentence with various words and punctuation marks!";
       const google = countTokens("google", "gemini-2.5-flash", text);
       const anthropic = countTokens("anthropic", "claude-sonnet-4-6", text);
-      expect(google).toBeGreaterThanOrEqual(anthropic);
+      expect(google).toBe(anthropic);
     });
   });
 

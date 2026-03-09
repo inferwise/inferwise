@@ -178,7 +178,7 @@ All token counts are derived from code extraction or model spec data — no hard
 **Tokenizer implementations:**
 - **OpenAI models:** `tiktoken` with correct encoding per model
 - **Anthropic models:** `cl100k_base` approximation (±5%). `--precise` flag calls Anthropic's token counting API for exact counts.
-- **Google models:** `cl100k_base` + 1.1x correction factor
+- **Google models:** `cl100k_base` approximation
 - **Unified interface:** `countTokens(provider, model, text): number`
 
 **TokenSource tracking:** Every estimate is tagged as `"code"` (exact) or `"model_limit"` (worst-case ceiling). Model-limit values display with `*` in output so users know which costs are ceilings vs exact.
