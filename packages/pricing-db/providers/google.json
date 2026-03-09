@@ -81,7 +81,12 @@
     {
       "id": "gemini-1.5-pro",
       "name": "Gemini 1.5 Pro",
-      "aliases": ["gemini-1.5-pro-002", "gemini-1.5-pro-001", "models/gemini-1.5-pro", "gemini/gemini-1.5-pro"],
+      "aliases": [
+        "gemini-1.5-pro-002",
+        "gemini-1.5-pro-001",
+        "models/gemini-1.5-pro",
+        "gemini/gemini-1.5-pro"
+      ],
       "status": "legacy",
       "input_cost_per_million": 3.5,
       "output_cost_per_million": 10.5,
@@ -101,7 +106,12 @@
     {
       "id": "gemini-1.5-flash",
       "name": "Gemini 1.5 Flash",
-      "aliases": ["gemini-1.5-flash-002", "gemini-1.5-flash-001", "models/gemini-1.5-flash", "gemini/gemini-1.5-flash"],
+      "aliases": [
+        "gemini-1.5-flash-002",
+        "gemini-1.5-flash-001",
+        "models/gemini-1.5-flash",
+        "gemini/gemini-1.5-flash"
+      ],
       "status": "legacy",
       "input_cost_per_million": 0.075,
       "output_cost_per_million": 0.3,
