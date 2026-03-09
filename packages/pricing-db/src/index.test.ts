@@ -24,7 +24,8 @@ describe("getAllProviders", () => {
     expect(providers).toContain("openai");
     expect(providers).toContain("google");
     expect(providers).toContain("xai");
-    expect(providers).toHaveLength(4);
+    expect(providers).toContain("perplexity");
+    expect(providers).toHaveLength(5);
   });
 });
 
@@ -76,7 +77,7 @@ describe("getAllModels", () => {
 
   it("every model has a provider field set", () => {
     for (const model of getAllModels()) {
-      expect(["anthropic", "openai", "google", "xai"]).toContain(model.provider);
+      expect(["anthropic", "openai", "google", "xai", "perplexity"]).toContain(model.provider);
     }
   });
 });
@@ -105,6 +106,12 @@ describe("getModel", () => {
     const model = getModel("xai", "grok-3");
     expect(model).toBeDefined();
     expect(model?.provider).toBe("xai");
+  });
+
+  it("finds perplexity model by canonical ID", () => {
+    const model = getModel("perplexity", "sonar-pro");
+    expect(model).toBeDefined();
+    expect(model?.provider).toBe("perplexity");
   });
 
   it("returns undefined for unknown model", () => {

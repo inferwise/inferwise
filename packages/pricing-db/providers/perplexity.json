@@ -1,0 +1,72 @@
+{
+  "provider": "perplexity",
+  "last_updated": "2026-03-09",
+  "last_verified": "2026-03-09",
+  "source": "https://docs.perplexity.ai/guides/pricing",
+  "models": [
+    {
+      "id": "sonar-pro",
+      "name": "Sonar Pro",
+      "aliases": [],
+      "status": "current",
+      "input_cost_per_million": 3,
+      "output_cost_per_million": 15,
+      "context_window": 200000,
+      "max_output_tokens": 128000,
+      "supports_vision": false,
+      "supports_tools": false,
+      "supports_prompt_caching": false,
+      "supports_reasoning": false,
+      "supports_computer_use": false,
+      "capabilities": ["search", "general"]
+    },
+    {
+      "id": "sonar-reasoning-pro",
+      "name": "Sonar Reasoning Pro",
+      "aliases": [],
+      "status": "current",
+      "input_cost_per_million": 2,
+      "output_cost_per_million": 8,
+      "context_window": 128000,
+      "max_output_tokens": 128000,
+      "supports_vision": false,
+      "supports_tools": false,
+      "supports_prompt_caching": false,
+      "supports_reasoning": true,
+      "supports_computer_use": false,
+      "capabilities": ["reasoning", "search", "general"]
+    },
+    {
+      "id": "sonar-deep-research",
+      "name": "Sonar Deep Research",
+      "aliases": [],
+      "status": "current",
+      "input_cost_per_million": 2,
+      "output_cost_per_million": 8,
+      "context_window": 128000,
+      "max_output_tokens": 128000,
+      "supports_vision": false,
+      "supports_tools": false,
+      "supports_prompt_caching": false,
+      "supports_reasoning": true,
+      "supports_computer_use": false,
+      "capabilities": ["reasoning", "search", "general"]
+    },
+    {
+      "id": "sonar",
+      "name": "Sonar",
+      "aliases": [],
+      "status": "current",
+      "input_cost_per_million": 1,
+      "output_cost_per_million": 1,
+      "context_window": 128000,
+      "max_output_tokens": 128000,
+      "supports_vision": false,
+      "supports_tools": false,
+      "supports_prompt_caching": false,
+      "supports_reasoning": false,
+      "supports_computer_use": false,
+      "capabilities": ["search", "general"]
+    }
+  ]
+}

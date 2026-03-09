@@ -1,9 +1,10 @@
 import anthropicData from "../providers/anthropic.json" with { type: "json" };
 import googleData from "../providers/google.json" with { type: "json" };
 import openaiData from "../providers/openai.json" with { type: "json" };
+import perplexityData from "../providers/perplexity.json" with { type: "json" };
 import xaiData from "../providers/xai.json" with { type: "json" };
 
-export type Provider = "anthropic" | "openai" | "google" | "xai";
+export type Provider = "anthropic" | "openai" | "google" | "xai" | "perplexity";
 export type ModelTier = "budget" | "mid" | "premium";
 export type ModelStatus = "current" | "legacy" | "deprecated";
 export type Capability =
@@ -80,6 +81,7 @@ const PROVIDERS: Record<Provider, ProviderData> = {
   openai: openaiData as ProviderData,
   google: googleData as ProviderData,
   xai: xaiData as ProviderData,
+  perplexity: perplexityData as ProviderData,
 };
 
 /** Get all models for a provider, enriched with provider and computed tier. */
@@ -103,7 +105,7 @@ export function normalizeModelId(modelId: string): string {
   // LiteLLM routing prefixes
   id = id.replace(/^(bedrock\/|azure\/|vertex_ai\/|azure_ai\/)/, "");
   // Framework prefixes
-  id = id.replace(/^(models\/|gemini\/|xai\/|openai\/)/, "");
+  id = id.replace(/^(models\/|gemini\/|xai\/|openai\/|perplexity\/)/, "");
   // Bedrock provider prefixes
   id = id.replace(/^(anthropic|amazon|meta|cohere|ai21|mistral|stability)\./, "");
   // Bedrock version suffix

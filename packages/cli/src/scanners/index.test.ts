@@ -395,6 +395,27 @@ const llm = new AzureChatOpenAI({
     expect(hit?.framework).toBe("langchain");
   });
 
+  it("detects Perplexity via OpenAI-compatible SDK", async () => {
+    await writeFixture(
+      "perplexity-sdk.py",
+      `
+from openai import OpenAI
+
+client = OpenAI(api_key="pplx-...", base_url="https://api.perplexity.ai")
+response = client.chat.completions.create(
+    model="sonar-pro",
+    messages=[{"role": "user", "content": "What is quantum computing?"}],
+)
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "perplexity-sdk.py");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("perplexity");
+    expect(hit?.model).toBe("sonar-pro");
+  });
+
   it("detects Azure OpenAI SDK", async () => {
     await writeFixture(
       "azure-openai.ts",

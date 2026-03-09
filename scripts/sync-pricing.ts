@@ -31,7 +31,9 @@ const LITELLM_URL =
 const args = process.argv.slice(2);
 const isDryRun = args.includes("--dry-run");
 const providerArg = args.find((a) => a.startsWith("--provider="))?.split("=")[1];
-const PROVIDERS_TO_SYNC = providerArg ? [providerArg] : ["anthropic", "openai", "google", "xai"];
+const PROVIDERS_TO_SYNC = providerArg
+  ? [providerArg]
+  : ["anthropic", "openai", "google", "xai", "perplexity"];
 
 // --- LiteLLM model entry type (per-token, not per-million) ---
 interface LiteLLMEntry {
@@ -153,6 +155,18 @@ const SYNC_CONFIG: Record<string, ModelSyncConfig[]> = {
       id: "grok-2-vision",
       litellmKeys: ["xai/grok-2-vision", "grok-2-vision", "grok-2-vision-1212"],
     },
+  ],
+  perplexity: [
+    { id: "sonar-pro", litellmKeys: ["perplexity/sonar-pro", "sonar-pro"] },
+    {
+      id: "sonar-reasoning-pro",
+      litellmKeys: ["perplexity/sonar-reasoning-pro", "sonar-reasoning-pro"],
+    },
+    {
+      id: "sonar-deep-research",
+      litellmKeys: ["perplexity/sonar-deep-research", "sonar-deep-research"],
+    },
+    { id: "sonar", litellmKeys: ["perplexity/sonar", "sonar"] },
   ],
 };
 
@@ -309,6 +323,7 @@ const LITELLM_PROVIDER_MAP: Record<string, string[]> = {
   openai: ["openai"],
   google: ["gemini", "vertex_ai", "vertex_ai_beta"],
   xai: ["xai"],
+  perplexity: ["perplexity"],
 };
 
 /** Model ID patterns to ignore during discovery (non-chat, embedding, deprecated aliases, etc). */

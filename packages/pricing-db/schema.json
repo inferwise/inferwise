@@ -8,7 +8,7 @@
   "properties": {
     "provider": {
       "type": "string",
-      "enum": ["anthropic", "openai", "google", "xai"]
+      "enum": ["anthropic", "openai", "google", "xai", "perplexity"]
     },
     "last_updated": {
       "description": "ISO date when this file was last written/synced by the sync script",

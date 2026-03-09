@@ -100,6 +100,7 @@ function inferProviderFromModel(modelId: string): Provider | null {
     return "openai";
   if (id.startsWith("gemini")) return "google";
   if (id.startsWith("grok")) return "xai";
+  if (id.startsWith("sonar")) return "perplexity";
   return null;
 }
 
@@ -176,10 +177,10 @@ async function scanFile(filePath: string, relativeBase: string): Promise<ScanRes
 
       const modelId = extractModelId(window);
 
-      let provider = pattern.provider;
-      if (!provider && modelId) {
-        provider = inferProviderFromModel(modelId);
-      }
+      // Model-name inference overrides pattern provider when available
+      // (e.g., sonar-pro via OpenAI-compatible SDK → perplexity, not openai)
+      const inferred = modelId ? inferProviderFromModel(modelId) : null;
+      const provider = inferred ?? pattern.provider;
 
       // Skip if we can't determine provider — not a recognizable LLM call
       if (!provider) continue;
