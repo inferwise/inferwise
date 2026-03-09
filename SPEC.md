@@ -8,11 +8,11 @@ Inferwise is a FinOps platform purpose-built for LLM inference costs.
 **GitHub:** github.com/inferwise
 **npm:** inferwise
 
-## Three Core Pillars
+## What This Repo Contains
 
-1. **CLI** — Pre-commit token cost estimation
-2. **Dashboard** — SaaS platform for team budget governance, cost attribution, forecasting
-3. **Model Router** — Cost-aware proxy that routes to optimal models based on complexity + cost + quality
+1. **CLI** (`inferwise`) — Pre-commit token cost estimation
+2. **Pricing Database** (`@inferwise/pricing-db`) — Bundled provider pricing, updated daily
+3. **GitHub Action** (`inferwise/inferwise-action`) — PR cost diff comments in CI
 
 ---
 
@@ -39,10 +39,9 @@ inferwise/
 ├── packages/
 │   ├── cli/                    # npm package: inferwise
 │   │   └── src/
-│   │       ├── commands/       # estimate, diff, monitor, audit, route
+│   │       ├── commands/       # estimate, diff, audit, price, update-pricing
 │   │       ├── scanners/       # Regex-based LLM API call detection
 │   │       ├── tokenizers/     # Provider tokenizer wrappers
-│   │       ├── pricing/        # Pricing DB loader + calculator
 │   │       ├── formatters/     # table, markdown, JSON output
 │   │       └── index.ts        # CLI entry point
 │   ├── pricing-db/             # @inferwise/pricing-db
@@ -53,22 +52,14 @@ inferwise/
 │   │   │   └── xai.json
 │   │   ├── schema.json
 │   │   └── src/index.ts
-│   ├── sdk/                    # @inferwise/sdk
-│   │   └── src/
-│   │       ├── client.ts
-│   │       ├── estimator.ts
-│   │       └── types.ts
 │   └── github-action/
 │       ├── action.yml
 │       └── src/index.ts
-├── apps/
-│   ├── dashboard/              # React + Vite SaaS dashboard
-│   ├── api/                    # Hono backend API
-│   └── proxy/                  # Cloudflare Workers model router
+├── scripts/                    # Maintenance scripts (pricing sync)
+├── .github/workflows/          # CI, cost-diff, pricing sync, publish
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
-├── biome.json
-└── CLAUDE.md
+└── biome.json
 ```
 
 ---
@@ -100,17 +91,9 @@ Compare token costs between two git refs.
 - `--format <table|json|markdown>`
 - `--fail-on-increase <amount>` — Exit 1 if monthly increase exceeds threshold
 
-### `inferwise monitor`
-
-Watch real-time token usage from terminal (requires API key + dashboard).
-
 ### `inferwise audit [path]`
 
 Scan for cost optimization: cheaper model opportunities, cacheable responses, batchable calls.
-
-### `inferwise route <prompt>`
-
-Test the model router: classify a prompt, show which model would be selected.
 
 ---
 
@@ -244,7 +227,6 @@ Regex-based pattern matching (not AST parsing) for speed.
 ## Environment Variables
 
 ```
-INFERWISE_API_KEY=       # Dashboard integration (Phase 2+)
 ANTHROPIC_API_KEY=       # Precise token counting
 OPENAI_API_KEY=          # Precise token counting
 GOOGLE_API_KEY=          # Precise token counting
@@ -254,40 +236,20 @@ INFERWISE_VOLUME=        # Default daily request volume
 
 ---
 
-## Build Phases
+## Current Status
 
-### Phase 1: CLI + Pricing Database (Weeks 1-6) — CURRENT
+Phase 1 is complete and published:
 
 1. Pricing database package with all provider JSON files
 2. Tokenizer wrappers (unified `countTokens` interface)
 3. Code scanner (regex pattern matching)
 4. `inferwise estimate` command
 5. `inferwise diff` command
-6. GitHub Action (PR cost diff comments)
-7. Comprehensive tests
-8. Publish to npm as `inferwise`
-
-### Phase 2: SaaS Dashboard (Weeks 7-14)
-
-1. Supabase schema: orgs, teams, projects, usage_events, budgets, alerts
-2. Ingestion API (Hono)
-3. Dashboard: cost attribution, burn rate charts, budget management
-4. Alerting: webhooks, email, Slack
-
-### Phase 3: Model Router (Weeks 15-22)
-
-1. Proxy core on Cloudflare Workers
-2. Task complexity classifier
-3. Budget-aware routing logic
-4. SDK wrappers (Python + TypeScript)
-
-### Phase 4: Enterprise (Weeks 23-30)
-
-1. SSO/SAML
-2. Self-hosted proxy (Docker + Helm)
-3. Advanced forecasting
-4. VS Code extension
-5. FinOps Foundation FOCUS format export
+6. `inferwise audit` command
+7. `inferwise price` command
+8. GitHub Action (PR cost diff comments)
+9. Comprehensive tests (55 passing)
+10. Published to npm as `inferwise`
 
 ---
 

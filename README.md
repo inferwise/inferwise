@@ -130,7 +130,7 @@ Inferwise uses static analysis — it reads your source code, not your runtime t
 | Static prompts tokenized for exact input cost | Volume is uniform across call sites (override per-path in config) |
 | `max_tokens` extracted from code for exact output cost | Can't resolve model names from variables or config files |
 
-Every call site always produces a real dollar value — no placeholders, no $0. Static prompts and `max_tokens` from code give exact costs. Dynamic prompts use worst-case ceilings from the model spec (marked with `*` in output). Unknown models fall back to the cheapest current model for the provider as a floor estimate. For exact runtime costs, pair Inferwise with provider dashboards or usage APIs (Phase 2 roadmap).
+Every call site always produces a real dollar value — no placeholders, no $0. Static prompts and `max_tokens` from code give exact costs. Dynamic prompts use worst-case ceilings from the model spec (marked with `*` in output). Unknown models fall back to the cheapest current model for the provider as a floor estimate. For exact runtime costs, pair Inferwise with provider dashboards or usage APIs.
 
 ---
 
@@ -387,12 +387,7 @@ inferwise/
 ├── packages/
 │   ├── cli/              # inferwise CLI (Commander.js + tsup)
 │   ├── pricing-db/       # @inferwise/pricing-db — bundled pricing JSON
-│   ├── github-action/    # Standalone GitHub Action
-│   └── sdk/              # @inferwise/sdk — programmatic API
-├── apps/
-│   ├── dashboard/        # SaaS dashboard (React + Vite)
-│   ├── api/              # Backend API (Hono on Cloudflare Workers)
-│   └── proxy/            # Model router proxy (Cloudflare Workers)
+│   └── github-action/    # Standalone GitHub Action
 ├── scripts/              # Maintenance scripts (pricing sync)
 └── .github/workflows/    # CI, cost-diff, pricing sync, publish
 ```
