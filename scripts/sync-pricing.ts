@@ -300,6 +300,7 @@ async function syncProvider(provider: string, prices: LiteLLMPrices): Promise<vo
   const output: ProviderFile = {
     ...existing,
     ...(updatedCount > 0 ? { last_updated: today } : {}),
+    last_verified: today,
     models: updatedModels,
   };
 
