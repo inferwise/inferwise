@@ -24,7 +24,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "tier": "premium",
       "capabilities": ["code", "reasoning", "general", "creative", "vision"],
       "knowledge_cutoff": "2025-05-01"
     },
@@ -48,7 +47,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "tier": "mid",
       "capabilities": ["code", "reasoning", "general", "creative", "vision"],
       "knowledge_cutoff": "2025-08-01"
     },
@@ -70,7 +68,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "tier": "budget",
       "capabilities": ["code", "general", "vision"],
       "knowledge_cutoff": "2025-02-01"
     },
@@ -94,7 +91,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "tier": "mid",
       "capabilities": ["code", "reasoning", "general", "creative", "vision"],
       "knowledge_cutoff": "2025-01-01"
     },
@@ -116,7 +112,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "tier": "premium",
       "capabilities": ["code", "reasoning", "general", "creative", "vision"],
       "knowledge_cutoff": "2025-05-01"
     },
@@ -138,7 +133,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "tier": "premium",
       "capabilities": ["code", "reasoning", "general", "creative", "vision"],
       "knowledge_cutoff": "2025-01-01"
     },
@@ -162,7 +156,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "tier": "mid",
       "capabilities": ["code", "reasoning", "general", "creative", "vision"],
       "knowledge_cutoff": "2025-01-01"
     },
@@ -184,7 +177,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "tier": "premium",
       "capabilities": ["code", "reasoning", "general", "creative", "vision"],
       "knowledge_cutoff": "2025-01-01"
     },
@@ -206,7 +198,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "tier": "budget",
       "capabilities": ["code", "general", "vision"],
       "knowledge_cutoff": "2023-08-01"
     }

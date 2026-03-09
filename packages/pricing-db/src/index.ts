@@ -15,6 +15,16 @@ export type Capability =
   | "search"
   | "audio";
 
+/** Thresholds for auto-tier derivation based on output_cost_per_million. */
+const TIER_THRESHOLDS = { budget: 5, premium: 20 } as const;
+
+/** Derive cost tier from output pricing. */
+export function computeTier(outputCostPerMillion: number): ModelTier {
+  if (outputCostPerMillion <= TIER_THRESHOLDS.budget) return "budget";
+  if (outputCostPerMillion < TIER_THRESHOLDS.premium) return "mid";
+  return "premium";
+}
+
 export interface ModelPricing {
   id: string;
   name: string;
@@ -44,6 +54,7 @@ export interface ModelPricing {
   supports_prompt_caching: boolean;
   supports_reasoning: boolean;
   supports_computer_use: boolean;
+  /** Derived automatically from output_cost_per_million. */
   tier: ModelTier;
   capabilities: Capability[];
   knowledge_cutoff?: string;
@@ -57,7 +68,7 @@ export interface ProviderMeta {
 }
 
 export interface ProviderData extends ProviderMeta {
-  models: Omit<ModelPricing, "provider">[];
+  models: Omit<ModelPricing, "provider" | "tier">[];
 }
 
 const PROVIDERS: Record<Provider, ProviderData> = {
@@ -67,10 +78,14 @@ const PROVIDERS: Record<Provider, ProviderData> = {
   xai: xaiData as ProviderData,
 };
 
-/** Get all models for a provider, enriched with the provider field. */
+/** Get all models for a provider, enriched with provider and computed tier. */
 export function getProviderModels(provider: Provider): ModelPricing[] {
   const data = PROVIDERS[provider];
-  return data.models.map((model) => ({ ...model, provider }));
+  return data.models.map((model) => ({
+    ...model,
+    provider,
+    tier: computeTier(model.output_cost_per_million),
+  }));
 }
 
 /** Strip common prefixes that frameworks add to model IDs. */

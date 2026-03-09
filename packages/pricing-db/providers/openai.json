@@ -21,7 +21,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "tier": "mid",
       "capabilities": ["code", "reasoning", "general", "creative", "vision"]
     },
     {
@@ -41,7 +40,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "tier": "budget",
       "capabilities": ["code", "general", "vision"]
     },
     {
@@ -61,7 +59,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "tier": "premium",
       "capabilities": ["code", "reasoning", "general"]
     },
     {
@@ -81,7 +78,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "tier": "mid",
       "capabilities": ["code", "reasoning"]
     },
     {
@@ -101,7 +97,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "tier": "mid",
       "capabilities": ["code", "reasoning", "vision"]
     },
     {
@@ -121,7 +116,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "tier": "premium",
       "capabilities": ["code", "reasoning", "general"]
     },
     {
@@ -139,7 +133,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "tier": "mid",
       "capabilities": ["code", "reasoning"]
     },
     {
@@ -156,7 +149,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "tier": "premium",
       "capabilities": ["code", "reasoning", "general", "creative", "vision"]
     }
   ]

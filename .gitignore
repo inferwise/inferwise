@@ -8,6 +8,9 @@ The-Complete-Guide-to-Building-Skill-for-Claude.pdf
 node_modules/
 **/node_modules/
 
+# CI artifacts
+new-models-report.txt
+
 # Build output
 dist/
 build/

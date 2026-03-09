@@ -21,7 +21,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "tier": "mid",
       "capabilities": ["code", "reasoning", "general", "creative"]
     },
     {
@@ -41,7 +40,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "tier": "budget",
       "capabilities": ["code", "general", "reasoning"]
     },
     {
@@ -59,7 +57,6 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "tier": "mid",
       "capabilities": ["code", "general", "vision"]
     },
     {
@@ -76,7 +73,6 @@
       "supports_prompt_caching": false,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "tier": "mid",
       "capabilities": ["code", "reasoning", "general"]
     },
     {
@@ -93,7 +89,6 @@
       "supports_prompt_caching": false,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "tier": "mid",
       "capabilities": ["code", "general", "vision"]
     }
   ]

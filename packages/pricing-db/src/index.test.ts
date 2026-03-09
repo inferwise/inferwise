@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   calculateCost,
+  computeTier,
   getAllModels,
   getAllProviders,
   getModel,
@@ -23,6 +24,33 @@ describe("getAllProviders", () => {
     expect(providers).toContain("google");
     expect(providers).toContain("xai");
     expect(providers).toHaveLength(4);
+  });
+});
+
+describe("computeTier", () => {
+  it("classifies budget tier (output ≤ $5/M)", () => {
+    expect(computeTier(0.6)).toBe("budget");
+    expect(computeTier(2.5)).toBe("budget");
+    expect(computeTier(5)).toBe("budget");
+  });
+
+  it("classifies mid tier ($5/M < output < $20/M)", () => {
+    expect(computeTier(5.01)).toBe("mid");
+    expect(computeTier(10)).toBe("mid");
+    expect(computeTier(15)).toBe("mid");
+    expect(computeTier(19.99)).toBe("mid");
+  });
+
+  it("classifies premium tier (output ≥ $20/M)", () => {
+    expect(computeTier(20)).toBe("premium");
+    expect(computeTier(25)).toBe("premium");
+    expect(computeTier(75)).toBe("premium");
+  });
+
+  it("all loaded models have a valid computed tier", () => {
+    for (const model of getAllModels()) {
+      expect(["budget", "mid", "premium"]).toContain(model.tier);
+    }
   });
 });
 

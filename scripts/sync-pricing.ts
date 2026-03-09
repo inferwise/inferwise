@@ -108,6 +108,26 @@ const SYNC_CONFIG: Record<string, ModelSyncConfig[]> = {
     { id: "gpt-4-turbo", litellmKeys: ["gpt-4-turbo", "gpt-4-turbo-2024-04-09"] },
   ],
   google: [
+    {
+      id: "gemini-3.1-pro-preview",
+      litellmKeys: ["gemini/gemini-3.1-pro-preview", "gemini-3.1-pro-preview", "gemini-3.1-pro"],
+    },
+    {
+      id: "gemini-3-flash-preview",
+      litellmKeys: ["gemini/gemini-3-flash-preview", "gemini-3-flash-preview", "gemini-3-flash"],
+    },
+    {
+      id: "gemini-3.1-flash-lite-preview",
+      litellmKeys: [
+        "gemini/gemini-3.1-flash-lite-preview",
+        "gemini-3.1-flash-lite-preview",
+        "gemini-3.1-flash-lite",
+      ],
+    },
+    {
+      id: "gemini-2.5-flash-lite",
+      litellmKeys: ["gemini/gemini-2.5-flash-lite", "gemini-2.5-flash-lite"],
+    },
     { id: "gemini-2.5-pro", litellmKeys: ["gemini/gemini-2.5-pro", "gemini-2.5-pro"] },
     { id: "gemini-2.5-flash", litellmKeys: ["gemini/gemini-2.5-flash", "gemini-2.5-flash"] },
     { id: "gemini-2.0-flash", litellmKeys: ["gemini/gemini-2.0-flash", "gemini-2.0-flash"] },
@@ -157,7 +177,7 @@ interface ExistingModel {
   aliases?: string[];
   status?: string;
   name?: string;
-  tier?: string;
+
   capabilities?: string[];
   knowledge_cutoff?: string;
   input_cost_per_million: number;
@@ -279,6 +299,114 @@ async function syncProvider(provider: string, prices: LiteLLMPrices): Promise<vo
   }
 }
 
+// --- New model discovery ---
+
+/** LiteLLM provider prefixes that map to our provider names. */
+const LITELLM_PROVIDER_MAP: Record<string, string[]> = {
+  anthropic: ["anthropic"],
+  openai: ["openai"],
+  google: ["gemini", "vertex_ai", "vertex_ai_beta"],
+  xai: ["xai"],
+};
+
+/** Model ID patterns to ignore during discovery (non-chat, embedding, deprecated aliases, etc). */
+const IGNORE_PATTERNS = [
+  /^ft:/,
+  /embed/,
+  /tts/,
+  /whisper/,
+  /dall-e/,
+  /realtime/,
+  /audio/,
+  /computer-use/,
+  /moderation/,
+  /search/,
+  /-image-preview/,
+  /gpt-4-\d{4}/,
+  /chatgpt-/,
+];
+
+function shouldIgnore(key: string): boolean {
+  return IGNORE_PATTERNS.some((p) => p.test(key));
+}
+
+/** Strip provider prefix from LiteLLM key to get the bare model ID. */
+function stripProviderPrefix(key: string): string {
+  return key.replace(/^(gemini\/|vertex_ai\/|vertex_ai_beta\/|xai\/|openai\/|anthropic\/)/, "");
+}
+
+interface DiscoveredModel {
+  litellmKey: string;
+  bareId: string;
+  inputPerMillion: number;
+  outputPerMillion: number;
+  contextWindow: number;
+  maxOutputTokens: number;
+}
+
+function discoverNewModels(provider: string, prices: LiteLLMPrices): DiscoveredModel[] {
+  const prefixes = LITELLM_PROVIDER_MAP[provider] ?? [];
+  const configs = SYNC_CONFIG[provider] ?? [];
+
+  // Build set of all LiteLLM keys we already track
+  const knownKeys = new Set<string>();
+  for (const config of configs) {
+    for (const key of config.litellmKeys) {
+      knownKeys.add(key);
+    }
+  }
+
+  // Also build set of bare model IDs we track (for fuzzy matching)
+  const knownBareIds = new Set<string>();
+  for (const config of configs) {
+    knownBareIds.add(config.id);
+    for (const key of config.litellmKeys) {
+      knownBareIds.add(stripProviderPrefix(key));
+    }
+  }
+
+  const discovered: DiscoveredModel[] = [];
+  const seenBareIds = new Set<string>();
+
+  for (const [key, entry] of Object.entries(prices)) {
+    // Must be a chat model with pricing
+    if (entry.mode !== "chat" || entry.input_cost_per_token === undefined) continue;
+
+    // Must match one of our provider prefixes
+    const matchesProvider =
+      entry.litellm_provider !== undefined && prefixes.includes(entry.litellm_provider);
+    if (!matchesProvider) continue;
+
+    // Skip if already tracked
+    if (knownKeys.has(key)) continue;
+
+    // Skip noise
+    if (shouldIgnore(key)) continue;
+
+    const bareId = stripProviderPrefix(key);
+
+    // Skip if we already track this bare ID or already discovered it
+    if (knownBareIds.has(bareId)) continue;
+    if (seenBareIds.has(bareId)) continue;
+    seenBareIds.add(bareId);
+
+    const inputPerMillion = toPerMillion(entry.input_cost_per_token) ?? 0;
+    const outputPerMillion = toPerMillion(entry.output_cost_per_token) ?? 0;
+
+    discovered.push({
+      litellmKey: key,
+      bareId,
+      inputPerMillion,
+      outputPerMillion,
+      contextWindow: entry.max_input_tokens ?? 0,
+      maxOutputTokens: entry.max_output_tokens ?? entry.max_tokens ?? 0,
+    });
+  }
+
+  // Sort by output cost descending (most expensive first — likely most important)
+  return discovered.sort((a, b) => b.outputPerMillion - a.outputPerMillion);
+}
+
 async function main(): Promise<void> {
   console.log(`Fetching LiteLLM pricing from:\n  ${LITELLM_URL}\n`);
 
@@ -296,8 +424,56 @@ async function main(): Promise<void> {
     console.log();
   }
 
+  // --- Discovery report ---
+  console.log("=== New Model Discovery ===\n");
+  let totalNew = 0;
+
+  for (const provider of PROVIDERS_TO_SYNC) {
+    const newModels = discoverNewModels(provider, prices);
+    if (newModels.length === 0) {
+      console.log(`  ${provider}: No new models found.`);
+      continue;
+    }
+
+    totalNew += newModels.length;
+    console.log(`  ${provider}: ${newModels.length} new model(s) found:`);
+    for (const m of newModels) {
+      console.log(
+        `    [NEW] ${m.bareId}` +
+          `  input: $${m.inputPerMillion}/MTok` +
+          `  output: $${m.outputPerMillion}/MTok` +
+          `  context: ${m.contextWindow}` +
+          `  (litellm key: ${m.litellmKey})`,
+      );
+    }
+    console.log();
+  }
+
+  if (totalNew > 0) {
+    console.log(
+      `\n⚠ ${totalNew} new model(s) detected. Add them to SYNC_CONFIG and provider JSON files.`,
+    );
+    // Write discovery report for CI to pick up
+    const reportPath = join(__dirname, "../new-models-report.txt");
+    const lines = [
+      `${totalNew} new model(s) detected by sync-pricing on ${new Date().toISOString()}\n`,
+    ];
+    for (const provider of PROVIDERS_TO_SYNC) {
+      const newModels = discoverNewModels(provider, prices);
+      for (const m of newModels) {
+        lines.push(
+          `${provider}/${m.bareId} — $${m.inputPerMillion}/$${m.outputPerMillion} per MTok`,
+        );
+      }
+    }
+    writeFileSync(reportPath, lines.join("\n"), "utf-8");
+    console.log(`Report written to: ${reportPath}`);
+  } else {
+    console.log("\nAll models up to date — no new models discovered.");
+  }
+
   if (!isDryRun) {
-    console.log("Done. Commit these changes:");
+    console.log("\nDone. Commit these changes:");
     console.log("  git add packages/pricing-db/providers/");
     console.log(`  git commit -m "chore(pricing): sync provider pricing $(date +%Y-%m-%d)"`);
   }
