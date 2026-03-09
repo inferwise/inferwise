@@ -330,14 +330,14 @@ const candidates = getAllModels()
 
 ## Supported Frameworks
 
-| Framework | Detected Patterns |
-|-----------|-------------------|
-| Anthropic SDK | `client.messages.create`, `anthropic.messages.create` |
-| OpenAI SDK | `client.chat.completions.create`, `openai.chat.completions.create` |
-| Google AI SDK | `generativeai.GenerativeModel`, `genai.GenerativeModel` |
-| xAI SDK | `xai.chat.completions.create` |
-| LangChain | `ChatAnthropic`, `ChatOpenAI`, `ChatGoogleGenerativeAI` |
-| Vercel AI SDK | `generateText`, `streamText`, `generateObject` |
+| Framework | Detected Patterns | Notes |
+|-----------|-------------------|-------|
+| Anthropic SDK | `.messages.create()` | TS/JS and Python |
+| OpenAI SDK | `.chat.completions.create()` | TS/JS and Python |
+| Google GenAI SDK | `.generateContent()`, `GenerativeModel()` | |
+| xAI SDK | `.chat.completions.create()` | OpenAI-compatible; provider resolved from model ID (`grok-*`) |
+| LangChain | `ChatAnthropic`, `ChatOpenAI`, `ChatGoogleGenerativeAI`, `ChatXAI` | |
+| Vercel AI SDK | `generateText`, `streamText`, `generateObject`, `streamObject` | Provider inferred from model factory |
 
 **Supported file types:** `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`
 

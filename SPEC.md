@@ -197,14 +197,17 @@ Regex-based pattern matching (not AST parsing) for speed.
 
 **Detected patterns:**
 
-| Provider | SDK / Framework | Patterns |
-|----------|----------------|----------|
-| Anthropic | Anthropic SDK (TS/JS/Python) | `.messages.create()` |
-| OpenAI | OpenAI SDK (TS/JS/Python) | `.chat.completions.create()` |
-| Google | Google GenAI SDK | `.generateContent()`, `genai.GenerativeModel()`, `GenerativeModel()` |
-| xAI | LangChain | `new ChatXAI()` |
-| Multi-provider | Vercel AI SDK | `generateText()`, `streamText()`, `generateObject()`, `streamObject()` (provider inferred from model) |
-| Multi-provider | LangChain | `new ChatAnthropic()`, `new ChatOpenAI()`, `new ChatGoogleGenerativeAI()`, `new ChatXAI()` |
+| Provider | SDK / Framework | Patterns | Notes |
+|----------|----------------|----------|-------|
+| Anthropic | Anthropic SDK (TS/JS/Python) | `.messages.create()` | |
+| OpenAI | OpenAI SDK (TS/JS/Python) | `.chat.completions.create()` | |
+| Google | Google GenAI SDK | `.generateContent()`, `genai.GenerativeModel()`, `GenerativeModel()` | |
+| xAI | OpenAI-compatible SDK | `.chat.completions.create()` | Same pattern as OpenAI; provider resolved from model ID (e.g., `grok-3` → xAI) |
+| Anthropic | LangChain | `new ChatAnthropic()` | |
+| OpenAI | LangChain | `new ChatOpenAI()` | |
+| Google | LangChain | `new ChatGoogleGenerativeAI()` | |
+| xAI | LangChain | `new ChatXAI()` | |
+| Inferred | Vercel AI SDK | `generateText()`, `streamText()`, `generateObject()`, `streamObject()` | Provider inferred from model factory, e.g., `anthropic("claude-sonnet-4")` → Anthropic |
 
 **Extract per call:**
 - File path + line number

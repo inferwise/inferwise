@@ -101,13 +101,24 @@ async function scanDir(dirPath: string): Promise<ScanResult[]> {
 }
 
 const PATTERNS = [
+  // Anthropic SDK (TS/JS and Python)
   { regex: /\.messages\.create\s*\(/, provider: "anthropic" as Provider },
+  // OpenAI SDK (TS/JS and Python) — also matches xAI SDK (OpenAI-compatible); provider resolved from model ID
   { regex: /\.chat\.completions\.create\s*\(/, provider: "openai" as Provider },
+  // Google GenAI SDK
   { regex: /\.generateContent\s*\(/, provider: "google" as Provider },
+  { regex: /genai\.GenerativeModel\s*\(/, provider: "google" as Provider },
+  { regex: /GenerativeModel\s*\(/, provider: "google" as Provider },
+  // Vercel AI SDK — provider inferred from model factory
   { regex: /\bgenerateText\s*\(/, provider: null },
   { regex: /\bstreamText\s*\(/, provider: null },
+  { regex: /\bgenerateObject\s*\(/, provider: null },
+  { regex: /\bstreamObject\s*\(/, provider: null },
+  // LangChain
   { regex: /new\s+ChatAnthropic\s*\(/, provider: "anthropic" as Provider },
   { regex: /new\s+ChatOpenAI\s*\(/, provider: "openai" as Provider },
+  { regex: /new\s+ChatGoogleGenerativeAI\s*\(/, provider: "google" as Provider },
+  { regex: /new\s+ChatXAI\s*\(/, provider: "xai" as Provider },
 ];
 
 const IGNORE = new Set([".git", "node_modules", "dist", "build", "out"]);
