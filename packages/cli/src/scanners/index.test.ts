@@ -312,6 +312,108 @@ const { text } = await generateText({
     expect(hit?.maxOutputTokens).toBe(200);
   });
 
+  it("detects AWS Bedrock invoke_model call", async () => {
+    await writeFixture(
+      "bedrock-sdk.py",
+      `
+import boto3, json
+client = boto3.client("bedrock-runtime")
+response = client.invoke_model(
+    modelId="anthropic.claude-sonnet-4-20250514-v1:0",
+    body=json.dumps({"prompt": "Hello"}),
+)
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "bedrock-sdk.py");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("anthropic");
+    expect(hit?.model).toBe("anthropic.claude-sonnet-4-20250514-v1:0");
+    expect(hit?.framework).toBe("bedrock-sdk");
+  });
+
+  it("detects LiteLLM completion with bedrock prefix", async () => {
+    await writeFixture(
+      "litellm-call.py",
+      `
+import litellm
+response = litellm.completion(
+    model="bedrock/anthropic.claude-sonnet-4-20250514-v1:0",
+    messages=[{"role": "user", "content": "Hello"}],
+    max_tokens=256,
+)
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "litellm-call.py");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("anthropic");
+    expect(hit?.model).toBe("bedrock/anthropic.claude-sonnet-4-20250514-v1:0");
+    expect(hit?.framework).toBe("litellm");
+    expect(hit?.maxOutputTokens).toBe(256);
+  });
+
+  it("detects LangChain ChatBedrock", async () => {
+    await writeFixture(
+      "langchain-bedrock.ts",
+      `
+import { ChatBedrock } from "@langchain/community/chat_models/bedrock";
+const llm = new ChatBedrock({
+    model: "anthropic.claude-sonnet-4-20250514-v1:0",
+    region: "us-east-1",
+});
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "langchain-bedrock.ts");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("anthropic");
+    expect(hit?.model).toBe("anthropic.claude-sonnet-4-20250514-v1:0");
+    expect(hit?.framework).toBe("langchain");
+  });
+
+  it("detects LangChain AzureChatOpenAI", async () => {
+    await writeFixture(
+      "langchain-azure.ts",
+      `
+import { AzureChatOpenAI } from "@langchain/openai";
+const llm = new AzureChatOpenAI({
+    model: "gpt-4o",
+    azureOpenAIApiDeploymentName: "my-deployment",
+});
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "langchain-azure.ts");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("openai");
+    expect(hit?.model).toBe("gpt-4o");
+    expect(hit?.framework).toBe("langchain");
+  });
+
+  it("detects Azure OpenAI SDK", async () => {
+    await writeFixture(
+      "azure-openai.ts",
+      `
+import { AzureOpenAI } from "openai";
+const client = new AzureOpenAI({ endpoint, apiKey, apiVersion });
+const result = await client.chat.completions.create({
+    model: "gpt-4o",
+    messages: [{ role: "user", content: "Hello" }],
+});
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hits = results.filter((r) => r.filePath === "azure-openai.ts");
+    expect(hits.length).toBeGreaterThanOrEqual(1);
+    expect(hits.every((h) => h.provider === "openai")).toBe(true);
+  });
+
   it("handles subdirectories", async () => {
     const subDir = path.join(tmpDir, "sub");
     await mkdir(subDir, { recursive: true });

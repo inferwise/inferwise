@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { Provider } from "@inferwise/pricing-db";
+import { normalizeModelId } from "@inferwise/pricing-db";
 import { glob } from "glob";
 
 export interface ScanResult {
@@ -42,6 +43,23 @@ const PATTERNS: PatternDef[] = [
   { regex: /new\s+ChatOpenAI\s*\(/, provider: "openai", framework: "langchain" },
   { regex: /new\s+ChatGoogleGenerativeAI\s*\(/, provider: "google", framework: "langchain" },
   { regex: /new\s+ChatXAI\s*\(/, provider: "xai", framework: "langchain" },
+  // LangChain Bedrock / Azure
+  { regex: /new\s+ChatBedrock(?:Converse)?\s*\(/, provider: null, framework: "langchain" },
+  { regex: /new\s+AzureChatOpenAI\s*\(/, provider: "openai", framework: "langchain" },
+  // AWS Bedrock SDK (Python boto3)
+  {
+    regex: /\binvoke_model(?:_with_response_stream)?\s*\(/,
+    provider: null,
+    framework: "bedrock-sdk",
+  },
+  // Azure OpenAI SDK
+  { regex: /new\s+AzureOpenAI\s*\(/, provider: "openai", framework: "azure-openai-sdk" },
+  // LiteLLM (Python)
+  {
+    regex: /\blitellm\.(?:a?completion|atext_completion)\s*\(/,
+    provider: null,
+    framework: "litellm",
+  },
 ];
 
 const IGNORE_PATTERNS = [
@@ -68,7 +86,15 @@ function extractString(lines: string[], pattern: RegExp): string | null {
 }
 
 function inferProviderFromModel(modelId: string): Provider | null {
-  const id = modelId.toLowerCase();
+  const raw = modelId.toLowerCase();
+
+  // Platform prefix detection
+  if (raw.startsWith("bedrock/anthropic.") || raw.startsWith("anthropic.")) return "anthropic";
+  if (raw.startsWith("azure/") || raw.startsWith("azure_ai/")) return "openai";
+  if (raw.startsWith("vertex_ai/")) return "google";
+
+  // Normalize and match by model name
+  const id = normalizeModelId(modelId).toLowerCase();
   if (id.startsWith("claude")) return "anthropic";
   if (id.startsWith("gpt-") || id.startsWith("o1") || id.startsWith("o3") || id.startsWith("o4"))
     return "openai";
@@ -89,6 +115,10 @@ function extractModelId(window: string[]): string | null {
   // Standard: model: "model-id" or model="model-id" (TS/JS + Python kwargs)
   const standard = joined.match(/model\s*[:=]\s*["']([^"'\n]+)["']/);
   if (standard?.[1]) return standard[1];
+
+  // Bedrock SDK: modelId="anthropic.claude-..." or modelId: "..."
+  const bedrockModel = joined.match(/modelId\s*[:=]\s*["']([^"'\n]+)["']/);
+  if (bedrockModel?.[1]) return bedrockModel[1];
 
   // Vercel AI SDK provider factory: model: anthropic("claude-sonnet-4") or openai("gpt-4o")
   const vercelFactory = joined.match(/model\s*:\s*\w+\(\s*["']([^"'\n]+)["']/);

@@ -10,6 +10,7 @@ import {
   getModel,
   getPricingAgeInDays,
   getProviderMeta,
+  normalizeModelId,
 } from "./index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -122,6 +123,65 @@ describe("getModel", () => {
         expect(found?.id).toBe(withAlias.id);
       }
     }
+  });
+});
+
+describe("normalizeModelId", () => {
+  it("strips Bedrock provider prefix and version suffix", () => {
+    expect(normalizeModelId("anthropic.claude-sonnet-4-20250514-v1:0")).toBe(
+      "claude-sonnet-4-20250514",
+    );
+  });
+
+  it("strips LiteLLM bedrock/ routing prefix", () => {
+    expect(normalizeModelId("bedrock/anthropic.claude-sonnet-4-20250514-v1:0")).toBe(
+      "claude-sonnet-4-20250514",
+    );
+  });
+
+  it("strips azure/ prefix", () => {
+    expect(normalizeModelId("azure/gpt-4o")).toBe("gpt-4o");
+  });
+
+  it("strips vertex_ai/ prefix", () => {
+    expect(normalizeModelId("vertex_ai/gemini-2.5-pro")).toBe("gemini-2.5-pro");
+  });
+
+  it("returns canonical IDs unchanged", () => {
+    expect(normalizeModelId("claude-sonnet-4-20250514")).toBe("claude-sonnet-4-20250514");
+    expect(normalizeModelId("gpt-4o")).toBe("gpt-4o");
+  });
+});
+
+describe("getModel with platform-prefixed IDs", () => {
+  it("resolves Bedrock-prefixed anthropic model", () => {
+    const model = getModel("anthropic", "anthropic.claude-sonnet-4-20250514-v1:0");
+    expect(model).toBeDefined();
+    expect(model?.id).toBe("claude-sonnet-4-20250514");
+  });
+
+  it("resolves LiteLLM bedrock/ routing prefix", () => {
+    const model = getModel("anthropic", "bedrock/anthropic.claude-sonnet-4-20250514-v1:0");
+    expect(model).toBeDefined();
+    expect(model?.id).toBe("claude-sonnet-4-20250514");
+  });
+
+  it("resolves azure/ prefix for OpenAI models", () => {
+    const model = getModel("openai", "azure/gpt-4o");
+    expect(model).toBeDefined();
+    expect(model?.id).toBe("gpt-4o");
+  });
+
+  it("resolves vertex_ai/ prefix for Google models", () => {
+    const model = getModel("google", "vertex_ai/gemini-2.5-pro");
+    expect(model).toBeDefined();
+    expect(model?.id).toBe("gemini-2.5-pro");
+  });
+
+  it("resolves Bedrock version suffix only", () => {
+    const model = getModel("anthropic", "claude-sonnet-4-20250514-v1:0");
+    expect(model).toBeDefined();
+    expect(model?.id).toBe("claude-sonnet-4-20250514");
   });
 });
 

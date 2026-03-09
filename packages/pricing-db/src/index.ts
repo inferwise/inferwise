@@ -92,9 +92,23 @@ export function getProviderModels(provider: Provider): ModelPricing[] {
   }));
 }
 
-/** Strip common prefixes that frameworks add to model IDs. */
-function normalizeModelId(modelId: string): string {
-  return modelId.replace(/^(models\/|gemini\/|xai\/|openai\/)/, "");
+/**
+ * Strip platform/routing prefixes and version suffixes from model IDs.
+ * Handles: LiteLLM routing (bedrock/, azure/, vertex_ai/), framework prefixes
+ * (models/, gemini/), Bedrock provider prefixes (anthropic.), and Bedrock
+ * version suffixes (-v1:0).
+ */
+export function normalizeModelId(modelId: string): string {
+  let id = modelId;
+  // LiteLLM routing prefixes
+  id = id.replace(/^(bedrock\/|azure\/|vertex_ai\/|azure_ai\/)/, "");
+  // Framework prefixes
+  id = id.replace(/^(models\/|gemini\/|xai\/|openai\/)/, "");
+  // Bedrock provider prefixes
+  id = id.replace(/^(anthropic|amazon|meta|cohere|ai21|mistral|stability)\./, "");
+  // Bedrock version suffix
+  id = id.replace(/-v\d+:\d+$/, "");
+  return id;
 }
 
 /**
