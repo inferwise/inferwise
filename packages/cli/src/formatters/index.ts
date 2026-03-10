@@ -7,7 +7,8 @@ export type OutputFormat = "table" | "json" | "markdown";
 export type TokenSource =
   | "code" // Extracted from code — exact value
   | "model_limit" // Derived from model spec — worst-case ceiling
-  | "production"; // Averaged from production usage data
+  | "production" // Averaged from production usage data
+  | "calibrated"; // Adjusted by calibration data from provider APIs
 
 export interface EstimateRow {
   file: string;
@@ -48,6 +49,9 @@ function formatTokenCount(tokens: number, source: TokenSource): string {
   }
   if (source === "production") {
     return chalk.cyan(`${count} †`);
+  }
+  if (source === "calibrated") {
+    return chalk.magenta(`${count} ~`);
   }
   return count;
 }
@@ -110,6 +114,13 @@ export function formatTable(summary: EstimateSummary): string {
     lines.push(chalk.dim("† Averaged from production usage data via Inferwise Cloud."));
   }
 
+  const hasCalibrated = summary.rows.some(
+    (r) => r.inputTokenSource === "calibrated" || r.outputTokenSource === "calibrated",
+  );
+  if (hasCalibrated) {
+    lines.push(chalk.dim("~ Adjusted by calibration data. Run inferwise calibrate to update."));
+  }
+
   return lines.join("\n");
 }
 
@@ -137,13 +148,17 @@ export function formatMarkdown(summary: EstimateSummary): string {
         ? " \\*"
         : row.inputTokenSource === "production"
           ? " †"
-          : "";
+          : row.inputTokenSource === "calibrated"
+            ? " ~"
+            : "";
     const outputSuffix =
       row.outputTokenSource === "model_limit"
         ? " \\*"
         : row.outputTokenSource === "production"
           ? " †"
-          : "";
+          : row.outputTokenSource === "calibrated"
+            ? " ~"
+            : "";
     lines.push(
       `| \`${row.file}\` | ${row.line} | ${row.provider} | ${row.model} | ${row.inputTokens.toLocaleString()}${inputSuffix} | ${row.outputTokens.toLocaleString()}${outputSuffix} | ${formatCost(row.costPerCall)} | ${formatMonthlyCost(row.monthlyCost)} |`,
     );
@@ -168,6 +183,14 @@ export function formatMarkdown(summary: EstimateSummary): string {
   if (hasProduction) {
     lines.push("");
     lines.push("> † Averaged from production usage data via Inferwise Cloud.");
+  }
+
+  const hasCalibrated = summary.rows.some(
+    (r) => r.inputTokenSource === "calibrated" || r.outputTokenSource === "calibrated",
+  );
+  if (hasCalibrated) {
+    lines.push("");
+    lines.push("> ~ Adjusted by calibration data. Run `inferwise calibrate` to update.");
   }
 
   lines.push("");

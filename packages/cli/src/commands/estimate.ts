@@ -2,6 +2,8 @@ import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-d
 import type { ModelPricing, Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import { Command } from "commander";
+import type { CalibrationData } from "../calibration.js";
+import { loadCalibration } from "../calibration.js";
 import type { InferwiseConfig } from "../config.js";
 import { getEnvVolume, loadConfig, resolveVolume } from "../config.js";
 import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
@@ -101,12 +103,26 @@ function resolveOutputTokens(
   return { outputTokens: 0, outputTokenSource: "model_limit" };
 }
 
+function applyCalibration(
+  tokens: number,
+  source: TokenSource,
+  calibration: CalibrationData | null,
+  key: string,
+  field: "inputRatio" | "outputRatio",
+): { tokens: number; source: TokenSource } {
+  if (source !== "model_limit" || !calibration) return { tokens, source };
+  const cal = calibration.models[key] as { inputRatio: number; outputRatio: number } | undefined;
+  if (!cal) return { tokens, source };
+  return { tokens: Math.round(tokens * cal[field]), source: "calibrated" };
+}
+
 function computeRowCost(
   result: ScanResult,
   config: InferwiseConfig,
   cliVolume: number,
   cliVolumeExplicit: boolean,
   statsMap: Map<string, ModelStats> | null,
+  calibration: CalibrationData | null,
 ): EstimateRow {
   const provider = result.provider as Provider;
   const modelId = result.model;
@@ -118,8 +134,25 @@ function computeRowCost(
   // Look up production stats for this provider/model
   const stats = modelId ? statsMap?.get(`${provider}/${modelId}`) : undefined;
 
-  const { inputTokens, inputTokenSource } = resolveInputTokens(result, pricing, stats);
-  const { outputTokens, outputTokenSource } = resolveOutputTokens(result, pricing, stats);
+  let { inputTokens, inputTokenSource } = resolveInputTokens(result, pricing, stats);
+  let { outputTokens, outputTokenSource } = resolveOutputTokens(result, pricing, stats);
+
+  // Apply calibration to model_limit estimates only
+  const calKey = `${provider}/${modelId}`;
+  ({ tokens: inputTokens, source: inputTokenSource } = applyCalibration(
+    inputTokens,
+    inputTokenSource,
+    calibration,
+    calKey,
+    "inputRatio",
+  ));
+  ({ tokens: outputTokens, source: outputTokenSource } = applyCalibration(
+    outputTokens,
+    outputTokenSource,
+    calibration,
+    calKey,
+    "outputRatio",
+  ));
 
   const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
   const monthlyCost = costPerCall * volume * 30;
@@ -144,8 +177,11 @@ function buildEstimateRows(
   cliVolume: number,
   cliVolumeExplicit: boolean,
   statsMap: Map<string, ModelStats> | null,
+  calibration: CalibrationData | null,
 ): EstimateRow[] {
-  return results.map((r) => computeRowCost(r, config, cliVolume, cliVolumeExplicit, statsMap));
+  return results.map((r) =>
+    computeRowCost(r, config, cliVolume, cliVolumeExplicit, statsMap, calibration),
+  );
 }
 
 /** Resolve API URL from CLI flag, config, or env var. */
@@ -190,6 +226,9 @@ export function estimateCommand(): Command {
         statsMap = await fetchProductionStats(apiUrl, apiKey);
       }
 
+      // Load calibration data if available
+      const calibration = await loadCalibration();
+
       if (format === "table") {
         process.stderr.write(chalk.dim(`Scanning ${scanPath}...\n`));
       }
@@ -207,6 +246,7 @@ export function estimateCommand(): Command {
         cliVolume,
         cliVolumeExplicit,
         statsMap,
+        calibration,
       );
 
       const totalMonthlyCost = rows.reduce((sum, r) => sum + r.monthlyCost, 0);
