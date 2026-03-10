@@ -119,10 +119,8 @@ const PATTERNS: Array<{ regex: RegExp; provider: Provider | null }> = [
   { regex: /\.messages\.create\s*\(/, provider: "anthropic" },
   // OpenAI SDK (TS/JS and Python) — also matches xAI/Perplexity (OpenAI-compatible); provider resolved from model ID
   { regex: /\.chat\.completions\.create\s*\(/, provider: "openai" },
-  // Google GenAI SDK
+  // Google GenAI SDK — only match the actual API call, not model init
   { regex: /\.generateContent\s*\(/, provider: "google" },
-  { regex: /genai\.GenerativeModel\s*\(/, provider: "google" },
-  { regex: /GenerativeModel\s*\(/, provider: "google" },
   // Vercel AI SDK — provider inferred from model factory
   { regex: /\bgenerateText\s*\(/, provider: null },
   { regex: /\bstreamText\s*\(/, provider: null },
@@ -212,6 +210,18 @@ async function inlineScan(dirPath: string): Promise<ScanResult[]> {
   return results;
 }
 
+/** Typical input heuristic: 4K tokens, or 25% of window for small-context models. */
+function typicalInputTokens(pricing: { context_window: number }): number {
+  return pricing.context_window < 16_384
+    ? Math.min(4096, Math.round(pricing.context_window * 0.25))
+    : 4096;
+}
+
+/** Typical output heuristic: 5% of max output, clamped to [512, 4096]. */
+function typicalOutputTokens(pricing: { max_output_tokens: number }): number {
+  return Math.max(512, Math.min(4096, Math.round(pricing.max_output_tokens * 0.05)));
+}
+
 function computeFileCosts(results: ScanResult[], volume: number): Map<string, FileCostEntry[]> {
   const byFile = new Map<string, FileCostEntry[]>();
 
@@ -219,11 +229,11 @@ function computeFileCosts(results: ScanResult[], volume: number): Map<string, Fi
     // Resolve model — exact match or cheapest current model for the provider
     const pricing = r.model ? getModel(r.provider, r.model) : fallbackModel(r.provider);
 
-    // Input tokens: context_window - max_output_tokens (worst-case ceiling from model spec)
-    const inputTokens = pricing ? pricing.context_window - pricing.max_output_tokens : 0;
+    // Input tokens: use typical heuristic when no static prompt available
+    const inputTokens = pricing ? typicalInputTokens(pricing) : 0;
 
-    // Output tokens: max_tokens from code, or model's max_output_tokens as ceiling
-    const outputTokens = r.maxOutputTokens ?? (pricing ? pricing.max_output_tokens : 0);
+    // Output tokens: max_tokens from code, or typical heuristic
+    const outputTokens = r.maxOutputTokens ?? (pricing ? typicalOutputTokens(pricing) : 0);
 
     const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
     const modelLabel = r.model ?? (pricing ? `${pricing.id} (inferred)` : "unknown");
@@ -343,6 +353,51 @@ async function postComment(
   }
 }
 
+interface BudgetConfig {
+  warn?: number;
+  block?: number;
+  requireApproval?: number;
+  approvers?: string[];
+}
+
+interface InferwiseActionConfig {
+  defaultVolume?: number;
+  budgets?: BudgetConfig;
+}
+
+/** Load inferwise.config.json from the repo root. */
+async function loadActionConfig(dir: string): Promise<InferwiseActionConfig> {
+  const { readFile } = await import("node:fs/promises");
+  try {
+    const raw = await readFile(path.join(dir, "inferwise.config.json"), "utf-8");
+    return JSON.parse(raw) as InferwiseActionConfig;
+  } catch {
+    return {};
+  }
+}
+
+/** Add a label to a PR, creating the label if it doesn't exist. */
+async function ensureLabel(
+  octokit: ReturnType<typeof github.getOctokit>,
+  owner: string,
+  repo: string,
+  prNumber: number,
+  label: string,
+  color: string,
+  description: string,
+): Promise<void> {
+  try {
+    await octokit.rest.issues.getLabel({ owner, repo, name: label });
+  } catch {
+    await octokit.rest.issues
+      .createLabel({ owner, repo, name: label, color, description })
+      .catch(() => {});
+  }
+  await octokit.rest.issues
+    .addLabels({ owner, repo, issue_number: prNumber, labels: [label] })
+    .catch(() => {});
+}
+
 async function run(): Promise<void> {
   const token = core.getInput("github-token", { required: true });
   const volumeStr = core.getInput("volume") || "1000";
@@ -359,6 +414,12 @@ async function run(): Promise<void> {
   let baseDir: string | null = null;
 
   try {
+    // Load budget config from repo
+    const config = await loadActionConfig(gitRoot);
+    const budgets = config.budgets;
+    const configVolume = config.defaultVolume;
+    const effectiveVolume = volumeStr !== "1000" ? volume : (configVolume ?? volume);
+
     core.info(`Comparing ${baseRef} → ${headSha}`);
 
     baseDir = await checkoutRefToDir(gitRoot, `origin/${baseRef}`);
@@ -368,13 +429,13 @@ async function run(): Promise<void> {
       inlineScan(gitRoot),
     ]);
 
-    const baseCosts = computeFileCosts(baseResults, volume);
-    const headCosts = computeFileCosts(headResults, volume);
+    const baseCosts = computeFileCosts(baseResults, effectiveVolume);
+    const headCosts = computeFileCosts(headResults, effectiveVolume);
 
     const { report, netDelta } = buildMarkdownReport(
       baseCosts,
       headCosts,
-      volume,
+      effectiveVolume,
       baseRef,
       headSha,
     );
@@ -387,8 +448,77 @@ async function run(): Promise<void> {
       const octokit = github.getOctokit(token);
       await postComment(octokit, ctx.repo.owner, ctx.repo.repo, prNumber, report);
       core.info("Posted cost diff comment to PR.");
+
+      // Apply budget labels based on inferwise.config.json
+      if (budgets && netDelta > 0) {
+        if (budgets.warn !== undefined && netDelta >= budgets.warn) {
+          await ensureLabel(
+            octokit,
+            ctx.repo.owner,
+            ctx.repo.repo,
+            prNumber,
+            "cost-warning",
+            "fbca04",
+            `Inferwise: cost increase exceeds $${budgets.warn}/mo warn threshold`,
+          );
+          core.warning(
+            `Cost increase $${netDelta.toFixed(2)}/mo exceeds warn threshold $${budgets.warn}/mo.`,
+          );
+        }
+
+        if (budgets.requireApproval !== undefined && netDelta >= budgets.requireApproval) {
+          await ensureLabel(
+            octokit,
+            ctx.repo.owner,
+            ctx.repo.repo,
+            prNumber,
+            "cost-approval-required",
+            "d93f0b",
+            `Inferwise: cost increase exceeds $${budgets.requireApproval}/mo — requires approval`,
+          );
+          // Request review from approvers
+          if (budgets.approvers && budgets.approvers.length > 0) {
+            const reviewers = budgets.approvers
+              .filter((a) => !a.startsWith("@"))
+              .map((a) => a.replace(/^@/, ""));
+            const teamReviewers = budgets.approvers
+              .filter((a) => a.startsWith("@"))
+              .map((a) => a.replace(/^@/, ""));
+            await octokit.rest.pulls
+              .requestReviewers({
+                owner: ctx.repo.owner,
+                repo: ctx.repo.repo,
+                pull_number: prNumber,
+                ...(reviewers.length > 0 ? { reviewers } : {}),
+                ...(teamReviewers.length > 0 ? { team_reviewers: teamReviewers } : {}),
+              })
+              .catch((err: unknown) => {
+                core.warning(
+                  `Could not request reviewers: ${err instanceof Error ? err.message : String(err)}`,
+                );
+              });
+          }
+        }
+
+        if (budgets.block !== undefined && netDelta >= budgets.block) {
+          await ensureLabel(
+            octokit,
+            ctx.repo.owner,
+            ctx.repo.repo,
+            prNumber,
+            "cost-blocked",
+            "e11d48",
+            `Inferwise: cost increase exceeds $${budgets.block}/mo block threshold`,
+          );
+          core.setFailed(
+            `Monthly cost increase $${netDelta.toFixed(2)} exceeds budget block threshold $${budgets.block.toFixed(2)}/mo.`,
+          );
+          return;
+        }
+      }
     }
 
+    // Legacy: --fail-on-increase CLI input (overridden by budgets.block if both set)
     if (failOnIncreaseStr) {
       const threshold = Number.parseFloat(failOnIncreaseStr);
       if (!Number.isNaN(threshold) && netDelta > threshold) {

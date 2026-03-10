@@ -485,6 +485,27 @@ export function diffCommand(): Command {
 
         process.stdout.write(`${output}\n`);
 
+        // Budget enforcement from config
+        if (netMonthlyDelta > 0 && config.budgets) {
+          const b = config.budgets;
+          if (b.warn !== undefined && netMonthlyDelta >= b.warn) {
+            process.stderr.write(
+              chalk.yellow(
+                `Budget warning: +$${netMonthlyDelta.toFixed(2)}/mo exceeds warn threshold ($${b.warn}/mo).\n`,
+              ),
+            );
+          }
+          if (b.block !== undefined && netMonthlyDelta >= b.block) {
+            process.stderr.write(
+              chalk.red(
+                `Budget exceeded: +$${netMonthlyDelta.toFixed(2)}/mo exceeds block threshold ($${b.block}/mo). Exiting with code 1.\n`,
+              ),
+            );
+            process.exit(1);
+          }
+        }
+
+        // Legacy: --fail-on-increase flag (overridden by budgets.block if both set)
         if (options.failOnIncrease !== undefined) {
           const threshold = Number.parseFloat(options.failOnIncrease);
           if (!Number.isNaN(threshold) && netMonthlyDelta > threshold) {

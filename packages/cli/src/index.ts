@@ -6,6 +6,7 @@ import { auditCommand } from "./commands/audit.js";
 import { calibrateCommand } from "./commands/calibrate.js";
 import { diffCommand } from "./commands/diff.js";
 import { estimateCommand } from "./commands/estimate.js";
+import { initCommand } from "./commands/init.js";
 import { priceCommand } from "./commands/price.js";
 import { updatePricingCommand } from "./commands/update-pricing.js";
 
@@ -21,6 +22,7 @@ program
   .description("Know and control your LLM costs before they ship.")
   .version(pkg.version);
 
+program.addCommand(initCommand());
 program.addCommand(estimateCommand());
 program.addCommand(diffCommand());
 program.addCommand(auditCommand());
