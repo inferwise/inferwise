@@ -2,16 +2,24 @@
 
 ## Overview
 
-Inferwise is a FinOps platform purpose-built for LLM inference costs.
+Inferwise is a FinOps platform for **pay-as-you-go LLM API costs** — the per-token charges incurred when your application code calls provider APIs (Anthropic, OpenAI, Google, xAI). It does not track flat-rate subscriptions (Claude Code, Cursor, Copilot, ChatGPT Plus, etc.).
 
 **Website:** inferwise.dev
 **GitHub:** github.com/inferwise
 **npm:** inferwise
 
+## Scope
+
+**In scope:** Code that calls LLM APIs and gets billed per token — `messages.create()`, `chat.completions.create()`, `generateContent()`, LangChain wrappers, Vercel AI SDK calls. These run in your production, hit your API key, and scale with traffic.
+
+**Out of scope:** Flat-rate AI tool subscriptions (Claude Code, Cursor Pro, GitHub Copilot, ChatGPT Plus/Team, Codex). These are fixed monthly costs regardless of usage — there's nothing to estimate or gate.
+
+**The connection:** AI coding tools (Cursor, Claude Code, Codex) may *generate* code that makes LLM API calls. Inferwise catches those API calls at commit time, not the subscription cost of the tool that wrote them.
+
 ## What This Repo Contains
 
-1. **CLI** (`inferwise`) — Pre-commit token cost estimation, budget enforcement, calibration
-2. **Pricing Database** (`@inferwise/pricing-db`) — Bundled provider pricing, updated daily
+1. **CLI** (`inferwise`) — Pre-commit API cost estimation, budget enforcement, calibration
+2. **Pricing Database** (`@inferwise/pricing-db`) — Bundled provider API pricing, updated daily
 3. **GitHub Action** (`inferwise/inferwise-action`) — PR cost diff comments + budget enforcement in CI
 
 ---

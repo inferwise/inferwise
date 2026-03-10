@@ -1,6 +1,6 @@
 # @inferwise/github-action
 
-GitHub Action that scans your codebase for LLM API calls, posts a cost diff comment on pull requests, and enforces budget policies.
+GitHub Action that scans your codebase for pay-as-you-go LLM API calls, posts a cost diff comment on pull requests, and enforces budget policies. Tracks per-token API costs — not flat-rate subscriptions like Cursor or Copilot.
 
 ## Usage
 

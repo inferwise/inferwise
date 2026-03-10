@@ -1,8 +1,10 @@
 # inferwise
 
-**Know and control your LLM costs before they ship.**
+**Know and control your pay-as-you-go LLM API costs before they ship.**
 
-Inferwise is a FinOps CLI for LLM inference costs. Scan your codebase for LLM API calls, estimate token costs, enforce budget policies, and diff costs between branches — works with any CI system or locally as a git hook.
+Inferwise scans your codebase for LLM API calls (`messages.create()`, `chat.completions.create()`, etc.), estimates per-token costs, enforces budget policies, and diffs costs between branches. Works with any CI system or locally as a git hook.
+
+> **Note:** Inferwise tracks pay-as-you-go API costs (billed per token to your API key). It does not track flat-rate subscriptions like Claude Code, Cursor, Copilot, or ChatGPT Plus.
 
 ## Quick Start
 

@@ -6,7 +6,7 @@
 [![npm](https://img.shields.io/npm/v/inferwise)](https://www.npmjs.com/package/inferwise)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-Inferwise is a FinOps CLI for LLM inference costs. It scans your codebase for LLM API calls, estimates token costs, enforces budget policies, and shows cost diffs in pull requests — before a single line ships. Works with any CI system (GitHub, GitLab, Bitbucket, Jenkins) or locally as a git hook.
+Inferwise is a FinOps CLI for **pay-as-you-go LLM API costs**. It scans your codebase for LLM API calls (Anthropic, OpenAI, Google, xAI), estimates per-token costs, enforces budget policies, and shows cost diffs in pull requests — before a single line ships. Works with any CI system (GitHub, GitLab, Bitbucket, Jenkins) or locally as a git hook.
 
 ---
 
@@ -35,32 +35,34 @@ pnpm add -g inferwise
 
 ## Why Inferwise?
 
-Your LLM bill is climbing and you're not sure why. Someone on the team swapped `gpt-4o-mini` for `claude-opus-4` and nobody noticed until the invoice arrived. An AI coding agent picked the most capable model for every call — because it optimizes for correctness, not cost.
+Your LLM API bill is climbing and you're not sure why. Someone on the team swapped `gpt-4o-mini` for `claude-opus-4` and nobody noticed until the invoice arrived. An AI coding agent picked the most expensive model for every call — because it optimizes for correctness, not cost.
 
-**This is LLM cost anxiety.** Unlike cloud infrastructure where you can check a dashboard before deploying, there's no cost visibility built into the LLM development workflow. The bill shows up after the code ships.
+**This is LLM cost anxiety.** Your code makes API calls that are billed per token — every `messages.create()`, every `chat.completions.create()` — and there's no cost visibility built into the development workflow. The bill shows up after the code ships.
 
-Inferwise fixes this. One command tells you what every LLM call costs. One config file enforces budget policy across your entire org. Zero runtime dependencies, zero API calls for basic estimation.
+Inferwise fixes this. One command tells you what every LLM API call in your code costs. One config file enforces budget policy across your entire org. Zero runtime dependencies, zero API calls for basic estimation.
 
 ### Who This Is For
 
-- **Developers building LLM features** — See projected costs before you commit. Know whether switching from Sonnet to Opus adds $50/mo or $5,000/mo.
-- **Teams hitting spending limits** — Your bill doubled last month. Which endpoint? Which model change? Inferwise shows the cost diff in every PR.
-- **AI coding agents** — Cursor, Claude Code, Copilot, and Codex optimize for correctness, not cost. Without a cost gate, expensive model choices ship silently into production.
-- **Platform/FinOps teams** — Enforce org-wide budget thresholds as code. Block catastrophic cost increases before they merge.
+- **Developers calling LLM APIs** — Your code makes `anthropic.messages.create()` or `openai.chat.completions.create()` calls that are billed per token. See projected costs before you commit.
+- **Teams with growing API bills** — Your Anthropic or OpenAI API bill doubled last month. Which endpoint? Which model change? Inferwise shows the cost diff in every PR.
+- **Teams using AI coding agents** — When Cursor, Claude Code, Copilot, or Codex generate code, they may write LLM API calls that run in your production and hit your API key. Without a cost gate, expensive model choices ship silently.
+- **Platform/FinOps teams** — Enforce org-wide budget thresholds as code. Block catastrophic API cost increases before they merge.
 
 ---
 
 ## How It Works
 
 ```
- Developer / AI Agent writes code
+ Developer / AI Agent writes code that calls LLM APIs
           │
           ▼
- ┌──────────────────────────┐
- │  client.messages.create(  │
- │    model: "claude-opus-4"│
- │  )                        │
- └───────────┬──────────────┘
+ ┌──────────────────────────────────┐
+ │  // This runs in YOUR production  │
+ │  // Billed per token to YOUR key  │
+ │  client.messages.create(          │
+ │    model: "claude-opus-4"         │
+ │  )                                │
+ └───────────┬──────────────────────┘
              │
      ┌───────▼────────┐
      │   Inferwise     │
@@ -93,13 +95,35 @@ Inferwise fixes this. One command tells you what every LLM call costs. One confi
 
 ### Concrete Example
 
-An AI agent builds a RAG pipeline and picks Opus for every call — embeddings, retrieval, summarization, response generation.
+An AI coding agent builds a RAG pipeline and writes API calls using Opus for every step — embeddings, retrieval, summarization, response generation. Those calls will run in your production, billed per token to your API key.
 
-Inferwise flags: **"+$2,400/mo in new LLM costs"** on the PR.
+Inferwise flags: **"+$2,400/mo in new API costs"** on the PR.
 
 The developer asks the agent to use Sonnet where Opus isn't needed. Cost drops to **$600/mo**.
 
 **$1,800/mo saved before a single line ships.**
+
+---
+
+## What Inferwise Tracks (and Doesn't)
+
+Inferwise tracks **pay-as-you-go LLM API calls in your source code** — the code your application runs in production that hits provider APIs and gets billed per token.
+
+**Tracked (per-token API costs):**
+- `anthropic.messages.create()` — billed per token to your Anthropic API key
+- `openai.chat.completions.create()` — billed per token to your OpenAI API key
+- `genai.generateContent()` — billed per token to your Google AI API key
+- LangChain / Vercel AI SDK wrappers that call the above APIs
+- Any code that makes HTTP requests to LLM provider APIs
+
+**NOT tracked (flat-rate subscriptions):**
+- Claude Code / Claude Pro / Claude Max subscriptions
+- Cursor Pro / Business subscriptions
+- GitHub Copilot subscriptions
+- ChatGPT Plus / Team / Enterprise seats
+- Codex usage (billed through OpenAI's platform, not your API key)
+
+The distinction: Inferwise doesn't care about the **tool you use to write code** (subscription). It cares about the **LLM API calls your code makes** when it runs in production (pay-as-you-go). A Cursor subscription costs a fixed $20/mo regardless of usage. But the `openai.chat.completions.create()` call that Cursor helped you write? That gets billed per token, at scale, and that's what Inferwise estimates and gates.
 
 ---
 
