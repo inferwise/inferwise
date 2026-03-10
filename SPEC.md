@@ -10,9 +10,9 @@ Inferwise is a FinOps platform purpose-built for LLM inference costs.
 
 ## What This Repo Contains
 
-1. **CLI** (`inferwise`) — Pre-commit token cost estimation
+1. **CLI** (`inferwise`) — Pre-commit token cost estimation, budget enforcement, calibration
 2. **Pricing Database** (`@inferwise/pricing-db`) — Bundled provider pricing, updated daily
-3. **GitHub Action** (`inferwise/inferwise-action`) — PR cost diff comments in CI
+3. **GitHub Action** (`inferwise/inferwise-action`) — PR cost diff comments + budget enforcement in CI
 
 ---
 
@@ -39,10 +39,13 @@ inferwise/
 ├── packages/
 │   ├── cli/                    # npm package: inferwise
 │   │   └── src/
-│   │       ├── commands/       # estimate, diff, audit, price, update-pricing
+│   │       ├── commands/       # init, estimate, diff, audit, price, calibrate, update-pricing
 │   │       ├── scanners/       # Regex-based LLM API call detection
 │   │       ├── tokenizers/     # Provider tokenizer wrappers
 │   │       ├── formatters/     # table, markdown, JSON output
+│   │       ├── providers/      # Provider usage API clients (calibrate)
+│   │       ├── calibration.ts  # Calibration schema, load/save, ratio math
+│   │       ├── config.ts       # Config schema (budgets, overrides, volumes)
 │   │       └── index.ts        # CLI entry point
 │   ├── pricing-db/             # @inferwise/pricing-db
 │   │   ├── providers/
@@ -56,6 +59,7 @@ inferwise/
 │       ├── action.yml
 │       └── src/index.ts
 ├── scripts/                    # Maintenance scripts (pricing sync)
+├── HEURISTICS.md               # Estimation methodology and data sources
 ├── .github/workflows/          # CI, cost-diff, pricing sync, publish
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
@@ -65,6 +69,20 @@ inferwise/
 ---
 
 ## CLI Commands
+
+### `inferwise init`
+
+Set up Inferwise in a project. Creates `inferwise.config.json`, installs git hooks, prints CI setup instructions.
+
+**Flags:**
+- `--no-hooks` — Skip git hook installation
+- `--no-config` — Skip config file creation
+- `--hook <type>` — Hook type: `pre-commit` (default) or `pre-push`
+
+**Behavior:**
+- Auto-detects hook manager (husky, lefthook, or plain git)
+- Prints CI setup snippets for GitHub Actions, GitLab CI, and generic CI
+- Creates config with budget defaults: warn $2,000/mo, block $50,000/mo
 
 ### `inferwise estimate [path]`
 
@@ -78,9 +96,11 @@ Scan a directory for LLM API calls and estimate costs.
 - `--precise` — Use provider APIs for exact token counts (requires API keys)
 - `--config <path>` — Path to inferwise.config.json
 
-### `inferwise diff [base] [head]`
+**Unknown model detection:** When the scanner finds a model ID that doesn't exist in the pricing database, a warning is printed with the missing model ID and a link to the issue tracker.
 
-Compare token costs between two git refs.
+### `inferwise diff [path]`
+
+Compare token costs between two git refs. Enforces budget policy from config.
 
 **Output:** Side-by-side diff showing old vs new cost per call site with net monthly impact.
 
@@ -91,27 +111,107 @@ Compare token costs between two git refs.
 - `--format <table|json|markdown>`
 - `--fail-on-increase <amount>` — Exit 1 if monthly increase exceeds threshold
 
+**Budget enforcement:** If `budgets.block` is set in config and the net monthly delta exceeds it, exits with code 1. If `budgets.warn` is exceeded, prints a warning to stderr.
+
+### `inferwise calibrate [path]`
+
+Fetch real usage data from provider APIs and compute correction factors for more accurate estimates.
+
+**Flags:**
+- `--provider <name>` — Calibrate only one provider
+- `--dry-run` — Show comparison without saving
+- `--days <n>` — Usage period (default: 30)
+- `--format <table|json>` — Output format (default: table)
+- `--config <path>` — Config file path
+
+**Behavior:**
+- Fetches actual token usage from Anthropic Admin API and OpenAI Usage API
+- Compares actual vs estimated per model, computes correction ratios
+- Stores ratios in `.inferwise/calibration.json`
+- Future `estimate` runs auto-load calibration and adjust typical/model-limit values
+- Only adjusts heuristic estimates — code-extracted values are left untouched
+
+**Provider APIs:**
+- Anthropic: `ANTHROPIC_ADMIN_API_KEY` → Admin API usage reports
+- OpenAI: `OPENAI_API_KEY` → Usage API completions endpoint
+- Google/xAI: Stubs (no public per-model usage API available)
+
 ### `inferwise audit [path]`
 
 Scan for cost optimization: cheaper model opportunities, cacheable responses, batchable calls.
+
+### `inferwise price [provider] [model]`
+
+Look up model pricing. Designed for both humans and AI agents.
+
+**Flags:**
+- `--input-tokens <n>` / `--output-tokens <n>` — Token counts for cost calculation
+- `--volume <n>` — Requests/day for monthly projection
+- `--compare` — Compare multiple provider/model pairs
+- `--list <provider>` / `--list-all` — List available models
+- `--format <table|json>` — Output format
+
+### `inferwise update-pricing`
+
+Check the freshness of the bundled pricing database.
 
 ---
 
 ## Configuration File
 
-`inferwise.config.json` in project root:
+`inferwise.config.json` in project root (created by `inferwise init`):
 
 ```json
 {
   "defaultVolume": 1000,
-  "ignore": ["node_modules", "test", "__tests__", "*.test.ts", "*.spec.ts"],
+  "ignore": ["node_modules", "dist", "build", "test", "__tests__", "*.test.ts", "*.spec.ts"],
   "overrides": [
     {
       "pattern": "src/chat/**",
       "volume": 5000
     }
-  ]
+  ],
+  "budgets": {
+    "warn": 2000,
+    "block": 50000,
+    "requireApproval": 10000,
+    "approvers": ["platform-eng", "@infra-team"]
+  }
 }
+```
+
+### Budget Thresholds
+
+Monthly cost increase (USD) that triggers enforcement actions:
+
+| Field | Default | Description |
+|-------|---------|-------------|
+| `warn` | `2000` | Post a warning label/comment on PRs |
+| `block` | `50000` | Fail CI check, block merge. Emergency brake — only fires on catastrophic changes |
+| `requireApproval` | — | Request review from `approvers` before merge |
+| `approvers` | — | GitHub teams or users who can approve over-budget PRs |
+
+Defaults are deliberately high. `block` is meant to catch catastrophic mistakes (wrong model at scale, missing max_tokens cap), not routine cost increases. Teams should tune thresholds to their own spending patterns.
+
+### Schema
+
+```typescript
+const configSchema = z.object({
+  defaultVolume: z.number().positive().optional(),
+  ignore: z.array(z.string()).optional(),
+  overrides: z.array(z.object({
+    pattern: z.string(),
+    volume: z.number().positive().optional(),
+  })).optional(),
+  budgets: z.object({
+    warn: z.number().min(0).optional(),
+    block: z.number().min(0).optional(),
+    requireApproval: z.number().min(0).optional(),
+    approvers: z.array(z.string()).optional(),
+  }).optional(),
+  apiUrl: z.string().url().optional(),
+  apiKey: z.string().optional(),
+});
 ```
 
 ---
@@ -150,23 +250,42 @@ Always validate against `packages/pricing-db/schema.json` when updating pricing 
 
 ## Token Estimation Strategy
 
-All token counts are derived from code extraction or model spec data — no hardcoded defaults or multipliers.
+Token counts are derived from code extraction, typical heuristics, or model spec data.
 
 **Input tokens (priority order):**
 1. Static prompt found in code → tokenized for exact count (source: `code`)
-2. Dynamic prompt → `context_window - max_output_tokens` from model spec (source: `model_limit`)
-3. Unknown model → cheapest current model for the provider used as floor
+2. Dynamic prompt → typical estimate of 4,096 tokens (source: `typical`)
+3. Calibrated → typical adjusted by provider usage data (source: `calibrated`)
+4. Fallback → `context_window - max_output_tokens` from model spec (source: `model_limit`)
+5. Unknown model → cheapest current model for the provider used as floor
 
 **Output tokens (priority order):**
 1. `max_tokens` / `maxTokens` / `max_output_tokens` extracted from code → exact (source: `code`)
-2. No max_tokens in code → `max_output_tokens` from model spec (source: `model_limit`)
-3. Unknown model → cheapest current model for the provider used as floor
+2. Dynamic → 5% of model's `max_output_tokens`, clamped to [512, 4096] (source: `typical`)
+3. Calibrated → typical adjusted by provider usage data (source: `calibrated`)
+4. Fallback → `max_output_tokens` from model spec (source: `model_limit`)
+5. Unknown model → cheapest current model for the provider used as floor
+
+**Typical heuristics rationale:**
+- 4,096 input tokens: median observed across Anthropic docs, Helicone analytics, LangSmith traces
+- 5% of max output (clamped [512, 4096]): most completions use a small fraction of available output
+- See [HEURISTICS.md](HEURISTICS.md) for full methodology, data sources, and accuracy expectations
+
+**TokenSource tracking:** Every estimate is tagged with its source:
+
+| Source | Marker | Accuracy | Description |
+|--------|--------|----------|-------------|
+| `code` | (none) | Exact | Extracted from static prompts or max_tokens in code |
+| `typical` | `≈` | 2-5x | Industry-standard heuristic estimate |
+| `calibrated` | `~` | Within 20% | Adjusted by real provider usage data |
+| `model_limit` | `*` | 10-50x | Worst-case ceiling from model spec |
+| `production` | `†` | Within 10% | Cloud telemetry (future) |
 
 **Tokenizer implementations:**
 
 | Provider | Tokenizer | Notes |
 |----------|-----------|-------|
-| OpenAI (GPT-4o, o3, o4-mini, etc.) | `tiktoken` with native model encoding | Exact — OpenAI publishes their tokenizer |
+| OpenAI (GPT-4o, GPT-4.1, o3, o4-mini, etc.) | `tiktoken` with native model encoding | Exact — OpenAI publishes their tokenizer |
 | Anthropic (Claude Opus, Sonnet, Haiku) | `cl100k_base` approximation | ±5% — Anthropic does not publish a tokenizer |
 | Google (Gemini 2.5 Pro, Flash, etc.) | `cl100k_base` approximation | Google does not publish a tokenizer |
 | xAI (Grok 3, Grok 3 Mini, etc.) | `cl100k_base` approximation | xAI does not publish a tokenizer |
@@ -174,7 +293,47 @@ All token counts are derived from code extraction or model spec data — no hard
 - **Unified interface:** `countTokens(provider, model, text): number`
 - Non-OpenAI providers all use the same `cl100k_base` encoding from `tiktoken` as a best-available approximation. No unvalidated correction factors are applied.
 
-**TokenSource tracking:** Every estimate is tagged as `"code"` (exact) or `"model_limit"` (worst-case ceiling). Model-limit values display with `*` in output so users know which costs are ceilings vs exact.
+---
+
+## Calibration System
+
+Calibration bridges the gap between heuristic estimates and real-world usage.
+
+### How It Works
+
+1. User runs `inferwise calibrate .` with provider API keys
+2. CLI scans codebase (same as `estimate`) to get estimated token counts per model
+3. CLI fetches actual usage from provider APIs (configurable period, default 30 days)
+4. Compares estimated vs actual per model → computes correction ratios
+5. Stores ratios in `.inferwise/calibration.json`
+6. Future `estimate` runs auto-load calibration and adjust values
+
+### Calibration Data Schema
+
+```typescript
+interface ModelCalibration {
+  inputRatio: number;          // actual / estimated (e.g. 0.12 = actual is 12% of ceiling)
+  outputRatio: number;
+  sampleSize: number;          // request count from provider
+  confidence: "low" | "medium" | "high";  // <100 / <1000 / ≥1000
+  actualAvgInput: number;
+  actualAvgOutput: number;
+  estimatedAvgInput: number;
+  estimatedAvgOutput: number;
+}
+
+interface CalibrationData {
+  version: 1;
+  calibratedAt: string;        // ISO 8601
+  models: Record<string, ModelCalibration>;  // "provider/model-id"
+}
+```
+
+### Application Rules
+
+- Only adjusts `typical` and `model_limit` source values
+- `code`-extracted values are already exact and left untouched
+- Calibrated values tagged as `"calibrated"` source, displayed with `~` marker
 
 ---
 
@@ -188,7 +347,7 @@ Regex-based pattern matching (not AST parsing) for speed.
 |----------|----------------|----------|-------|
 | Anthropic | Anthropic SDK (TS/JS/Python) | `.messages.create()` | |
 | OpenAI | OpenAI SDK (TS/JS/Python) | `.chat.completions.create()` | |
-| Google | Google GenAI SDK | `.generateContent()`, `genai.GenerativeModel()`, `GenerativeModel()` | |
+| Google | Google GenAI SDK | `.generateContent()` | |
 | xAI | OpenAI-compatible SDK | `.chat.completions.create()` | Same pattern as OpenAI; provider resolved from model ID (e.g., `grok-3` → xAI) |
 | Anthropic | LangChain | `new ChatAnthropic()` | |
 | OpenAI | LangChain | `new ChatOpenAI()` | |
@@ -205,6 +364,37 @@ Regex-based pattern matching (not AST parsing) for speed.
 - Dynamic flag: true when model or prompts are not statically resolvable
 
 **Supported file types:** `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.mjs`, `.cjs`
+
+---
+
+## Three-Tier Enforcement
+
+Inferwise enforces cost governance at three levels:
+
+### 1. Pre-commit hooks (developer machine)
+
+Installed by `inferwise init`. Runs `inferwise estimate .` before every commit. Shows cost impact before code leaves the developer's machine.
+
+### 2. CI required check (merge gate)
+
+Works with any CI system:
+- **GitHub Actions** — `inferwise/inferwise-action@v1` posts comments, applies labels, blocks merge
+- **GitLab CI** — `npx inferwise diff --format table` in a pipeline step
+- **Bitbucket/Jenkins/any** — `npx inferwise diff` exits with code 1 if budget exceeded
+
+### 3. Budget policy (organizational governance)
+
+`inferwise.config.json` with `budgets` field — committed to the repo, code-reviewed, enforced automatically. The config file is the policy. No external dashboard or admin panel needed.
+
+### GitHub Action Enforcement
+
+The GitHub Action reads `inferwise.config.json` and applies:
+
+| Threshold | Label | Action |
+|-----------|-------|--------|
+| `warn` | `cost-warning` (yellow) | Warning in PR comment |
+| `requireApproval` | `cost-approval-required` (orange) | Requests review from `approvers` |
+| `block` | `cost-blocked` (red) | Fails the check, blocks merge |
 
 ---
 
@@ -231,39 +421,45 @@ Regex-based pattern matching (not AST parsing) for speed.
 ## Environment Variables
 
 ```
-ANTHROPIC_API_KEY=       # Precise token counting
-OPENAI_API_KEY=          # Precise token counting
-GOOGLE_API_KEY=          # Precise token counting
-INFERWISE_CONFIG=        # Config file path override
-INFERWISE_VOLUME=        # Default daily request volume
+ANTHROPIC_API_KEY=            # Precise token counting (--precise flag)
+OPENAI_API_KEY=               # Precise token counting + calibration
+GOOGLE_API_KEY=               # Precise token counting
+ANTHROPIC_ADMIN_API_KEY=      # Calibration (Anthropic Admin API)
+INFERWISE_CONFIG=             # Config file path override
+INFERWISE_VOLUME=             # Default daily request volume
 ```
 
 ---
 
 ## Current Status
 
-Phase 1 is complete and published:
+Phase 1 is complete and published (v0.2.0):
 
-1. Pricing database package with all provider JSON files
+1. Pricing database package with all provider JSON files (35+ models, cross-validated in CI)
 2. Tokenizer wrappers (unified `countTokens` interface)
-3. Code scanner (regex pattern matching)
-4. `inferwise estimate` command
-5. `inferwise diff` command
+3. Code scanner (regex pattern matching, 4 providers + LangChain + Vercel AI SDK)
+4. `inferwise estimate` command with typical heuristics
+5. `inferwise diff` command with budget enforcement
 6. `inferwise audit` command
 7. `inferwise price` command
-8. GitHub Action (PR cost diff comments)
-9. Comprehensive tests (55 passing)
-10. Published to npm as `inferwise`
+8. `inferwise init` command (config + hooks + CI setup)
+9. `inferwise calibrate` command (provider API correction factors)
+10. Budget enforcement system (warn, block, requireApproval)
+11. GitHub Action (PR comments, labels, reviewer requests, merge blocking)
+12. Comprehensive tests (177 passing across all packages)
+13. Published to npm as `inferwise`
 
 ---
 
 ## Design Principles
 
-- **Accuracy over speed.** A wrong estimate erodes trust. Show a range if unsure.
+- **Accuracy over speed.** A wrong estimate erodes trust. Use typical heuristics over worst-case ceilings. Show the source of every number.
 - **Zero config to start.** `npx inferwise estimate .` works without setup.
-- **Progressive disclosure.** Simple output by default, detailed with flags.
+- **Progressive disclosure.** Simple output by default, detailed with flags. Calibration for teams that want tighter numbers.
 - **Offline-first CLI.** Pricing database is bundled. No API calls for basic estimation.
+- **Platform-agnostic.** CLI + config file is the enforcement path. GitHub Action is a convenience wrapper. Works with any CI system.
 - **Multi-provider always.** Never optimize for one provider.
+- **Safe defaults.** Budget thresholds are high enough to never false-block legitimate workloads. Better to miss a warning than block production.
 
 ---
 
