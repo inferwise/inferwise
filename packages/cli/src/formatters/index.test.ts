@@ -76,6 +76,13 @@ describe("formatMarkdown", () => {
     expect(output).toContain("\\*");
   });
 
+  it("marks typical tokens with approx symbol", () => {
+    const row = makeRow({ inputTokenSource: "typical" });
+    const output = formatMarkdown(makeSummary([row]));
+    expect(output).toContain("≈");
+    expect(output).toContain("Typical estimate");
+  });
+
   it("marks production tokens with dagger", () => {
     const row = makeRow({ inputTokenSource: "production" });
     const output = formatMarkdown(makeSummary([row]));
@@ -116,6 +123,12 @@ describe("formatTable", () => {
     const row = makeRow({ inputTokenSource: "model_limit" });
     const output = formatTable(makeSummary([row]));
     expect(output).toContain("Worst-case ceiling");
+  });
+
+  it("shows typical footnote when applicable", () => {
+    const row = makeRow({ inputTokenSource: "typical" });
+    const output = formatTable(makeSummary([row]));
+    expect(output).toContain("Typical estimate");
   });
 
   it("shows production footnote when applicable", () => {

@@ -7,6 +7,7 @@ export type OutputFormat = "table" | "json" | "markdown";
 export type TokenSource =
   | "code" // Extracted from code — exact value
   | "model_limit" // Derived from model spec — worst-case ceiling
+  | "typical" // Heuristic estimate — order-of-magnitude reasonable
   | "production" // Averaged from production usage data
   | "calibrated"; // Adjusted by calibration data from provider APIs
 
@@ -46,6 +47,9 @@ function formatTokenCount(tokens: number, source: TokenSource): string {
   const count = tokens.toLocaleString();
   if (source === "model_limit") {
     return chalk.yellow(`${count} *`);
+  }
+  if (source === "typical") {
+    return chalk.blue(`${count} ≈`);
   }
   if (source === "production") {
     return chalk.cyan(`${count} †`);
@@ -107,6 +111,17 @@ export function formatTable(summary: EstimateSummary): string {
     );
   }
 
+  const hasTypical = summary.rows.some(
+    (r) => r.inputTokenSource === "typical" || r.outputTokenSource === "typical",
+  );
+  if (hasTypical) {
+    lines.push(
+      chalk.dim(
+        "≈ Typical estimate — no static prompt or max_tokens found. Run inferwise calibrate for accuracy.",
+      ),
+    );
+  }
+
   const hasProduction = summary.rows.some(
     (r) => r.inputTokenSource === "production" || r.outputTokenSource === "production",
   );
@@ -146,19 +161,23 @@ export function formatMarkdown(summary: EstimateSummary): string {
     const inputSuffix =
       row.inputTokenSource === "model_limit"
         ? " \\*"
-        : row.inputTokenSource === "production"
-          ? " †"
-          : row.inputTokenSource === "calibrated"
-            ? " ~"
-            : "";
+        : row.inputTokenSource === "typical"
+          ? " ≈"
+          : row.inputTokenSource === "production"
+            ? " †"
+            : row.inputTokenSource === "calibrated"
+              ? " ~"
+              : "";
     const outputSuffix =
       row.outputTokenSource === "model_limit"
         ? " \\*"
-        : row.outputTokenSource === "production"
-          ? " †"
-          : row.outputTokenSource === "calibrated"
-            ? " ~"
-            : "";
+        : row.outputTokenSource === "typical"
+          ? " ≈"
+          : row.outputTokenSource === "production"
+            ? " †"
+            : row.outputTokenSource === "calibrated"
+              ? " ~"
+              : "";
     lines.push(
       `| \`${row.file}\` | ${row.line} | ${row.provider} | ${row.model} | ${row.inputTokens.toLocaleString()}${inputSuffix} | ${row.outputTokens.toLocaleString()}${outputSuffix} | ${formatCost(row.costPerCall)} | ${formatMonthlyCost(row.monthlyCost)} |`,
     );
@@ -174,6 +193,16 @@ export function formatMarkdown(summary: EstimateSummary): string {
     lines.push("");
     lines.push(
       "> \\* Worst-case ceiling from model spec. Set `max_tokens` and use static prompts for exact cost.",
+    );
+  }
+
+  const hasTypical = summary.rows.some(
+    (r) => r.inputTokenSource === "typical" || r.outputTokenSource === "typical",
+  );
+  if (hasTypical) {
+    lines.push("");
+    lines.push(
+      "> ≈ Typical estimate — no static prompt or `max_tokens` found. Run `inferwise calibrate` for accuracy.",
     );
   }
 

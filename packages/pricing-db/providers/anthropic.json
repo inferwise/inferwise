@@ -206,7 +206,12 @@
     {
       "id": "claude-3-5-haiku-20241022",
       "name": "Claude Haiku 3.5",
-      "aliases": ["claude-3-5-haiku", "claude-3.5-haiku", "claude-haiku-3-5"],
+      "aliases": [
+        "claude-3-5-haiku",
+        "claude-3.5-haiku",
+        "claude-haiku-3-5",
+        "claude-haiku-3-5-20241022"
+      ],
       "status": "current",
       "input_cost_per_million": 0.8,
       "output_cost_per_million": 4,

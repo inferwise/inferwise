@@ -115,14 +115,19 @@ function computeFileCostEntry(
       ...(result.userPrompt ? { user: result.userPrompt } : {}),
     });
   } else if (pricing) {
-    inputTokens = pricing.context_window - pricing.max_output_tokens;
+    // Typical heuristic: 4K tokens for most prompts, 25% of window for small-context models
+    inputTokens =
+      pricing.context_window < 16_384
+        ? Math.min(4096, Math.round(pricing.context_window * 0.25))
+        : 4096;
   }
 
   let outputTokens = 0;
   if (result.maxOutputTokens) {
     outputTokens = result.maxOutputTokens;
   } else if (pricing) {
-    outputTokens = pricing.max_output_tokens;
+    // Typical heuristic: 5% of max output, clamped to [512, 4096]
+    outputTokens = Math.max(512, Math.min(4096, Math.round(pricing.max_output_tokens * 0.05)));
   }
 
   const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
