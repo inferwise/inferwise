@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { auditCommand } from "./commands/audit.js";
 import { calibrateCommand } from "./commands/calibrate.js";
+import { checkCommand } from "./commands/check.js";
 import { diffCommand } from "./commands/diff.js";
 import { estimateCommand } from "./commands/estimate.js";
 import { initCommand } from "./commands/init.js";
@@ -27,6 +28,7 @@ program.addCommand(estimateCommand());
 program.addCommand(diffCommand());
 program.addCommand(auditCommand());
 program.addCommand(priceCommand());
+program.addCommand(checkCommand());
 program.addCommand(calibrateCommand());
 program.addCommand(updatePricingCommand());
 

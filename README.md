@@ -178,6 +178,28 @@ inferwise diff --volume 5000                # Higher volume projection
 
 ---
 
+### `inferwise check [path]`
+
+Verify total LLM costs are within budget. Exits with code 1 if any threshold is exceeded. Designed for AI agents and automation pipelines where there's no human reviewing a PR.
+
+```bash
+inferwise check .                                    # Uses budgets.block from config
+inferwise check . --max-monthly-cost 10000           # Custom monthly limit
+inferwise check . --max-cost-per-call 0.05           # Per-call limit
+inferwise check . --max-monthly-cost 5000 --volume 5000
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--max-monthly-cost <amount>` | `budgets.block` from config | Max total monthly cost (USD) |
+| `--max-cost-per-call <amount>` | off | Max cost per single LLM call (USD) |
+| `--volume <n>` | `1000` | Requests/day |
+| `--format <table\|json\|markdown>` | `table` | Output format |
+
+Unlike `diff` (which compares branches), `check` validates the **absolute** cost of the current codebase. Use it as a gate before deploying — if the total projected cost exceeds the limit, the command fails.
+
+---
+
 ### `inferwise calibrate [path]`
 
 Fetch real usage data from provider APIs and compute correction factors. Makes future estimates significantly more accurate.
@@ -386,11 +408,38 @@ See [HEURISTICS.md](HEURISTICS.md) for full methodology, data sources, and assum
 
 ## Programmatic and Agent Integration
 
-`inferwise price` and `@inferwise/pricing-db` are designed for any system that needs cost-aware model selection: AI agents, workflow automation, custom model routers.
+Inferwise provides three integration levels for agents, pipelines, and automation:
 
-**CLI (for tool-use agents and scripts):**
+### SDK (for agents and pipelines — no CLI required)
+
+```typescript
+import { estimateAndCheck, estimate } from "inferwise/sdk";
+
+// Simple budget gate — returns { ok, violations, rows, totalMonthlyCost }
+const result = await estimateAndCheck("./src", {
+  maxMonthlyCost: 10000,
+  maxCostPerCall: 0.10,
+  volume: 5000,
+});
+
+if (!result.ok) {
+  console.error("Over budget:", result.violations);
+  process.exit(1);
+}
+
+// Or just get estimates without checking
+const costs = await estimate("./src", { volume: 1000 });
+console.log(`Total: $${costs.totalMonthlyCost.toFixed(2)}/mo`);
+```
+
+Pure data, no console output, no `process.exit` — safe for embedding in agent orchestration layers, n8n/Zapier nodes, or custom pipelines.
+
+### CLI (for tool-use agents and scripts)
 
 ```bash
+# Budget gate — exits 1 if over budget
+inferwise check . --max-monthly-cost 10000 --format json
+
 # AI agent queries cost before choosing a model
 inferwise price openai gpt-4o --input-tokens 2000 --output-tokens 1000 --format json
 
@@ -398,7 +447,7 @@ inferwise price openai gpt-4o --input-tokens 2000 --output-tokens 1000 --format 
 inferwise price --compare anthropic/claude-sonnet-4 openai/gpt-4o --format json
 ```
 
-**SDK (for applications and routers):**
+### Pricing database (for model routers)
 
 ```typescript
 import { getModel, calculateCost, getAllModels } from "@inferwise/pricing-db";

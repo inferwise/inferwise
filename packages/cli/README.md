@@ -47,6 +47,15 @@ inferwise diff --base main --head HEAD
 inferwise diff --fail-on-increase 500
 ```
 
+### `inferwise check [path]`
+
+Verify total LLM costs are within budget. Exits with code 1 if exceeded. For AI agents and automation.
+
+```bash
+inferwise check . --max-monthly-cost 10000
+inferwise check . --max-cost-per-call 0.05
+```
+
 ### `inferwise calibrate [path]`
 
 Fetch real usage from provider APIs (Anthropic, OpenAI) and compute correction factors for more accurate estimates.
@@ -88,6 +97,19 @@ Add `budgets` to `inferwise.config.json` (created by `inferwise init`):
 - `warn` — flags the PR with a warning label
 - `block` — fails the CI check, blocks merge (emergency brake)
 - `requireApproval` — requests review from approvers before merge
+
+## SDK (Programmatic API)
+
+```typescript
+import { estimateAndCheck } from "inferwise/sdk";
+
+const result = await estimateAndCheck("./src", { maxMonthlyCost: 10000 });
+if (!result.ok) {
+  console.error("Over budget:", result.violations);
+}
+```
+
+Pure data, no console output, no `process.exit` — safe for embedding in agent orchestration, pipelines, or automation.
 
 ## Supported Providers
 
