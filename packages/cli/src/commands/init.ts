@@ -7,8 +7,8 @@ const CONFIG_TEMPLATE = {
   defaultVolume: 1000,
   ignore: ["node_modules", "dist", "build", "test", "__tests__", "*.test.ts", "*.spec.ts"],
   budgets: {
-    warn: 500,
-    block: 5000,
+    warn: 2000,
+    block: 50000,
   },
 };
 
