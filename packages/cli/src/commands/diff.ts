@@ -414,13 +414,14 @@ function resolveFormat(raw: string): DiffOutputFormat {
 export function diffCommand(): Command {
   return new Command("diff")
     .description("Compare token costs between two git refs")
+    .argument("[path]", "Path to git repository", ".")
     .option("--base <ref>", "Base git ref", "main")
     .option("--head <ref>", "Head git ref", "HEAD")
     .option("--volume <number>", "Requests per day for monthly projection", "1000")
     .option("--format <table|json|markdown>", "Output format", "table")
     .option("--fail-on-increase <amount>", "Exit 1 if monthly increase exceeds this USD amount")
     .option("--config <path>", "Path to inferwise.config.json")
-    .action(async (options: DiffOptions) => {
+    .action(async (scanPath: string, options: DiffOptions) => {
       const envVolume = getEnvVolume();
       const cliVolumeExplicit = options.volume !== "1000";
       const cliVolume = cliVolumeExplicit
@@ -436,7 +437,7 @@ export function diffCommand(): Command {
         process.stderr.write(chalk.dim(`Comparing ${base} → ${head}...\n`));
       }
 
-      const gitRoot = process.cwd();
+      const gitRoot = path.resolve(scanPath);
       let baseDir: string | null = null;
       let headDir: string | null = null;
 
