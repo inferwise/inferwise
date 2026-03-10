@@ -1,6 +1,6 @@
 # Inferwise
 
-**Know and control your LLM costs before they ship.**
+**Cost gates for LLM API calls.**
 
 [![CI](https://github.com/inferwise/inferwise/actions/workflows/ci.yml/badge.svg)](https://github.com/inferwise/inferwise/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/inferwise)](https://www.npmjs.com/package/inferwise)

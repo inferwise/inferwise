@@ -20,7 +20,7 @@ const program = new Command();
 
 program
   .name("inferwise")
-  .description("Know and control your LLM costs before they ship.")
+  .description("Cost gates for LLM API calls.")
   .version(pkg.version);
 
 program.addCommand(initCommand());

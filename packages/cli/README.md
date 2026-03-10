@@ -1,6 +1,6 @@
 # inferwise
 
-**Know and control your pay-as-you-go LLM API costs before they ship.**
+**Cost gates for LLM API calls.**
 
 Inferwise scans your codebase for LLM API calls (`messages.create()`, `chat.completions.create()`, etc.), estimates per-token costs, enforces budget policies, and diffs costs between branches. Works with any CI system or locally as a git hook.
 

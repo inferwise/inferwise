@@ -1,7 +1,7 @@
 {
   "name": "inferwise",
   "version": "0.1.0",
-  "description": "Know and control your LLM costs before they ship.",
+  "description": "Cost gates for LLM API calls.",
   "type": "module",
   "bin": {
     "inferwise": "./dist/index.js"
