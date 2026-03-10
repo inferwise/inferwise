@@ -7,10 +7,24 @@ const overrideSchema = z.object({
   volume: z.number().positive().optional(),
 });
 
+const budgetSchema = z.object({
+  /** Monthly cost increase (USD) that triggers a warning label on PRs. */
+  warn: z.number().min(0).optional(),
+  /** Monthly cost increase (USD) that blocks merge (CI exit 1). */
+  block: z.number().min(0).optional(),
+  /** Monthly cost increase (USD) that requires explicit approval. */
+  requireApproval: z.number().min(0).optional(),
+  /** GitHub teams or users who can approve over-budget PRs. */
+  approvers: z.array(z.string()).optional(),
+});
+
+export type BudgetConfig = z.infer<typeof budgetSchema>;
+
 const configSchema = z.object({
   defaultVolume: z.number().positive().optional(),
   ignore: z.array(z.string()).optional(),
   overrides: z.array(overrideSchema).optional(),
+  budgets: budgetSchema.optional(),
   apiUrl: z.string().url().optional(),
   apiKey: z.string().optional(),
 });

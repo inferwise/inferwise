@@ -79,13 +79,19 @@ function resolveInputTokens(result: ScanResult, model: ModelPricing | undefined)
       ...(result.userPrompt ? { user: result.userPrompt } : {}),
     });
   }
-  if (model) return model.context_window - model.max_output_tokens;
+  // Typical heuristic: 4K tokens for most prompts, 25% of window for small-context models
+  if (model) {
+    return model.context_window < 16_384
+      ? Math.min(4096, Math.round(model.context_window * 0.25))
+      : 4096;
+  }
   return 0;
 }
 
 function resolveOutputTokens(result: ScanResult, model: ModelPricing | undefined): number {
   if (result.maxOutputTokens) return result.maxOutputTokens;
-  if (model) return model.max_output_tokens;
+  // Typical heuristic: 5% of max output, clamped to [512, 4096]
+  if (model) return Math.max(512, Math.min(4096, Math.round(model.max_output_tokens * 0.05)));
   return 0;
 }
 

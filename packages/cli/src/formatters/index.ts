@@ -7,7 +7,9 @@ export type OutputFormat = "table" | "json" | "markdown";
 export type TokenSource =
   | "code" // Extracted from code — exact value
   | "model_limit" // Derived from model spec — worst-case ceiling
-  | "production"; // Averaged from production usage data
+  | "typical" // Heuristic estimate — order-of-magnitude reasonable
+  | "production" // Averaged from production usage data
+  | "calibrated"; // Adjusted by calibration data from provider APIs
 
 export interface EstimateRow {
   file: string;
@@ -46,8 +48,14 @@ function formatTokenCount(tokens: number, source: TokenSource): string {
   if (source === "model_limit") {
     return chalk.yellow(`${count} *`);
   }
+  if (source === "typical") {
+    return chalk.blue(`${count} ≈`);
+  }
   if (source === "production") {
     return chalk.cyan(`${count} †`);
+  }
+  if (source === "calibrated") {
+    return chalk.magenta(`${count} ~`);
   }
   return count;
 }
@@ -103,11 +111,29 @@ export function formatTable(summary: EstimateSummary): string {
     );
   }
 
+  const hasTypical = summary.rows.some(
+    (r) => r.inputTokenSource === "typical" || r.outputTokenSource === "typical",
+  );
+  if (hasTypical) {
+    lines.push(
+      chalk.dim(
+        "≈ Typical estimate — no static prompt or max_tokens found. Run inferwise calibrate for accuracy.",
+      ),
+    );
+  }
+
   const hasProduction = summary.rows.some(
     (r) => r.inputTokenSource === "production" || r.outputTokenSource === "production",
   );
   if (hasProduction) {
     lines.push(chalk.dim("† Averaged from production usage data via Inferwise Cloud."));
+  }
+
+  const hasCalibrated = summary.rows.some(
+    (r) => r.inputTokenSource === "calibrated" || r.outputTokenSource === "calibrated",
+  );
+  if (hasCalibrated) {
+    lines.push(chalk.dim("~ Adjusted by calibration data. Run inferwise calibrate to update."));
   }
 
   return lines.join("\n");
@@ -135,15 +161,23 @@ export function formatMarkdown(summary: EstimateSummary): string {
     const inputSuffix =
       row.inputTokenSource === "model_limit"
         ? " \\*"
-        : row.inputTokenSource === "production"
-          ? " †"
-          : "";
+        : row.inputTokenSource === "typical"
+          ? " ≈"
+          : row.inputTokenSource === "production"
+            ? " †"
+            : row.inputTokenSource === "calibrated"
+              ? " ~"
+              : "";
     const outputSuffix =
       row.outputTokenSource === "model_limit"
         ? " \\*"
-        : row.outputTokenSource === "production"
-          ? " †"
-          : "";
+        : row.outputTokenSource === "typical"
+          ? " ≈"
+          : row.outputTokenSource === "production"
+            ? " †"
+            : row.outputTokenSource === "calibrated"
+              ? " ~"
+              : "";
     lines.push(
       `| \`${row.file}\` | ${row.line} | ${row.provider} | ${row.model} | ${row.inputTokens.toLocaleString()}${inputSuffix} | ${row.outputTokens.toLocaleString()}${outputSuffix} | ${formatCost(row.costPerCall)} | ${formatMonthlyCost(row.monthlyCost)} |`,
     );
@@ -162,12 +196,30 @@ export function formatMarkdown(summary: EstimateSummary): string {
     );
   }
 
+  const hasTypical = summary.rows.some(
+    (r) => r.inputTokenSource === "typical" || r.outputTokenSource === "typical",
+  );
+  if (hasTypical) {
+    lines.push("");
+    lines.push(
+      "> ≈ Typical estimate — no static prompt or `max_tokens` found. Run `inferwise calibrate` for accuracy.",
+    );
+  }
+
   const hasProduction = summary.rows.some(
     (r) => r.inputTokenSource === "production" || r.outputTokenSource === "production",
   );
   if (hasProduction) {
     lines.push("");
     lines.push("> † Averaged from production usage data via Inferwise Cloud.");
+  }
+
+  const hasCalibrated = summary.rows.some(
+    (r) => r.inputTokenSource === "calibrated" || r.outputTokenSource === "calibrated",
+  );
+  if (hasCalibrated) {
+    lines.push("");
+    lines.push("> ~ Adjusted by calibration data. Run `inferwise calibrate` to update.");
   }
 
   lines.push("");

@@ -2,6 +2,8 @@ import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-d
 import type { ModelPricing, Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import { Command } from "commander";
+import type { CalibrationData } from "../calibration.js";
+import { loadCalibration } from "../calibration.js";
 import type { InferwiseConfig } from "../config.js";
 import { getEnvVolume, loadConfig, resolveVolume } from "../config.js";
 import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
@@ -38,6 +40,53 @@ function fallbackModel(provider: Provider): ModelPricing | undefined {
   return models[0];
 }
 
+/**
+ * Typical input token heuristic.
+ *
+ * Most LLM calls use a small fraction of the context window.
+ * Rather than using context_window (e.g. 1M tokens) as a ceiling,
+ * we estimate based on observed industry patterns:
+ *
+ * - Median LLM input across production workloads is ~2K-8K tokens
+ *   (source: Anthropic cookbook, OpenAI tokenizer docs, Helicone public benchmarks)
+ * - We use 4,096 tokens as a baseline typical input
+ * - For models with very small context windows (<16K), we use 25% of context
+ *
+ * See HEURISTICS.md for full methodology and sources.
+ */
+function typicalInputTokens(pricing: ModelPricing): number {
+  const TYPICAL_INPUT = 4096;
+  // For small-context models, don't exceed 25% of window
+  if (pricing.context_window < 16_384) {
+    return Math.min(TYPICAL_INPUT, Math.round(pricing.context_window * 0.25));
+  }
+  return TYPICAL_INPUT;
+}
+
+/**
+ * Typical output token heuristic.
+ *
+ * Most LLM responses are well under max_output_tokens.
+ * Industry data shows median output is ~500-2K tokens:
+ *
+ * - Chat/conversational: ~200-800 tokens
+ * - Code generation: ~500-2000 tokens
+ * - Summarization/analysis: ~1000-3000 tokens
+ *
+ * We use 5% of max_output_tokens with floor=512, ceiling=4096.
+ * This gives reasonable estimates across model tiers:
+ *   - Haiku (8K max): 512 tokens
+ *   - Sonnet (64K max): 3,200 tokens
+ *   - GPT-4o (16K max): 820 tokens
+ *
+ * See HEURISTICS.md for full methodology and sources.
+ */
+function typicalOutputTokens(pricing: ModelPricing): number {
+  const FLOOR = 512;
+  const CEILING = 4096;
+  return Math.max(FLOOR, Math.min(CEILING, Math.round(pricing.max_output_tokens * 0.05)));
+}
+
 function resolveInputTokens(
   result: ScanResult,
   pricing: ModelPricing | undefined,
@@ -60,16 +109,16 @@ function resolveInputTokens(
     };
   }
 
-  // Dynamic prompt — use model's context_window minus max_output_tokens as worst-case
+  // Dynamic prompt — use typical heuristic instead of worst-case ceiling
   if (pricing) {
     return {
-      inputTokens: pricing.context_window - pricing.max_output_tokens,
-      inputTokenSource: "model_limit",
+      inputTokens: typicalInputTokens(pricing),
+      inputTokenSource: "typical",
     };
   }
 
   // Should not reach here if fallbackModel works, but safety net
-  return { inputTokens: 0, inputTokenSource: "model_limit" };
+  return { inputTokens: 0, inputTokenSource: "typical" };
 }
 
 function resolveOutputTokens(
@@ -90,15 +139,29 @@ function resolveOutputTokens(
     };
   }
 
-  // Model known — use its max_output_tokens as worst-case ceiling
+  // Model known — use typical heuristic instead of worst-case ceiling
   if (pricing) {
     return {
-      outputTokens: pricing.max_output_tokens,
-      outputTokenSource: "model_limit",
+      outputTokens: typicalOutputTokens(pricing),
+      outputTokenSource: "typical",
     };
   }
 
-  return { outputTokens: 0, outputTokenSource: "model_limit" };
+  return { outputTokens: 0, outputTokenSource: "typical" };
+}
+
+function applyCalibration(
+  tokens: number,
+  source: TokenSource,
+  calibration: CalibrationData | null,
+  key: string,
+  field: "inputRatio" | "outputRatio",
+): { tokens: number; source: TokenSource } {
+  // Calibration improves both typical heuristics and model_limit ceilings
+  if ((source !== "model_limit" && source !== "typical") || !calibration) return { tokens, source };
+  const cal = calibration.models[key] as { inputRatio: number; outputRatio: number } | undefined;
+  if (!cal) return { tokens, source };
+  return { tokens: Math.round(tokens * cal[field]), source: "calibrated" };
 }
 
 function computeRowCost(
@@ -107,19 +170,44 @@ function computeRowCost(
   cliVolume: number,
   cliVolumeExplicit: boolean,
   statsMap: Map<string, ModelStats> | null,
+  calibration: CalibrationData | null,
+  unknownModels: Set<string>,
 ): EstimateRow {
   const provider = result.provider as Provider;
   const modelId = result.model;
   const volume = resolveVolume(config, result.filePath, cliVolume, cliVolumeExplicit);
 
   // Resolve model — use exact match or fall back to cheapest for provider
-  const pricing = modelId ? getModel(provider, modelId) : fallbackModel(provider);
+  const directMatch = modelId ? getModel(provider, modelId) : undefined;
+  const pricing = directMatch ?? fallbackModel(provider);
+
+  // Track unknown models for warning
+  if (modelId && !directMatch) {
+    unknownModels.add(`${provider}/${modelId}`);
+  }
 
   // Look up production stats for this provider/model
   const stats = modelId ? statsMap?.get(`${provider}/${modelId}`) : undefined;
 
-  const { inputTokens, inputTokenSource } = resolveInputTokens(result, pricing, stats);
-  const { outputTokens, outputTokenSource } = resolveOutputTokens(result, pricing, stats);
+  let { inputTokens, inputTokenSource } = resolveInputTokens(result, pricing, stats);
+  let { outputTokens, outputTokenSource } = resolveOutputTokens(result, pricing, stats);
+
+  // Apply calibration to model_limit estimates only
+  const calKey = `${provider}/${modelId}`;
+  ({ tokens: inputTokens, source: inputTokenSource } = applyCalibration(
+    inputTokens,
+    inputTokenSource,
+    calibration,
+    calKey,
+    "inputRatio",
+  ));
+  ({ tokens: outputTokens, source: outputTokenSource } = applyCalibration(
+    outputTokens,
+    outputTokenSource,
+    calibration,
+    calKey,
+    "outputRatio",
+  ));
 
   const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
   const monthlyCost = costPerCall * volume * 30;
@@ -144,8 +232,13 @@ function buildEstimateRows(
   cliVolume: number,
   cliVolumeExplicit: boolean,
   statsMap: Map<string, ModelStats> | null,
-): EstimateRow[] {
-  return results.map((r) => computeRowCost(r, config, cliVolume, cliVolumeExplicit, statsMap));
+  calibration: CalibrationData | null,
+): { rows: EstimateRow[]; unknownModels: Set<string> } {
+  const unknownModels = new Set<string>();
+  const rows = results.map((r) =>
+    computeRowCost(r, config, cliVolume, cliVolumeExplicit, statsMap, calibration, unknownModels),
+  );
+  return { rows, unknownModels };
 }
 
 /** Resolve API URL from CLI flag, config, or env var. */
@@ -190,6 +283,9 @@ export function estimateCommand(): Command {
         statsMap = await fetchProductionStats(apiUrl, apiKey);
       }
 
+      // Load calibration data if available
+      const calibration = await loadCalibration();
+
       if (format === "table") {
         process.stderr.write(chalk.dim(`Scanning ${scanPath}...\n`));
       }
@@ -201,13 +297,26 @@ export function estimateCommand(): Command {
         return;
       }
 
-      const rows: EstimateRow[] = buildEstimateRows(
+      const { rows, unknownModels } = buildEstimateRows(
         results,
         config,
         cliVolume,
         cliVolumeExplicit,
         statsMap,
+        calibration,
       );
+
+      // Warn about unknown models not in pricing DB
+      if (format === "table" && unknownModels.size > 0) {
+        for (const model of unknownModels) {
+          process.stderr.write(
+            chalk.yellow(`Warning: Unknown model "${model}" — using fallback pricing.\n`),
+          );
+        }
+        process.stderr.write(
+          chalk.dim("Report missing models at https://github.com/inferwise/inferwise/issues\n"),
+        );
+      }
 
       const totalMonthlyCost = rows.reduce((sum, r) => sum + r.monthlyCost, 0);
       const summary: EstimateSummary = { rows, totalMonthlyCost, volume: cliVolume };

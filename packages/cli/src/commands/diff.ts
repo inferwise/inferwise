@@ -115,14 +115,19 @@ function computeFileCostEntry(
       ...(result.userPrompt ? { user: result.userPrompt } : {}),
     });
   } else if (pricing) {
-    inputTokens = pricing.context_window - pricing.max_output_tokens;
+    // Typical heuristic: 4K tokens for most prompts, 25% of window for small-context models
+    inputTokens =
+      pricing.context_window < 16_384
+        ? Math.min(4096, Math.round(pricing.context_window * 0.25))
+        : 4096;
   }
 
   let outputTokens = 0;
   if (result.maxOutputTokens) {
     outputTokens = result.maxOutputTokens;
   } else if (pricing) {
-    outputTokens = pricing.max_output_tokens;
+    // Typical heuristic: 5% of max output, clamped to [512, 4096]
+    outputTokens = Math.max(512, Math.min(4096, Math.round(pricing.max_output_tokens * 0.05)));
   }
 
   const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
@@ -414,13 +419,14 @@ function resolveFormat(raw: string): DiffOutputFormat {
 export function diffCommand(): Command {
   return new Command("diff")
     .description("Compare token costs between two git refs")
+    .argument("[path]", "Path to git repository", ".")
     .option("--base <ref>", "Base git ref", "main")
     .option("--head <ref>", "Head git ref", "HEAD")
     .option("--volume <number>", "Requests per day for monthly projection", "1000")
     .option("--format <table|json|markdown>", "Output format", "table")
     .option("--fail-on-increase <amount>", "Exit 1 if monthly increase exceeds this USD amount")
     .option("--config <path>", "Path to inferwise.config.json")
-    .action(async (options: DiffOptions) => {
+    .action(async (scanPath: string, options: DiffOptions) => {
       const envVolume = getEnvVolume();
       const cliVolumeExplicit = options.volume !== "1000";
       const cliVolume = cliVolumeExplicit
@@ -436,7 +442,7 @@ export function diffCommand(): Command {
         process.stderr.write(chalk.dim(`Comparing ${base} → ${head}...\n`));
       }
 
-      const gitRoot = process.cwd();
+      const gitRoot = path.resolve(scanPath);
       let baseDir: string | null = null;
       let headDir: string | null = null;
 
@@ -479,6 +485,27 @@ export function diffCommand(): Command {
 
         process.stdout.write(`${output}\n`);
 
+        // Budget enforcement from config
+        if (netMonthlyDelta > 0 && config.budgets) {
+          const b = config.budgets;
+          if (b.warn !== undefined && netMonthlyDelta >= b.warn) {
+            process.stderr.write(
+              chalk.yellow(
+                `Budget warning: +$${netMonthlyDelta.toFixed(2)}/mo exceeds warn threshold ($${b.warn}/mo).\n`,
+              ),
+            );
+          }
+          if (b.block !== undefined && netMonthlyDelta >= b.block) {
+            process.stderr.write(
+              chalk.red(
+                `Budget exceeded: +$${netMonthlyDelta.toFixed(2)}/mo exceeds block threshold ($${b.block}/mo). Exiting with code 1.\n`,
+              ),
+            );
+            process.exit(1);
+          }
+        }
+
+        // Legacy: --fail-on-increase flag (overridden by budgets.block if both set)
         if (options.failOnIncrease !== undefined) {
           const threshold = Number.parseFloat(options.failOnIncrease);
           if (!Number.isNaN(threshold) && netMonthlyDelta > threshold) {

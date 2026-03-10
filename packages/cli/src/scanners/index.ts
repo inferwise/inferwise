@@ -29,10 +29,8 @@ const PATTERNS: PatternDef[] = [
   { regex: /\.messages\.create\s*\(/, provider: "anthropic", framework: "anthropic-sdk" },
   // OpenAI SDK (TS/JS and Python)
   { regex: /\.chat\.completions\.create\s*\(/, provider: "openai", framework: "openai-sdk" },
-  // Google GenAI
+  // Google GenAI — only match generateContent (the actual API call, not model init)
   { regex: /\.generateContent\s*\(/, provider: "google", framework: "google-genai" },
-  { regex: /genai\.GenerativeModel\s*\(/, provider: "google", framework: "google-genai" },
-  { regex: /GenerativeModel\s*\(/, provider: "google", framework: "google-genai" },
   // Vercel AI SDK — provider inferred from model factory
   { regex: /\bgenerateText\s*\(/, provider: null, framework: "vercel-ai-sdk" },
   { regex: /\bstreamText\s*\(/, provider: null, framework: "vercel-ai-sdk" },

@@ -81,6 +81,43 @@ describe("loadConfig", () => {
     expect(config.overrides?.[0]?.pattern).toBe("src/chat/**");
     expect(config.overrides?.[0]?.volume).toBe(5000);
   });
+
+  it("loads budget config", async () => {
+    const configPath = path.join(tmpDir, "budgets.json");
+    await writeFile(
+      configPath,
+      JSON.stringify({
+        defaultVolume: 1000,
+        budgets: {
+          warn: 500,
+          block: 5000,
+          requireApproval: 2000,
+          approvers: ["platform-eng", "@infra-team"],
+        },
+      }),
+    );
+
+    const config = await loadConfig(configPath);
+    expect(config.budgets?.warn).toBe(500);
+    expect(config.budgets?.block).toBe(5000);
+    expect(config.budgets?.requireApproval).toBe(2000);
+    expect(config.budgets?.approvers).toEqual(["platform-eng", "@infra-team"]);
+  });
+
+  it("accepts config without budgets", async () => {
+    const configPath = path.join(tmpDir, "no-budgets.json");
+    await writeFile(configPath, JSON.stringify({ defaultVolume: 1000 }));
+
+    const config = await loadConfig(configPath);
+    expect(config.budgets).toBeUndefined();
+  });
+
+  it("rejects invalid budget values", async () => {
+    const configPath = path.join(tmpDir, "bad-budgets.json");
+    await writeFile(configPath, JSON.stringify({ budgets: { warn: -100 } }));
+
+    await expect(loadConfig(configPath)).rejects.toThrow("Invalid config");
+  });
 });
 
 describe("getEnvVolume", () => {
