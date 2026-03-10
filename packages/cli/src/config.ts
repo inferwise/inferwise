@@ -61,12 +61,15 @@ function parseConfig(raw: string, filePath: string): InferwiseConfig {
 /**
  * Load inferwise.config.json.
  * - If configPath provided, reads that file directly.
+ * - INFERWISE_CONFIG env var overrides auto-discovery.
  * - Otherwise walks up from CWD looking for inferwise.config.json.
  * - Returns {} if no file found (zero config to start).
  */
 export async function loadConfig(configPath?: string): Promise<InferwiseConfig> {
-  if (configPath) {
-    const resolved = path.resolve(configPath);
+  const resolvedPath = configPath ?? process.env.INFERWISE_CONFIG;
+
+  if (resolvedPath) {
+    const resolved = path.resolve(resolvedPath);
     const raw = await readFile(resolved, "utf-8");
     return parseConfig(raw, resolved);
   }
@@ -76,6 +79,18 @@ export async function loadConfig(configPath?: string): Promise<InferwiseConfig> 
 
   const raw = await readFile(found, "utf-8");
   return parseConfig(raw, found);
+}
+
+/**
+ * Resolve the default daily volume from INFERWISE_VOLUME env var.
+ * Returns undefined if not set or invalid.
+ */
+export function getEnvVolume(): number | undefined {
+  const raw = process.env.INFERWISE_VOLUME;
+  if (!raw) return undefined;
+  const parsed = Number.parseInt(raw, 10);
+  if (Number.isNaN(parsed) || parsed < 1) return undefined;
+  return parsed;
 }
 
 /** Check if a file path matches a glob-like pattern (simple prefix + wildcard). */

@@ -8,7 +8,7 @@ import Table from "cli-table3";
 import { Command } from "commander";
 import { simpleGit } from "simple-git";
 import type { InferwiseConfig } from "../config.js";
-import { loadConfig, resolveVolume } from "../config.js";
+import { getEnvVolume, loadConfig, resolveVolume } from "../config.js";
 import { scanDirectory } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
 
@@ -421,8 +421,11 @@ export function diffCommand(): Command {
     .option("--fail-on-increase <amount>", "Exit 1 if monthly increase exceeds this USD amount")
     .option("--config <path>", "Path to inferwise.config.json")
     .action(async (options: DiffOptions) => {
-      const cliVolume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
+      const envVolume = getEnvVolume();
       const cliVolumeExplicit = options.volume !== "1000";
+      const cliVolume = cliVolumeExplicit
+        ? Math.max(1, Number.parseInt(options.volume, 10) || 1000)
+        : (envVolume ?? Math.max(1, Number.parseInt(options.volume, 10) || 1000));
       const format = resolveFormat(options.format);
       const base = options.base;
       const head = options.head;

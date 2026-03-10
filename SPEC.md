@@ -121,24 +121,28 @@ Scan for cost optimization: cheaper model opportunities, cacheable responses, ba
 ```json
 {
   "provider": "anthropic",
-  "last_updated": "2026-03-07",
+  "last_verified": "2026-03-09",
   "models": [
     {
       "id": "claude-sonnet-4-20250514",
       "name": "Claude Sonnet 4",
       "input_cost_per_million": 3.00,
       "output_cost_per_million": 15.00,
-      "cached_input_cost_per_million": 0.30,
+      "cache_read_input_cost_per_million": 0.30,
+      "cache_write_input_cost_per_million": 3.75,
       "context_window": 200000,
       "max_output_tokens": 16384,
       "supports_vision": true,
       "supports_tools": true,
+      "supports_prompt_caching": true,
       "tier": "mid",
       "capabilities": ["code", "reasoning", "general", "creative"]
     }
   ]
 }
 ```
+
+Note: `tier` is auto-derived from pricing data by `computeTier()` in the pricing-db package.
 
 Always validate against `packages/pricing-db/schema.json` when updating pricing files.
 

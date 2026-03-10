@@ -362,6 +362,18 @@ Create `inferwise.config.json` in your project root:
 
 ---
 
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `INFERWISE_CONFIG` | Path to config file (overrides auto-discovery) |
+| `INFERWISE_VOLUME` | Default daily request volume (overridden by `--volume` flag) |
+| `ANTHROPIC_API_KEY` | For precise token counting (with `--precise`) |
+| `OPENAI_API_KEY` | For precise token counting (with `--precise`) |
+| `GOOGLE_API_KEY` | For precise token counting (with `--precise`) |
+
+---
+
 ## Pricing Database
 
 The [`@inferwise/pricing-db`](packages/pricing-db) package ships bundled pricing for all supported providers and is updated daily via automated sync.

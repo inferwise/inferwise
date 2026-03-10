@@ -3,7 +3,7 @@ import type { ModelPricing, Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import { Command } from "commander";
 import type { InferwiseConfig } from "../config.js";
-import { loadConfig, resolveVolume } from "../config.js";
+import { getEnvVolume, loadConfig, resolveVolume } from "../config.js";
 import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
 import type {
   EstimateRow,
@@ -167,9 +167,13 @@ export function estimateCommand(): Command {
     .option("--config <path>", "Path to inferwise.config.json")
     .option("--api-url <url>", "Inferwise Cloud API URL for production stats")
     .option("--api-key <key>", "Inferwise Cloud API key")
+    .option("--precise", "Use provider APIs for exact token counts (requires API keys)")
     .action(async (scanPath: string, options: EstimateOptions) => {
-      const cliVolume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
+      const envVolume = getEnvVolume();
       const cliVolumeExplicit = options.volume !== "1000";
+      const cliVolume = cliVolumeExplicit
+        ? Math.max(1, Number.parseInt(options.volume, 10) || 1000)
+        : (envVolume ?? Math.max(1, Number.parseInt(options.volume, 10) || 1000));
       const format = resolveFormat(options.format);
 
       const config = await loadConfig(options.config);

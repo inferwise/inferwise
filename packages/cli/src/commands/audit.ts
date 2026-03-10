@@ -2,7 +2,7 @@ import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-d
 import type { ModelPricing, ModelTier, Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import { Command } from "commander";
-import { loadConfig, resolveVolume } from "../config.js";
+import { getEnvVolume, loadConfig, resolveVolume } from "../config.js";
 import { scanDirectory } from "../scanners/index.js";
 import type { ScanResult } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
@@ -473,7 +473,11 @@ export function auditCommand(): Command {
     .option("--format <table|json|markdown>", "Output format", "table")
     .option("--config <path>", "Path to inferwise.config.json")
     .action(async (scanPath: string, options: AuditOptions) => {
-      const volume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
+      const envVolume = getEnvVolume();
+      const volume =
+        options.volume !== "1000"
+          ? Math.max(1, Number.parseInt(options.volume, 10) || 1000)
+          : (envVolume ?? Math.max(1, Number.parseInt(options.volume, 10) || 1000));
       const format = resolveFormat(options.format);
       const config = await loadConfig(options.config);
 
