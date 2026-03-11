@@ -21,6 +21,7 @@ inferwise/
 ├── packages/
 │   ├── cli/              # inferwise CLI (Commander.js + tsup)
 │   ├── pricing-db/       # @inferwise/pricing-db — bundled pricing JSON
+│   ├── mcp-server/       # @inferwise/mcp — MCP server for AI agent tools
 │   └── github-action/    # Standalone GitHub Action
 ├── scripts/              # Maintenance scripts (pricing sync)
 └── .github/workflows/    # CI, cost-diff, pricing sync, publish

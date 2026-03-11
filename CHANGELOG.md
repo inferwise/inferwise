@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.1] - 2026-03-11
+
+### Added
+- **MCP Server** (`@inferwise/mcp`) — AI agent integration via Model Context Protocol. Gives Claude Code, Cursor, VS Code, Windsurf, and other MCP-compatible tools three tools: `suggest_model`, `estimate_cost`, and `audit`.
+- **Smart model recommendations** — `inferwise audit` now infers required capabilities (code, reasoning, creative, vision, etc.) from prompts in your code and suggests cheaper models that can handle the task, with reasoning and confidence levels.
+- Capability-based model selection in `@inferwise/pricing-db`: `inferRequiredCapabilities()`, `getModelsByCapabilities()`, `suggestAlternatives()`, `suggestModelForTask()`
+
 ## [0.2.0] - 2026-03-10
 
 ### Added

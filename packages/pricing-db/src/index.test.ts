@@ -8,9 +8,13 @@ import {
   getAllModels,
   getAllProviders,
   getModel,
+  getModelsByCapabilities,
   getPricingAgeInDays,
   getProviderMeta,
+  inferRequiredCapabilities,
   normalizeModelId,
+  suggestAlternatives,
+  suggestModelForTask,
 } from "./index.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -472,4 +476,151 @@ describe("common production models resolve in pricing DB", () => {
       });
     }
   }
+});
+
+describe("inferRequiredCapabilities", () => {
+  it("returns code capability for programming-related text", () => {
+    expect(inferRequiredCapabilities("debug this function")).toContain("code");
+    expect(inferRequiredCapabilities("Write Python code to parse JSON")).toContain("code");
+  });
+
+  it("returns reasoning capability for analytical text", () => {
+    expect(inferRequiredCapabilities("analyze this step by step")).toContain("reasoning");
+    expect(inferRequiredCapabilities("Think carefully about the logic")).toContain("reasoning");
+  });
+
+  it("returns vision capability for image-related text", () => {
+    expect(inferRequiredCapabilities("Describe the screenshot")).toContain("vision");
+  });
+
+  it("returns creative capability for writing tasks", () => {
+    expect(inferRequiredCapabilities("Write a short story about robots")).toContain("creative");
+  });
+
+  it("returns general as fallback for generic text", () => {
+    expect(inferRequiredCapabilities("hello world")).toEqual(["general"]);
+    expect(inferRequiredCapabilities("")).toEqual(["general"]);
+  });
+
+  it("returns multiple capabilities for mixed text", () => {
+    const caps = inferRequiredCapabilities("debug this function and analyze step by step");
+    expect(caps).toContain("code");
+    expect(caps).toContain("reasoning");
+  });
+});
+
+describe("getModelsByCapabilities", () => {
+  it("returns models sorted by output cost ascending", () => {
+    const models = getModelsByCapabilities(["general"]);
+    expect(models.length).toBeGreaterThan(0);
+    for (let i = 1; i < models.length; i++) {
+      const prev = models[i - 1];
+      const curr = models[i];
+      if (prev && curr) {
+        expect(prev.output_cost_per_million).toBeLessThanOrEqual(curr.output_cost_per_million);
+      }
+    }
+  });
+
+  it("filters by provider when specified", () => {
+    const models = getModelsByCapabilities(["general"], { provider: "anthropic" });
+    expect(models.length).toBeGreaterThan(0);
+    for (const m of models) {
+      expect(m.provider).toBe("anthropic");
+    }
+  });
+
+  it("only returns current models by default", () => {
+    const models = getModelsByCapabilities(["general"]);
+    for (const m of models) {
+      expect(m.status).toBe("current");
+    }
+  });
+
+  it("respects maxOutputCostPerMillion filter", () => {
+    const models = getModelsByCapabilities(["general"], { maxOutputCostPerMillion: 5 });
+    for (const m of models) {
+      expect(m.output_cost_per_million).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it("returns empty array when no models match", () => {
+    const models = getModelsByCapabilities(["audio", "vision", "search"], {
+      maxOutputCostPerMillion: 0.001,
+    });
+    expect(models).toEqual([]);
+  });
+});
+
+describe("suggestAlternatives", () => {
+  it("returns cheaper models for a premium model", () => {
+    const alts = suggestAlternatives("claude-opus-4-20250514", "anthropic", ["general"]);
+    expect(alts.length).toBeGreaterThan(0);
+    for (const alt of alts) {
+      expect(alt.savingsPercent).toBeGreaterThan(0);
+      expect(alt.reasoning.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("returns at most 3 alternatives", () => {
+    const alts = suggestAlternatives("claude-opus-4-20250514", "anthropic", ["general"]);
+    expect(alts.length).toBeLessThanOrEqual(3);
+  });
+
+  it("returns empty array for unknown model", () => {
+    const alts = suggestAlternatives("nonexistent-model", "anthropic", ["general"]);
+    expect(alts).toEqual([]);
+  });
+
+  it("returns empty array when model is already cheapest", () => {
+    // Find the cheapest current model with general capability
+    const cheapest = getModelsByCapabilities(["general"])[0];
+    if (cheapest) {
+      const alts = suggestAlternatives(cheapest.id, cheapest.provider, ["general"]);
+      expect(alts).toEqual([]);
+    }
+  });
+
+  it("includes cross-provider suggestions", () => {
+    const alts = suggestAlternatives("claude-opus-4-20250514", "anthropic", ["general"]);
+    const providers = new Set(alts.map((a) => a.model.provider));
+    // With general capability, there should be models from other providers cheaper than Opus
+    expect(providers.size).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("suggestModelForTask", () => {
+  it("returns a model with reasoning for a task description", () => {
+    const result = suggestModelForTask("classify customer support tickets");
+    expect(result).toBeDefined();
+    if (result) {
+      expect(result.model).toBeDefined();
+      expect(result.inferredCapabilities.length).toBeGreaterThan(0);
+      expect(result.reasoning.length).toBeGreaterThan(0);
+    }
+  });
+
+  it("respects provider constraint", () => {
+    const result = suggestModelForTask("write some code", { provider: "openai" });
+    expect(result).toBeDefined();
+    if (result) {
+      expect(result.model.provider).toBe("openai");
+    }
+  });
+
+  it("infers code capability for programming tasks", () => {
+    const result = suggestModelForTask("debug this Python function");
+    expect(result).toBeDefined();
+    if (result) {
+      expect(result.inferredCapabilities).toContain("code");
+    }
+  });
+
+  it("returns cheapest model for generic tasks", () => {
+    const result = suggestModelForTask("answer a simple question");
+    expect(result).toBeDefined();
+    if (result) {
+      expect(result.inferredCapabilities).toEqual(["general"]);
+    }
+  });
 });

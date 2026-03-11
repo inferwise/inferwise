@@ -245,13 +245,20 @@ function validateActionConfig(raw) {
     if (typeof b.block === "number" && b.block >= 0) budgets.block = b.block;
     if (typeof b.requireApproval === "number" && b.requireApproval >= 0)
       budgets.requireApproval = b.requireApproval;
-    if (Array.isArray(b.approvers)) budgets.approvers = b.approvers.filter((a) => typeof a === "string");
+    if (Array.isArray(b.approvers))
+      budgets.approvers = b.approvers.filter((a) => typeof a === "string");
     if (budgets.warn !== void 0 && budgets.block !== void 0 && budgets.warn >= budgets.block) {
-      core.warning("inferwise.config.json: budgets.warn must be less than budgets.block \u2014 ignoring budgets");
+      core.warning(
+        "inferwise.config.json: budgets.warn must be less than budgets.block \u2014 ignoring budgets"
+      );
     } else if (budgets.warn !== void 0 && budgets.requireApproval !== void 0 && budgets.warn >= budgets.requireApproval) {
-      core.warning("inferwise.config.json: budgets.warn must be less than budgets.requireApproval \u2014 ignoring budgets");
+      core.warning(
+        "inferwise.config.json: budgets.warn must be less than budgets.requireApproval \u2014 ignoring budgets"
+      );
     } else if (budgets.requireApproval !== void 0 && budgets.block !== void 0 && budgets.requireApproval >= budgets.block) {
-      core.warning("inferwise.config.json: budgets.requireApproval must be less than budgets.block \u2014 ignoring budgets");
+      core.warning(
+        "inferwise.config.json: budgets.requireApproval must be less than budgets.block \u2014 ignoring budgets"
+      );
     } else {
       config.budgets = budgets;
     }

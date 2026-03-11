@@ -238,3 +238,135 @@ export function calculateCost(params: CostParams): number {
 
   return inputCost + cachedCost + outputCost;
 }
+
+// ── Capability inference + model suggestion ──────────────────────────
+
+/** Keyword patterns mapped to capabilities for use-case inference. */
+const CAPABILITY_KEYWORDS: Array<{ capability: Capability; patterns: RegExp }> = [
+  {
+    capability: "code",
+    patterns:
+      /\b(code|coding|debug|refactor|function|typescript|python|javascript|programming|syntax|compile|lint|regex|sql|api endpoint)\b/i,
+  },
+  {
+    capability: "reasoning",
+    patterns:
+      /\b(step[- ]by[- ]step|analyze|reason|think carefully|evaluate|logic|math|proof|calculate|deduce|chain of thought)\b/i,
+  },
+  {
+    capability: "creative",
+    patterns: /\b(story|creative|poem|narrative|fiction|blog post|essay|copywriting)\b/i,
+  },
+  {
+    capability: "vision",
+    patterns: /\b(image|screenshot|photo|picture|diagram|chart|visual|ocr|describe the image)\b/i,
+  },
+  {
+    capability: "search",
+    patterns: /\b(search|find information|look up|latest news|real[- ]time)\b/i,
+  },
+  {
+    capability: "audio",
+    patterns: /\b(audio|transcribe|speech|voice|listen)\b/i,
+  },
+];
+
+/** Infer required capabilities from free-form text (prompt, task description). */
+export function inferRequiredCapabilities(text: string): Capability[] {
+  if (!text.trim()) return ["general"];
+
+  const matched = new Set<Capability>();
+  for (const { capability, patterns } of CAPABILITY_KEYWORDS) {
+    if (patterns.test(text)) matched.add(capability);
+  }
+
+  return matched.size > 0 ? [...matched] : ["general"];
+}
+
+/** Options for filtering models by capabilities. */
+export interface ModelFilterOptions {
+  provider?: Provider;
+  status?: ModelStatus;
+  maxOutputCostPerMillion?: number;
+}
+
+/** Get all models that support ALL specified capabilities. */
+export function getModelsByCapabilities(
+  required: Capability[],
+  options?: ModelFilterOptions,
+): ModelPricing[] {
+  const status = options?.status ?? "current";
+  const source = options?.provider ? getProviderModels(options.provider) : getAllModels();
+
+  return source
+    .filter((m) => {
+      if (m.status !== status) return false;
+      if (options?.maxOutputCostPerMillion !== undefined) {
+        if (m.output_cost_per_million > options.maxOutputCostPerMillion) return false;
+      }
+      return required.every((cap) => m.capabilities.includes(cap));
+    })
+    .sort((a, b) => a.output_cost_per_million - b.output_cost_per_million);
+}
+
+/** A suggested alternative model with reasoning. */
+export interface AlternativeSuggestion {
+  model: ModelPricing;
+  reasoning: string;
+  savingsPercent: number;
+}
+
+/** Suggest cheaper alternatives that match required capabilities. */
+export function suggestAlternatives(
+  currentModelId: string,
+  currentProvider: Provider,
+  requiredCapabilities: Capability[],
+): AlternativeSuggestion[] {
+  const current = getModel(currentProvider, currentModelId);
+  if (!current) return [];
+
+  const candidates = getModelsByCapabilities(requiredCapabilities)
+    .filter((m) => !(m.id === current.id && m.provider === current.provider))
+    .filter((m) => m.output_cost_per_million < current.output_cost_per_million);
+
+  return candidates.slice(0, 3).map((m) => {
+    const savings = Math.round(
+      ((current.output_cost_per_million - m.output_cost_per_million) /
+        current.output_cost_per_million) *
+        100,
+    );
+    const caps = `[${requiredCapabilities.join(", ")}]`;
+    const reasoning =
+      m.provider === currentProvider
+        ? `Task requires ${caps} — ${m.name} handles that at ${savings}% lower cost`
+        : `Task requires ${caps} — ${m.provider}/${m.name} handles that at ${savings}% lower cost`;
+    return { model: m, reasoning, savingsPercent: savings };
+  });
+}
+
+/** Result of a task-based model suggestion. */
+export interface TaskSuggestion {
+  model: ModelPricing;
+  inferredCapabilities: Capability[];
+  reasoning: string;
+}
+
+/** Suggest the cheapest capable model for a free-form task description. */
+export function suggestModelForTask(
+  text: string,
+  options?: { provider?: Provider; maxCostPerMillion?: number },
+): TaskSuggestion | undefined {
+  const capabilities = inferRequiredCapabilities(text);
+  const candidates = getModelsByCapabilities(capabilities, {
+    ...(options?.provider ? { provider: options.provider } : {}),
+    ...(options?.maxCostPerMillion ? { maxOutputCostPerMillion: options.maxCostPerMillion } : {}),
+  });
+
+  const best = candidates[0];
+  if (!best) return undefined;
+
+  const caps = `[${capabilities.join(", ")}]`;
+  const reasoning = `Inferred capabilities: ${caps} — ${best.provider}/${best.name} ($${best.output_cost_per_million}/M output) is the cheapest model with those capabilities`;
+
+  return { model: best, inferredCapabilities: capabilities, reasoning };
+}

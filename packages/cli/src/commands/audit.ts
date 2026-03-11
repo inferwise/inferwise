@@ -1,5 +1,10 @@
-import type { ModelPricing, ModelTier, Provider } from "@inferwise/pricing-db";
-import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
+import type { Capability, ModelPricing, Provider } from "@inferwise/pricing-db";
+import {
+  calculateCost,
+  getModel,
+  inferRequiredCapabilities,
+  suggestAlternatives,
+} from "@inferwise/pricing-db";
 import chalk from "chalk";
 import { Command } from "commander";
 import { getEnvVolume, loadConfig, parseVolume } from "../config.js";
@@ -17,16 +22,20 @@ interface AuditOptions {
   config?: string;
 }
 
-export interface CheaperModelFinding {
-  type: "cheaper-model";
+export interface SmartAlternativeFinding {
+  type: "smart-alternative";
   file: string;
   line: number;
-  provider: Provider;
+  currentProvider: Provider;
   currentModel: string;
-  suggestedModel: string;
   currentMonthlyCost: number;
+  suggestedProvider: Provider;
+  suggestedModel: string;
   suggestedMonthlyCost: number;
   monthlySavings: number;
+  requiredCapabilities: Capability[];
+  confidence: "high" | "medium" | "low";
+  reasoning: string;
 }
 
 export interface CachingFinding {
@@ -49,7 +58,7 @@ export interface BatchFinding {
   monthlySavings: number;
 }
 
-type AuditFinding = CheaperModelFinding | CachingFinding | BatchFinding;
+type AuditFinding = SmartAlternativeFinding | CachingFinding | BatchFinding;
 
 interface AuditSummary {
   findings: AuditFinding[];
@@ -57,13 +66,13 @@ interface AuditSummary {
   volume: number;
 }
 
-// ── Tier ordering for downgrade suggestions ─────────────────────────
+// ── Confidence from prompt availability ──────────────────────────────
 
-const TIER_ORDER: Record<ModelTier, number> = {
-  budget: 0,
-  mid: 1,
-  premium: 2,
-};
+function inferConfidence(result: ScanResult): "high" | "medium" | "low" {
+  if (result.systemPrompt && result.userPrompt) return "high";
+  if (result.systemPrompt || result.userPrompt) return "medium";
+  return "low";
+}
 
 function resolveFormat(raw: string): AuditOutputFormat {
   if (raw === "json" || raw === "markdown") return raw;
@@ -105,61 +114,60 @@ function monthlyCostForModel(
   return costPerCall * volume * DAYS_PER_MONTH;
 }
 
-// ── Finding: cheaper model alternatives ─────────────────────────────
+// ── Finding: smart model alternatives ────────────────────────────────
 
-function findCheaperAlternative(
-  provider: Provider,
-  currentModelId: string,
-  currentTier: ModelTier,
-): ModelPricing | undefined {
-  const models = getProviderModels(provider);
-  const currentTierOrder = TIER_ORDER[currentTier];
-  if (currentTierOrder === 0) return undefined;
-
-  const candidates = models.filter(
-    (m) =>
-      m.status === "current" &&
-      m.id !== currentModelId &&
-      TIER_ORDER[m.tier] === currentTierOrder - 1,
-  );
-
-  if (candidates.length === 0) return undefined;
-
-  // Return the cheapest candidate by input cost
-  candidates.sort((a, b) => a.input_cost_per_million - b.input_cost_per_million);
-  return candidates[0];
-}
-
-export function detectCheaperModels(results: ScanResult[], volume: number): CheaperModelFinding[] {
-  const findings: CheaperModelFinding[] = [];
+export function detectSmartAlternatives(
+  results: ScanResult[],
+  volume: number,
+): SmartAlternativeFinding[] {
+  const findings: SmartAlternativeFinding[] = [];
 
   for (const result of results) {
     if (!result.model) continue;
-    const provider = result.provider;
-    const pricing = getModel(provider, result.model);
+    const pricing = getModel(result.provider, result.model);
     if (!pricing) continue;
 
-    const alt = findCheaperAlternative(provider, pricing.id, pricing.tier);
-    if (!alt) continue;
+    const promptText = [result.systemPrompt, result.userPrompt].filter(Boolean).join(" ");
+    const capabilities = inferRequiredCapabilities(promptText);
+    const confidence = inferConfidence(result);
+
+    const alts = suggestAlternatives(pricing.id, result.provider, capabilities);
+    if (alts.length === 0) continue;
+
+    const best = alts[0];
+    if (!best) continue;
+
+    // For low confidence, only suggest same-provider alternatives
+    const picked =
+      confidence === "low"
+        ? (alts.find((a) => a.model.provider === result.provider) ?? best)
+        : best;
+
+    // Only suggest if savings exceed 20%
+    if (picked.savingsPercent < 20) continue;
 
     const inputTokens = resolveInputTokens(result, pricing);
     const outputTokens = resolveOutputTokens(result, pricing);
     const currentCost = monthlyCostForModel(pricing, inputTokens, outputTokens, volume);
-    const altCost = monthlyCostForModel(alt, inputTokens, outputTokens, volume);
+    const altCost = monthlyCostForModel(picked.model, inputTokens, outputTokens, volume);
     const savings = currentCost - altCost;
 
     if (savings <= 0) continue;
 
     findings.push({
-      type: "cheaper-model",
+      type: "smart-alternative",
       file: result.filePath,
       line: result.lineNumber,
-      provider,
+      currentProvider: result.provider,
       currentModel: pricing.id,
-      suggestedModel: alt.id,
       currentMonthlyCost: currentCost,
+      suggestedProvider: picked.model.provider,
+      suggestedModel: picked.model.id,
       suggestedMonthlyCost: altCost,
       monthlySavings: savings,
+      requiredCapabilities: capabilities,
+      confidence,
+      reasoning: picked.reasoning,
     });
   }
 
@@ -313,13 +321,21 @@ function formatFindingTable(finding: AuditFinding): string {
   const lines: string[] = [];
 
   switch (finding.type) {
-    case "cheaper-model": {
+    case "smart-alternative": {
       const loc = `${finding.file}:${finding.line}`;
+      const providerNote =
+        finding.suggestedProvider !== finding.currentProvider
+          ? ` (${finding.suggestedProvider})`
+          : "";
       lines.push(
-        `  ${chalk.cyan(loc)}  ${finding.currentModel} ${chalk.dim("→")} ${chalk.green(finding.suggestedModel)}`,
+        `  ${chalk.cyan(loc)}  ${finding.currentModel} ${chalk.dim("→")} ${chalk.green(finding.suggestedModel)}${providerNote}`,
       );
       lines.push(
-        `    Potential savings: ${chalk.green(`${formatDollars(finding.monthlySavings)}/mo`)}`,
+        `    Use case: ${chalk.dim(`[${finding.requiredCapabilities.join(", ")}]`)} (${finding.confidence} confidence)`,
+      );
+      lines.push(`    Reason: ${finding.reasoning}`);
+      lines.push(
+        `    Savings: ${chalk.green(`${formatDollars(finding.monthlySavings)}/mo`)} (${formatDollars(finding.currentMonthlyCost)} → ${formatDollars(finding.suggestedMonthlyCost)})`,
       );
       break;
     }
@@ -362,13 +378,13 @@ function formatAuditTable(summary: AuditSummary): string {
   );
   lines.push("");
 
-  const cheaper = summary.findings.filter((f) => f.type === "cheaper-model");
+  const smart = summary.findings.filter((f) => f.type === "smart-alternative");
   const caching = summary.findings.filter((f) => f.type === "caching");
   const batch = summary.findings.filter((f) => f.type === "batch");
 
-  if (cheaper.length > 0) {
-    lines.push(chalk.bold.yellow("CHEAPER MODEL ALTERNATIVES"));
-    for (const f of cheaper) lines.push(formatFindingTable(f));
+  if (smart.length > 0) {
+    lines.push(chalk.bold.yellow("SMART MODEL ALTERNATIVES"));
+    for (const f of smart) lines.push(formatFindingTable(f));
     lines.push("");
   }
 
@@ -419,19 +435,20 @@ function formatAuditMarkdown(summary: AuditSummary): string {
   lines.push(`**${count} optimization ${count === 1 ? "opportunity" : "opportunities"} found**`);
   lines.push("");
 
-  const cheaper = summary.findings.filter((f) => f.type === "cheaper-model");
+  const smart = summary.findings.filter((f) => f.type === "smart-alternative");
   const caching = summary.findings.filter((f) => f.type === "caching");
   const batch = summary.findings.filter((f) => f.type === "batch");
 
-  if (cheaper.length > 0) {
-    lines.push("### Cheaper Model Alternatives");
+  if (smart.length > 0) {
+    lines.push("### Smart Model Alternatives");
     lines.push("");
-    lines.push("| Location | Current | Suggested | Savings |");
-    lines.push("|----------|---------|-----------|---------|");
-    for (const f of cheaper) {
-      if (f.type !== "cheaper-model") continue;
+    lines.push("| Location | Current | Suggested | Reason | Savings |");
+    lines.push("|----------|---------|-----------|--------|---------|");
+    for (const f of smart) {
+      if (f.type !== "smart-alternative") continue;
+      const provider = f.suggestedProvider !== f.currentProvider ? ` (${f.suggestedProvider})` : "";
       lines.push(
-        `| \`${f.file}:${f.line}\` | ${f.currentModel} | ${f.suggestedModel} | ${formatDollars(f.monthlySavings)}/mo |`,
+        `| \`${f.file}:${f.line}\` | ${f.currentModel} | ${f.suggestedModel}${provider} | ${f.reasoning} | ${formatDollars(f.monthlySavings)}/mo |`,
       );
     }
     lines.push("");
@@ -502,7 +519,7 @@ export function auditCommand(): Command {
       }
 
       const findings: AuditFinding[] = [
-        ...detectCheaperModels(results, volume),
+        ...detectSmartAlternatives(results, volume),
         ...detectCachingOpportunities(results, volume),
         ...detectBatchOpportunities(results, volume),
       ];

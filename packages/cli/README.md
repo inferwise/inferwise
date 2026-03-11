@@ -1,18 +1,21 @@
 # inferwise
 
-**Cost gates for LLM API calls.**
+**Smart model selection and cost enforcement for LLM API calls.**
 
-Inferwise scans your codebase for LLM API calls (`messages.create()`, `chat.completions.create()`, etc.), estimates per-token costs, enforces budget policies, and diffs costs between branches. Works with any CI system or locally as a git hook.
+Inferwise scans your codebase for LLM API calls, recommends the cheapest model that can handle each task, estimates per-token costs, and enforces budget guardrails. Works with any CI system or locally as a git hook.
 
 > **Note:** Inferwise tracks pay-as-you-go API costs (billed per token to your API key). It does not track flat-rate subscriptions like Claude Code, Cursor, Copilot, or ChatGPT Plus.
 
 ## Quick Start
 
 ```bash
-# Scan — no install, no config
+# See what your LLM calls cost
 npx inferwise estimate .
 
-# Set up config + git hooks + CI
+# Get smart model recommendations
+npx inferwise audit .
+
+# Set up guardrails: config + git hooks + CI
 npx inferwise init
 ```
 
@@ -69,7 +72,7 @@ inferwise calibrate . --dry-run
 
 ### `inferwise audit [path]`
 
-Find cost optimizations: cheaper models, cacheable responses, batchable calls.
+Find cost optimizations with smart, capability-aware model recommendations. Infers what each LLM call does from prompts in your code and suggests cheaper models that can handle the task — with reasoning and confidence levels.
 
 ### `inferwise price [provider] [model]`
 
@@ -115,7 +118,7 @@ Pure data, no console output, no `process.exit` — safe for embedding in agent 
 
 ## Supported Providers
 
-Anthropic, OpenAI, Google AI, xAI — with LangChain and Vercel AI SDK pattern detection.
+Anthropic, OpenAI, Google AI, xAI, Perplexity — with LangChain, Vercel AI SDK, AWS Bedrock, Azure OpenAI, and LiteLLM pattern detection.
 
 **File types:** `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`
 

@@ -20,6 +20,8 @@ console.log(`Cost: $${cost.toFixed(6)}`);
 
 ## API
 
+### Pricing Queries
+
 - `getAllProviders()` — List all supported providers
 - `getAllModels()` — Get all models across all providers
 - `getModel(provider, modelId)` — Look up a model by ID or alias
@@ -27,6 +29,25 @@ console.log(`Cost: $${cost.toFixed(6)}`);
 - `calculateCost(params)` — Calculate USD cost for a request
 - `getProviderMeta(provider)` — Get metadata (dates, source URL)
 - `getPricingAgeInDays(provider)` — Days since last verification
+
+### Capability-Based Model Selection
+
+- `inferRequiredCapabilities(text)` — Infer required capabilities from a task description or prompt text. Returns capabilities like `"code"`, `"reasoning"`, `"general"`, `"creative"`, `"vision"`, `"search"`, `"audio"`.
+- `getModelsByCapabilities(required, options?)` — Find models matching required capabilities, sorted by cost (cheapest first). Filter by provider, status, or max cost.
+- `suggestAlternatives(modelId, provider, capabilities)` — Find cheaper models that match the same capabilities. Returns alternatives with savings percentage and reasoning.
+- `suggestModelForTask(text, options?)` — End-to-end: infer capabilities from a task description, find the cheapest capable model, and return it with reasoning.
+
+```typescript
+import { suggestModelForTask, suggestAlternatives, inferRequiredCapabilities } from "@inferwise/pricing-db";
+
+// Suggest the cheapest model for a task
+const suggestion = suggestModelForTask("classify support tickets by category");
+// → { model: gpt-4o-mini, inferredCapabilities: ["general"], reasoning: "..." }
+
+// Find cheaper alternatives to an expensive model
+const alts = suggestAlternatives("claude-opus-4-20250514", "anthropic", ["code"]);
+// → [{ model: claude-sonnet-4, savingsPercent: 80, reasoning: "..." }]
+```
 
 ## Pricing Data
 

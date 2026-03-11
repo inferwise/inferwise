@@ -1,26 +1,60 @@
 # Inferwise
 
-**Cost guardrails for LLM API calls.**
+**Smart model selection and cost enforcement for LLM API calls.**
 
 [![CI](https://github.com/inferwise/inferwise/actions/workflows/ci.yml/badge.svg)](https://github.com/inferwise/inferwise/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/inferwise)](https://www.npmjs.com/package/inferwise)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-Inferwise scans your codebase for LLM API calls (Anthropic, OpenAI, Google, xAI, Perplexity), estimates per-token costs, and enforces budget guardrails — from pre-commit to CI to merge. Whether a human or an AI agent wrote the code, nothing ships without cost visibility.
+Inferwise scans your codebase for LLM API calls, recommends the cheapest model that can handle each task, estimates per-token costs, and enforces budget guardrails — from pre-commit to CI to merge. Whether a human or an AI agent wrote the code, nothing ships without cost visibility and the right model for the job.
+
+---
+
+## The $1,800/mo Example
+
+An AI coding agent builds a RAG pipeline and picks Opus for every step — embeddings, retrieval, summarization, response generation. Those calls will run in production, billed per token to your API key.
+
+**Without Inferwise:** The agent picks the most capable (and expensive) model for every call. The bill shows up after the code ships. **$2,400/mo.**
+
+**With Inferwise MCP:** The agent calls `suggest_model` for each task — it learns that classification only needs `gpt-4o-mini`, summarization works fine on `claude-sonnet-4`, and only the reasoning step needs `claude-opus-4`. Cost drops to **$600/mo** before a single line ships.
+
+**With Inferwise CI:** Even if the agent doesn't use MCP, `inferwise diff` flags "+$2,400/mo in new API costs" on the PR. The developer swaps models. Same result.
+
+**$1,800/mo saved before a single line ships.**
 
 ---
 
 ## Quick Start
 
 ```bash
-# Scan your project — no install, no config required
+# See what your LLM calls cost
 npx inferwise estimate .
 
-# Set up guardrails: config + git hooks + CI instructions
+# Get smart model recommendations
+npx inferwise audit .
+
+# Set up guardrails: config + git hooks + CI
 npx inferwise init
 
 # Compare costs between branches
 npx inferwise diff
+```
+
+For AI agents — add the MCP server:
+
+```bash
+# Claude Code
+claude mcp add inferwise -- npx -y @inferwise/mcp
+
+# Cursor / VS Code / Windsurf — add to MCP settings:
+{
+  "mcpServers": {
+    "inferwise": {
+      "command": "npx",
+      "args": ["-y", "@inferwise/mcp"]
+    }
+  }
+}
 ```
 
 Or install globally:
@@ -33,20 +67,53 @@ pnpm add -g inferwise
 
 ---
 
-## The Problem
+## How It Works
 
-Your code makes LLM API calls that are billed per token — every `messages.create()`, every `chat.completions.create()`. There is no cost visibility in the development workflow. Someone swaps `gpt-4o-mini` for `claude-opus-4` and nobody notices until the invoice arrives. An AI coding agent picks the most expensive model for every call because it optimizes for correctness, not cost.
+Two problems, one tool.
 
-**The bill shows up after the code ships. Inferwise moves cost visibility before the code ships.**
+**Wrong model selection.** Teams and agents pick models by name recognition, not by capability match. A classification task gets routed to Opus when `gpt-4o-mini` handles it fine — 90% cost difference for zero quality gain.
+
+**No cost visibility.** Nobody knows what a model swap costs until the invoice arrives. Someone upgrades from Sonnet to Opus and nobody notices until month-end.
+
+Inferwise addresses both:
+
+- **Recommend:** `inferwise audit` and the MCP server analyze what each LLM call does, infer the required capabilities, and suggest the cheapest model that can handle the task — cross-provider, with reasoning.
+- **Enforce:** Pre-commit hooks, CI gates, and budget policies catch expensive code before it ships. If the cost delta exceeds your threshold, the merge is blocked.
 
 ---
 
-## End-to-End Guardrail Pipeline
+## How Model Selection Works
 
-This is the critical path. Every LLM API call in your codebase passes through three enforcement tiers before it reaches production.
+Inferwise infers what each LLM call needs by analyzing prompts in your code:
+
+1. **Capability inference.** Keywords in system/user prompts are matched to capabilities: `code`, `reasoning`, `general`, `creative`, `vision`, `search`, `audio`. This is regex-based pattern matching — fast and deterministic, not AI-powered. If no keywords match, it falls back to `general`.
+
+2. **Cross-provider ranking.** All models with the required capabilities are sorted by output cost, cheapest first. Inferwise is not locked to one provider — it will suggest `gpt-4o-mini` for a classification task even if your current code uses Anthropic.
+
+3. **Confidence levels.** Based on what Inferwise can extract from code:
+   - **High** — both system prompt and user prompt found in code
+   - **Medium** — one prompt found
+   - **Low** — prompts are dynamic (variables, not string literals). Low confidence restricts suggestions to same-provider alternatives only.
+
+4. **Minimum threshold.** Only suggests alternatives with >20% savings. No noise.
+
+Every model in the pricing database is tagged with its capabilities. See `packages/pricing-db/providers/` for the source data.
+
+---
+
+## End-to-End Pipeline
+
+Every LLM API call in your codebase can pass through four tiers before it reaches production.
 
 ```
 Code written (by human or AI agent)
+        |
+        v
+  +-----------+
+  |  TIER 0   |  Smart model selection (before/during code writing)
+  |           |  MCP suggest_model / inferwise audit
+  |           |  "Use gpt-4o-mini — classification doesn't need Opus"
+  +-----+-----+
         |
         v
   +-----------+
@@ -72,6 +139,7 @@ Code written (by human or AI agent)
 
 | Tier | Where | What Happens |
 |------|-------|--------------|
+| Smart selection | MCP server / `inferwise audit` | Recommends cheapest capable model for each task |
 | Pre-commit hook | Developer machine | Shows costs before commit, catches obvious spikes |
 | CI required check | PR/MR merge gate | Blocks merge if budget exceeded, comments cost report |
 | Budget policy | `inferwise.config.json` | Org-wide thresholds committed to the repo, code-reviewed like any other config |
@@ -102,7 +170,29 @@ npx inferwise init
 
 Creates `inferwise.config.json`, installs a pre-commit hook, prints CI setup instructions for GitHub Actions / GitLab / Bitbucket / Jenkins.
 
-**2. Write code with LLM API calls**
+**2. Audit existing code for optimization**
+
+```bash
+npx inferwise audit .
+```
+
+```
+SMART MODEL ALTERNATIVES
+
+  src/rag.ts:6 — claude-opus-4 → claude-sonnet-4 (anthropic)
+    Use case: general (high confidence)
+    Reason: Task requires [general] — Sonnet handles that at 79% savings
+    Savings: $14,595/mo ($18,440 → $3,845)
+
+  src/classify.ts:14 — gpt-4o → gpt-4o-mini (openai)
+    Use case: general (medium confidence)
+    Reason: Task requires [general] — gpt-4o-mini handles that at 90% savings
+    Savings: $4,500/mo ($5,000 → $500)
+```
+
+Inferwise reads the prompts in your code, infers what each LLM call does, and recommends cheaper models that can handle the task. See [How Model Selection Works](#how-model-selection-works) for details.
+
+**3. Write code with LLM API calls**
 
 You (or an AI coding agent) write code that calls provider APIs. On `git commit`, the pre-commit hook runs automatically:
 
@@ -118,7 +208,7 @@ Total: $1,479/mo (at 1,000 req/day)
 
 You see the cost impact before the code leaves your machine.
 
-**3. Open a pull request**
+**4. Open a pull request**
 
 CI runs `inferwise diff`. The GitHub Action posts a cost report directly on the PR:
 
@@ -131,7 +221,7 @@ CI runs `inferwise diff`. The GitHub Action posts a cost report directly on the 
 
 If the increase exceeds `budgets.block`, the PR is blocked from merging.
 
-**4. Calibrate for tighter estimates (optional)**
+**5. Calibrate for tighter estimates (optional)**
 
 ```bash
 ANTHROPIC_ADMIN_API_KEY=sk-ant-admin-... inferwise calibrate .
@@ -141,74 +231,65 @@ Fetches real usage data from provider APIs, computes correction ratios, and stor
 
 ---
 
-### For AI Agents: The Programmatic Guardrail
+### For AI Agents: MCP Server
 
-AI coding agents (Cursor, Claude Code, Copilot, Codex) and custom pipelines generate LLM API calls without a human reviewing cost implications. Inferwise provides three integration levels so agents can self-check before shipping expensive code.
-
-**Option A: SDK — embed directly in agent pipelines**
-
-```typescript
-import { estimateAndCheck, estimate } from "inferwise/sdk";
-
-// Budget gate — returns { ok, violations, rows, totalMonthlyCost }
-const result = await estimateAndCheck("./src", {
-  maxMonthlyCost: 10000,
-  maxCostPerCall: 0.10,
-  volume: 5000,
-});
-
-if (!result.ok) {
-  // Agent reacts: swap models, add max_tokens, etc.
-  console.error("Over budget:", result.violations);
-}
-
-// Or just get estimates without checking
-const costs = await estimate("./src", { volume: 1000 });
-console.log(`Total: $${costs.totalMonthlyCost.toFixed(2)}/mo`);
-```
-
-Pure data, no console output, no `process.exit`. Safe for embedding in agent orchestration layers, n8n/Zapier nodes, or custom pipelines.
-
-**Option B: CLI — tool-use for agents and scripts**
+The [`@inferwise/mcp`](packages/mcp-server) package gives AI agents direct access to Inferwise tools via the [Model Context Protocol](https://modelcontextprotocol.io). The agent can suggest models, estimate costs, and audit codebases without leaving its workflow.
 
 ```bash
-# Budget gate — exits 1 if over budget
-inferwise check . --max-monthly-cost 10000 --format json
+# Claude Code
+claude mcp add inferwise -- npx -y @inferwise/mcp
 
-# Agent queries cost before choosing a model
-inferwise price openai gpt-4o --input-tokens 2000 --output-tokens 1000 --format json
-
-# Compare model options programmatically
-inferwise price --compare anthropic/claude-sonnet-4 openai/gpt-4o --format json
+# Cursor / VS Code / Windsurf — add to MCP settings:
+{
+  "mcpServers": {
+    "inferwise": {
+      "command": "npx",
+      "args": ["-y", "@inferwise/mcp"]
+    }
+  }
+}
 ```
 
-**Option C: Pricing database — for model routers and cost-aware selection**
+Once connected, the agent gets three tools:
+
+| Tool | What It Does |
+|------|-------------|
+| `suggest_model` | Describe a task, get back the cheapest capable model with alternatives and reasoning |
+| `estimate_cost` | Estimate the cost of an LLM API call given provider, model, and token counts |
+| `audit` | Scan a directory for LLM API calls and suggest cheaper capable alternatives |
+
+**Example flow:** An agent writing a classification pipeline calls `suggest_model` with task "classify support tickets by category" — Inferwise returns `gpt-4o-mini` at $0.60/MTok instead of `gpt-4o` at $10/MTok. The agent writes the code with the right model from the start. No human review needed.
+
+The MCP server runs locally as a subprocess — no hosted infrastructure, no API keys needed. It communicates via stdio using JSON-RPC. Works with Claude Code, Cursor, VS Code (1.99+), Windsurf, Cline, and any MCP-compatible tool.
+
+#### Programmatic Alternatives
+
+For agents and pipelines that don't support MCP:
+
+**SDK** — embed directly in agent pipelines:
 
 ```typescript
-import { getModel, calculateCost, getAllModels } from "@inferwise/pricing-db";
+import { estimateAndCheck } from "inferwise/sdk";
 
-// Pre-flight cost check
-const model = getModel("anthropic", "claude-sonnet-4-20250514");
-const cost = calculateCost({ model, inputTokens: 2000, outputTokens: 1000 });
-
-// Build a cost-aware model router
-const budget = 0.01; // max $/call
-const candidates = getAllModels()
-  .filter(m => m.tier === "mid" && m.supports_tools)
-  .sort((a, b) => a.input_cost_per_million - b.input_cost_per_million);
+const result = await estimateAndCheck("./src", { maxMonthlyCost: 10000, volume: 5000 });
+if (!result.ok) console.error("Over budget:", result.violations);
 ```
 
----
+**CLI** — tool-use for agents and scripts:
 
-### Concrete Example
+```bash
+inferwise check . --max-monthly-cost 10000 --format json
+inferwise price openai gpt-4o --input-tokens 2000 --output-tokens 1000 --format json
+```
 
-An AI coding agent builds a RAG pipeline and writes API calls using Opus for every step — embeddings, retrieval, summarization, response generation. Those calls will run in your production, billed per token to your API key.
+**Pricing database** — for model routers and cost-aware selection:
 
-Inferwise flags: **"+$2,400/mo in new API costs"** on the PR.
+```typescript
+import { suggestModelForTask, calculateCost, getModel } from "@inferwise/pricing-db";
 
-The developer asks the agent to use Sonnet where Opus isn't needed. Cost drops to **$600/mo**.
-
-**$1,800/mo saved before a single line ships.**
+const suggestion = suggestModelForTask("classify support tickets");
+const cost = calculateCost({ model: suggestion.model, inputTokens: 2000, outputTokens: 500 });
+```
 
 ---
 
@@ -234,12 +315,13 @@ The distinction: Inferwise doesn't care about the **tool you use to write code**
 
 ---
 
-## What Ships: Three Packages
+## What Ships: Four Packages
 
 | Package | Who Uses It | What It Does |
 |---------|------------|--------------|
-| [`inferwise`](https://www.npmjs.com/package/inferwise) | Developers, CI, AI agents | CLI + SDK — scan, estimate, diff, check, enforce budgets |
-| [`@inferwise/pricing-db`](packages/pricing-db) | Model routers, cost-aware apps | Bundled pricing for 35+ models across 5 providers, updated daily |
+| [`inferwise`](https://www.npmjs.com/package/inferwise) | Developers, CI, AI agents | CLI + SDK — scan, estimate, diff, check, audit, enforce budgets |
+| [`@inferwise/pricing-db`](packages/pricing-db) | Model routers, cost-aware apps | Bundled pricing for 35+ models across 5 providers, capability-based model selection, updated daily |
+| [`@inferwise/mcp`](packages/mcp-server) | AI agents (Claude Code, Cursor, VS Code, Windsurf) | MCP server — suggest models, estimate costs, audit codebases as AI agent tools |
 | [`inferwise/inferwise-action`](packages/github-action) | GitHub repos | PR cost comments, labels, reviewer requests, merge blocking |
 
 ---
@@ -364,11 +446,12 @@ Stores correction ratios in `.inferwise/calibration.json`. Future `estimate` run
 
 ### `inferwise audit [path]`
 
-Find cost optimization opportunities: cheaper model alternatives, cacheable responses, batchable calls.
+Find cost optimization opportunities with smart, capability-aware recommendations. Infers what each LLM call does from the prompts in your code, then suggests cheaper models that can handle the task — with reasoning. See [How Model Selection Works](#how-model-selection-works) for the methodology.
 
 ```bash
 inferwise audit .
 inferwise audit ./src --format markdown
+inferwise audit . --format json
 ```
 
 ---
@@ -605,6 +688,7 @@ inferwise/
 ├── packages/
 │   ├── cli/              # inferwise CLI (Commander.js + tsup)
 │   ├── pricing-db/       # @inferwise/pricing-db — bundled pricing JSON
+│   ├── mcp-server/       # @inferwise/mcp — MCP server for AI agent tools
 │   └── github-action/    # GitHub Action for PR cost comments
 ├── scripts/              # Maintenance scripts (pricing sync)
 ├── HEURISTICS.md         # Estimation methodology and data sources
@@ -622,7 +706,7 @@ git clone https://github.com/inferwise/inferwise.git
 cd inferwise
 pnpm install
 pnpm build
-pnpm test        # 293 tests
+pnpm test
 pnpm lint
 pnpm typecheck
 ```

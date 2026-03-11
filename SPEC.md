@@ -19,8 +19,9 @@ Inferwise is a FinOps platform for **pay-as-you-go LLM API costs** — the per-t
 ## What This Repo Contains
 
 1. **CLI** (`inferwise`) — Pre-commit API cost estimation, budget enforcement, calibration
-2. **Pricing Database** (`@inferwise/pricing-db`) — Bundled provider API pricing, updated daily
-3. **GitHub Action** (`inferwise/inferwise-action`) — PR cost diff comments + budget enforcement in CI
+2. **Pricing Database** (`@inferwise/pricing-db`) — Bundled provider API pricing, updated daily, with capability-based model selection
+3. **MCP Server** (`@inferwise/mcp`) — AI agent tools via Model Context Protocol (suggest models, estimate costs, audit codebases)
+4. **GitHub Action** (`inferwise/inferwise-action`) — PR cost diff comments + budget enforcement in CI
 
 ---
 
@@ -64,6 +65,10 @@ inferwise/
 │   │   │   └── perplexity.json
 │   │   ├── schema.json
 │   │   └── src/index.ts
+│   ├── mcp-server/             # @inferwise/mcp — MCP server for AI agents
+│   │   └── src/
+│   │       ├── index.ts        # Server entry point (stdio transport)
+│   │       └── tools/          # suggest-model, estimate-cost, audit
 │   └── github-action/
 │       ├── action.yml
 │       └── src/index.ts
@@ -159,7 +164,13 @@ Unlike `diff` (which compares branches), `check` validates the **absolute** cost
 
 ### `inferwise audit [path]`
 
-Scan for cost optimization: cheaper model opportunities, cacheable responses, batchable calls.
+Scan for cost optimization opportunities. Produces three types of findings:
+
+**Smart model alternatives:** For each LLM call site, combines extracted system/user prompts and runs keyword-based capability inference (`inferRequiredCapabilities` from pricing-db) to determine what the call needs (`code`, `reasoning`, `general`, `creative`, `vision`, `search`, `audio`). Calls `suggestAlternatives` to find cheaper cross-provider models with the required capabilities. Confidence: both prompts = `high`, one = `medium`, dynamic = `low`. Low confidence restricts to same-provider. Only shows alternatives with >20% savings.
+
+**Prompt caching opportunities:** Detects repeated system prompts across multiple call sites that could benefit from provider caching APIs.
+
+**Batch API opportunities:** Identifies non-latency-sensitive call sites that could use batch API pricing.
 
 ### `inferwise price [provider] [model]`
 
@@ -455,21 +466,24 @@ INFERWISE_VOLUME=             # Default daily request volume
 
 ## Current Status
 
-Phase 1 is complete and published (v0.2.0):
+Phase 1 is complete and published (v0.2.1):
 
 1. Pricing database package with all provider JSON files (35+ models, cross-validated in CI)
-2. Tokenizer wrappers (unified `countTokens` interface)
-3. Code scanner (regex pattern matching, 4 providers + LangChain + Vercel AI SDK)
-4. `inferwise estimate` command with typical heuristics
-5. `inferwise diff` command with budget enforcement
-6. `inferwise audit` command
-7. `inferwise price` command
-8. `inferwise init` command (config + hooks + CI setup)
-9. `inferwise calibrate` command (provider API correction factors)
-10. Budget enforcement system (warn, block, requireApproval)
-11. GitHub Action (PR comments, labels, reviewer requests, merge blocking)
-12. Comprehensive tests (293 passing across all packages)
-13. Published to npm as `inferwise`
+2. Capability-based model selection (`inferRequiredCapabilities`, `suggestModelForTask`, `suggestAlternatives`)
+3. Tokenizer wrappers (unified `countTokens` interface)
+4. Code scanner (regex pattern matching, 5 providers + LangChain + Vercel AI SDK + Bedrock + Azure + LiteLLM)
+5. `inferwise estimate` command with typical heuristics
+6. `inferwise diff` command with budget enforcement
+7. `inferwise audit` command with smart, capability-aware model recommendations
+8. `inferwise price` command
+9. `inferwise init` command (config + hooks + CI setup)
+10. `inferwise calibrate` command (provider API correction factors)
+11. `inferwise check` command for AI agents and automation pipelines
+12. Budget enforcement system (warn, block, requireApproval)
+13. GitHub Action (PR comments, labels, reviewer requests, merge blocking)
+14. MCP Server (`@inferwise/mcp`) for AI agent integration (suggest_model, estimate_cost, audit tools)
+15. SDK entry point (`inferwise/sdk`) with `estimate()` and `estimateAndCheck()`
+16. Published to npm as `inferwise`, `@inferwise/pricing-db`, `@inferwise/mcp`
 
 ---
 

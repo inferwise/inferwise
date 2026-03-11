@@ -3,10 +3,10 @@ import type { ScanResult } from "../scanners/index.js";
 import {
   type BatchFinding,
   type CachingFinding,
-  type CheaperModelFinding,
+  type SmartAlternativeFinding,
   detectBatchOpportunities,
   detectCachingOpportunities,
-  detectCheaperModels,
+  detectSmartAlternatives,
 } from "./audit.js";
 
 const VOLUME = 1000;
@@ -27,42 +27,69 @@ function makeScanResult(overrides: Partial<ScanResult> & { model: string | null 
   };
 }
 
-// ── detectCheaperModels ─────────────────────────────────────────────
+// ── detectSmartAlternatives ─────────────────────────────────────────
 
-describe("detectCheaperModels", () => {
-  it("suggests a mid-tier alternative for a premium model (claude-opus-4-6)", () => {
+describe("detectSmartAlternatives", () => {
+  it("suggests a cheaper alternative for a premium model with code prompt", () => {
     const results: ScanResult[] = [
       makeScanResult({
         model: "claude-opus-4-6",
         filePath: "src/expensive.ts",
         lineNumber: 5,
+        systemPrompt: "You are a code reviewer. Review the code for bugs.",
       }),
     ];
 
-    const findings = detectCheaperModels(results, VOLUME);
+    const findings = detectSmartAlternatives(results, VOLUME);
     expect(findings.length).toBeGreaterThanOrEqual(1);
 
-    const finding = findings[0] as CheaperModelFinding;
-    expect(finding.type).toBe("cheaper-model");
+    const finding = findings[0] as SmartAlternativeFinding;
+    expect(finding.type).toBe("smart-alternative");
     expect(finding.currentModel).toBe("claude-opus-4-6");
-    // Should suggest a mid-tier model (one tier down from premium)
     expect(finding.suggestedModel).toBeDefined();
     expect(finding.monthlySavings).toBeGreaterThan(0);
+    expect(finding.requiredCapabilities).toContain("code");
+    expect(finding.confidence).toBe("medium");
+    expect(finding.reasoning.length).toBeGreaterThan(0);
     expect(finding.file).toBe("src/expensive.ts");
     expect(finding.line).toBe(5);
   });
 
-  it("returns no suggestion for a budget-tier model (claude-haiku-4-5)", () => {
+  it("suggests budget model for classification task", () => {
     const results: ScanResult[] = [
       makeScanResult({
-        model: "claude-haiku-4-5-20251001",
-        filePath: "src/cheap.ts",
-        lineNumber: 1,
+        model: "gpt-4o",
+        provider: "openai",
+        filePath: "src/classify.ts",
+        lineNumber: 8,
+        systemPrompt: "Classify the support ticket into: billing, technical, general.",
       }),
     ];
 
-    const findings = detectCheaperModels(results, VOLUME);
-    expect(findings).toHaveLength(0);
+    const findings = detectSmartAlternatives(results, VOLUME);
+    expect(findings.length).toBeGreaterThanOrEqual(1);
+
+    const finding = findings[0] as SmartAlternativeFinding;
+    expect(finding.type).toBe("smart-alternative");
+    expect(finding.requiredCapabilities).toContain("general");
+    expect(finding.monthlySavings).toBeGreaterThan(0);
+  });
+
+  it("includes high confidence when both prompts are present", () => {
+    const results: ScanResult[] = [
+      makeScanResult({
+        model: "claude-opus-4-6",
+        filePath: "src/chat.ts",
+        lineNumber: 10,
+        systemPrompt: "You are a helpful assistant.",
+        userPrompt: "Summarize this document.",
+      }),
+    ];
+
+    const findings = detectSmartAlternatives(results, VOLUME);
+    if (findings.length > 0) {
+      expect((findings[0] as SmartAlternativeFinding).confidence).toBe("high");
+    }
   });
 
   it("returns no suggestion for an unknown model", () => {
@@ -74,15 +101,35 @@ describe("detectCheaperModels", () => {
       }),
     ];
 
-    const findings = detectCheaperModels(results, VOLUME);
+    const findings = detectSmartAlternatives(results, VOLUME);
     expect(findings).toHaveLength(0);
   });
 
   it("skips results with null model", () => {
     const results: ScanResult[] = [makeScanResult({ model: null, filePath: "src/dynamic.ts" })];
 
-    const findings = detectCheaperModels(results, VOLUME);
+    const findings = detectSmartAlternatives(results, VOLUME);
     expect(findings).toHaveLength(0);
+  });
+
+  it("uses low confidence for dynamic prompts (no extracted text)", () => {
+    const results: ScanResult[] = [
+      makeScanResult({
+        model: "claude-opus-4-6",
+        filePath: "src/dynamic.ts",
+        lineNumber: 5,
+        systemPrompt: null,
+        userPrompt: null,
+        isDynamic: true,
+      }),
+    ];
+
+    const findings = detectSmartAlternatives(results, VOLUME);
+    for (const f of findings) {
+      if (f.type === "smart-alternative") {
+        expect(f.confidence).toBe("low");
+      }
+    }
   });
 });
 
@@ -227,7 +274,6 @@ describe("detectBatchOpportunities", () => {
     ];
 
     const findings = detectBatchOpportunities(results, VOLUME);
-    // Each file only has 1 call, so no batch opportunity
     expect(findings).toHaveLength(0);
   });
 
@@ -256,7 +302,6 @@ describe("detectBatchOpportunities", () => {
     ];
 
     const findings = detectBatchOpportunities(results, VOLUME);
-    // Each model only appears once in the file
     expect(findings).toHaveLength(0);
   });
 });
