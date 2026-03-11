@@ -93,11 +93,11 @@ When recommending alternative models (`inferwise audit`, MCP `suggest_model`), I
 
 Quality scores come from [Chatbot Arena](https://arena.ai/leaderboard) (formerly LMSYS), the gold standard for LLM quality evaluation. Arena uses human preference voting — real users compare model outputs head-to-head, generating Elo-style rankings.
 
-Scores are stored in `packages/pricing-db/benchmarks.json` and synced weekly via CI.
+Scores are stored in `packages/pricing-db/benchmarks.json` and synced weekly via CI (`pnpm sync-benchmarks`). The sync pipeline uses a Python helper (`scripts/fetch-arena-elo.py`) that downloads the Arena Elo pickle from HuggingFace and extracts per-category rankings across 6 categories (overall, coding, reasoning, math, creative writing, instruction following).
 
 ### Normalization
 
-Arena ranks are normalized to a 0-100 scale: `score = round((1 - (rank - 1) / (total - 1)) * 100)`, where `total` is the number of models on the leaderboard (currently 618). This gives rank 1 = 100, last rank = 0.
+Arena ranks are normalized to a 0-100 scale: `score = round((1 - (rank - 1) / (total - 1)) * 100)`, where `total` is the number of ranked models on the leaderboard. This gives rank 1 = 100, last rank = 0.
 
 ### Category Mapping
 

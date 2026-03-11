@@ -64,6 +64,8 @@ inferwise/
 │   │   │   ├── xai.json
 │   │   │   └── perplexity.json
 │   │   ├── schema.json
+│   │   ├── benchmarks.json          # Quality scores from Chatbot Arena
+│   │   ├── benchmarks.schema.json
 │   │   └── src/index.ts
 │   ├── mcp-server/             # @inferwise/mcp — MCP server for AI agents
 │   │   └── src/
@@ -72,9 +74,9 @@ inferwise/
 │   └── github-action/
 │       ├── action.yml
 │       └── src/index.ts
-├── scripts/                    # Maintenance scripts (pricing sync)
+├── scripts/                    # Maintenance scripts (pricing sync, benchmark sync)
 ├── HEURISTICS.md               # Estimation methodology and data sources
-├── .github/workflows/          # CI, cost-diff, pricing sync, publish
+├── .github/workflows/          # CI, cost-diff, pricing sync, benchmark sync, publish
 ├── pnpm-workspace.yaml
 ├── tsconfig.base.json
 └── biome.json

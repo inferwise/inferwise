@@ -719,9 +719,9 @@ inferwise/
 │   ├── pricing-db/       # @inferwise/pricing-db — bundled pricing JSON
 │   ├── mcp-server/       # @inferwise/mcp — MCP server for AI agent tools
 │   └── github-action/    # GitHub Action for PR cost comments
-├── scripts/              # Maintenance scripts (pricing sync)
+├── scripts/              # Maintenance scripts (pricing sync, benchmark sync)
 ├── HEURISTICS.md         # Estimation methodology and data sources
-└── .github/workflows/    # CI, cost-diff, pricing sync, publish
+└── .github/workflows/    # CI, cost-diff, pricing sync, benchmark sync, publish
 ```
 
 ---
