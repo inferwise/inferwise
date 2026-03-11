@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/banner.png" alt="Inferwise" width="800" />
+</p>
+
 # Inferwise
 
 **Smart model selection and cost enforcement for LLM API calls.**
