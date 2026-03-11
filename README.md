@@ -534,16 +534,35 @@ See [HEURISTICS.md](HEURISTICS.md) for full methodology, data sources, and assum
 
 ## Supported Frameworks
 
+**Direct provider SDKs:**
+
 | Framework | Detected Patterns | Notes |
 |-----------|-------------------|-------|
 | Anthropic SDK | `.messages.create()` | TS/JS and Python |
 | OpenAI SDK | `.chat.completions.create()` | TS/JS and Python |
 | Google GenAI SDK | `.generateContent()` | |
 | xAI SDK | `.chat.completions.create()` | OpenAI-compatible; provider resolved from model ID (`grok-*`) |
+
+**Cloud-hosted providers:**
+
+| Platform | Detected Patterns | Provider Resolution |
+|----------|-------------------|---------------------|
+| AWS Bedrock (boto3) | `invoke_model()`, `invoke_model_with_response_stream()` | Resolved from `modelId` (e.g., `anthropic.claude-sonnet-4` → Anthropic) |
+| AWS Bedrock (LangChain) | `ChatBedrock`, `ChatBedrockConverse` | Resolved from model ID |
+| Azure OpenAI (SDK) | `new AzureOpenAI()` + `.chat.completions.create()` | → OpenAI |
+| Azure OpenAI (LangChain) | `AzureChatOpenAI` | → OpenAI |
+| LiteLLM | `litellm.completion()`, `litellm.acompletion()` | Resolved from model prefix (`bedrock/`, `azure/`, `vertex_ai/`) |
+
+**Abstraction frameworks:**
+
+| Framework | Detected Patterns | Notes |
+|-----------|-------------------|-------|
 | LangChain | `ChatAnthropic`, `ChatOpenAI`, `ChatGoogleGenerativeAI`, `ChatXAI` | |
 | Vercel AI SDK | `generateText`, `streamText`, `generateObject`, `streamObject` | Provider inferred from model factory |
 
 **Supported file types:** `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`
+
+**Cloud pricing note:** Inferwise maps cloud-hosted calls (Bedrock, Azure, Vertex AI) to the underlying provider's direct API pricing. Cloud platforms may charge different per-token rates than the direct API. Estimates for cloud-hosted calls should be treated as a baseline — actual costs may vary depending on your cloud provider agreement.
 
 ---
 
