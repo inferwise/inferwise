@@ -1,12 +1,12 @@
 # Inferwise
 
-**Cost gates for LLM API calls.**
+**Cost guardrails for LLM API calls.**
 
 [![CI](https://github.com/inferwise/inferwise/actions/workflows/ci.yml/badge.svg)](https://github.com/inferwise/inferwise/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/inferwise)](https://www.npmjs.com/package/inferwise)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-Inferwise is a FinOps CLI for **pay-as-you-go LLM API costs**. It scans your codebase for LLM API calls (Anthropic, OpenAI, Google, xAI), estimates per-token costs, enforces budget policies, and shows cost diffs in pull requests — before a single line ships. Works with any CI system (GitHub, GitLab, Bitbucket, Jenkins) or locally as a git hook.
+Inferwise scans your codebase for LLM API calls (Anthropic, OpenAI, Google, xAI), estimates per-token costs, and enforces budget guardrails — from pre-commit to CI to merge. Whether a human or an AI agent wrote the code, nothing ships without cost visibility.
 
 ---
 
@@ -16,7 +16,7 @@ Inferwise is a FinOps CLI for **pay-as-you-go LLM API costs**. It scans your cod
 # Scan your project — no install, no config required
 npx inferwise estimate .
 
-# Set up config + git hooks + CI instructions
+# Set up guardrails: config + git hooks + CI instructions
 npx inferwise init
 
 # Compare costs between branches
@@ -33,65 +33,159 @@ pnpm add -g inferwise
 
 ---
 
-## Why Inferwise?
+## The Problem
 
-Your LLM API bill is climbing and you're not sure why. Someone on the team swapped `gpt-4o-mini` for `claude-opus-4` and nobody noticed until the invoice arrived. An AI coding agent picked the most expensive model for every call — because it optimizes for correctness, not cost.
+Your code makes LLM API calls that are billed per token — every `messages.create()`, every `chat.completions.create()`. There is no cost visibility in the development workflow. Someone swaps `gpt-4o-mini` for `claude-opus-4` and nobody notices until the invoice arrives. An AI coding agent picks the most expensive model for every call because it optimizes for correctness, not cost.
 
-**This is LLM cost anxiety.** Your code makes API calls that are billed per token — every `messages.create()`, every `chat.completions.create()` — and there's no cost visibility built into the development workflow. The bill shows up after the code ships.
-
-Inferwise fixes this. One command tells you what every LLM API call in your code costs. One config file enforces budget policy across your entire org. Zero runtime dependencies, zero API calls for basic estimation.
-
-### Who This Is For
-
-- **Developers calling LLM APIs** — Your code makes `anthropic.messages.create()` or `openai.chat.completions.create()` calls that are billed per token. See projected costs before you commit.
-- **Teams with growing API bills** — Your Anthropic or OpenAI API bill doubled last month. Which endpoint? Which model change? Inferwise shows the cost diff in every PR.
-- **Teams using AI coding agents** — When Cursor, Claude Code, Copilot, or Codex generate code, they may write LLM API calls that run in your production and hit your API key. Without a cost gate, expensive model choices ship silently.
-- **Platform/FinOps teams** — Enforce org-wide budget thresholds as code. Block catastrophic API cost increases before they merge.
+**The bill shows up after the code ships. Inferwise moves cost visibility before the code ships.**
 
 ---
 
-## How It Works
+## End-to-End Guardrail Pipeline
+
+This is the critical path. Every LLM API call in your codebase passes through three enforcement tiers before it reaches production.
 
 ```
- Developer / AI Agent writes code that calls LLM APIs
-          │
-          ▼
- ┌──────────────────────────────────┐
- │  // This runs in YOUR production  │
- │  // Billed per token to YOUR key  │
- │  client.messages.create(          │
- │    model: "claude-opus-4"         │
- │  )                                │
- └───────────┬──────────────────────┘
-             │
-     ┌───────▼────────┐
-     │   Inferwise     │
-     │                 │
-     │ Scan → Estimate │
-     │ Diff → Enforce  │
-     └──┬──────┬───┬───┘
-        │      │   │
-        ▼      ▼   ▼
-     Local   CI    Budget
-     Hook    Gate  Policy
+Code written (by human or AI agent)
+        |
+        v
+  +-----------+
+  |  TIER 1   |  Pre-commit hook (developer machine)
+  |           |  inferwise estimate .
+  |           |  "This commit adds $2,400/mo in LLM costs"
+  +-----+-----+
+        |  developer pushes
+        v
+  +-----------+
+  |  TIER 2   |  CI gate (GitHub Action / GitLab / any CI)
+  |           |  inferwise diff --base main --head HEAD
+  |           |  Posts cost report on PR, applies labels
+  +-----+-----+
+        |  budget check
+        v
+  +-----------+
+  |  TIER 3   |  Budget policy (inferwise.config.json)
+  |           |  warn: $2,000    -> yellow label
+  |           |  approve: $10,000 -> request reviewer
+  |           |  block: $50,000  -> fail CI, block merge
+  +-----------+
 ```
-
-**Three-tier enforcement:**
 
 | Tier | Where | What Happens |
-|------|-------|-------------|
+|------|-------|--------------|
 | Pre-commit hook | Developer machine | Shows costs before commit, catches obvious spikes |
 | CI required check | PR/MR merge gate | Blocks merge if budget exceeded, comments cost report |
 | Budget policy | `inferwise.config.json` | Org-wide thresholds, approval workflows, code-reviewed |
 
-### The Workflow
+---
 
-1. Run `inferwise init` to set up config, git hooks, and CI
-2. Developer (or AI agent) writes code with LLM API calls
-3. Pre-commit hook runs `inferwise estimate` — costs visible before push
-4. CI runs `inferwise diff` on every pull request
-5. Budget policy auto-enforces: warn, require approval, or block merge
-6. `inferwise calibrate` tunes estimates with real provider usage data
+### For Developers: The Day-to-Day Workflow
+
+**1. Setup (once)**
+
+```bash
+npx inferwise init
+```
+
+Creates `inferwise.config.json`, installs a pre-commit hook, prints CI setup instructions for GitHub Actions / GitLab / Bitbucket / Jenkins.
+
+**2. Write code with LLM API calls**
+
+You (or an AI coding agent) write code that calls provider APIs. On `git commit`, the pre-commit hook runs automatically:
+
+```
+$ git commit -m "feat: add summarizer"
+
+File               Line  Provider   Model           Cost/Call  Monthly
+src/summarize.ts   18    openai     gpt-4o          $0.0064    $192/mo
+src/rag.ts         91    anthropic  claude-opus-4   $0.0429    $1,287/mo
+
+Total: $1,479/mo (at 1,000 req/day)
+```
+
+You see the cost impact before the code leaves your machine.
+
+**3. Open a pull request**
+
+CI runs `inferwise diff`. The GitHub Action posts a cost report directly on the PR:
+
+| File | Model | Change | Monthly Impact |
+|------|-------|--------|----------------|
+| src/summarize.ts | (new) gpt-4o | Added | +$192/mo |
+| src/rag.ts | claude-sonnet-4 -> claude-opus-4 | Upgrade | +$1,050/mo |
+
+**Net: +$1,242/mo**
+
+If the increase exceeds `budgets.block`, the PR is blocked from merging.
+
+**4. Calibrate for tighter estimates (optional)**
+
+```bash
+ANTHROPIC_ADMIN_API_KEY=sk-ant-admin-... inferwise calibrate .
+```
+
+Fetches real usage data from provider APIs, computes correction ratios, and stores them locally. Future estimates go from "2-5x accuracy" to "within 20%".
+
+---
+
+### For AI Agents: The Programmatic Guardrail
+
+AI coding agents (Cursor, Claude Code, Copilot, Codex) and custom pipelines generate LLM API calls without a human reviewing cost implications. Inferwise provides three integration levels so agents can self-check before shipping expensive code.
+
+**Option A: SDK — embed directly in agent pipelines**
+
+```typescript
+import { estimateAndCheck, estimate } from "inferwise/sdk";
+
+// Budget gate — returns { ok, violations, rows, totalMonthlyCost }
+const result = await estimateAndCheck("./src", {
+  maxMonthlyCost: 10000,
+  maxCostPerCall: 0.10,
+  volume: 5000,
+});
+
+if (!result.ok) {
+  // Agent reacts: swap models, add max_tokens, etc.
+  console.error("Over budget:", result.violations);
+}
+
+// Or just get estimates without checking
+const costs = await estimate("./src", { volume: 1000 });
+console.log(`Total: $${costs.totalMonthlyCost.toFixed(2)}/mo`);
+```
+
+Pure data, no console output, no `process.exit`. Safe for embedding in agent orchestration layers, n8n/Zapier nodes, or custom pipelines.
+
+**Option B: CLI — tool-use for agents and scripts**
+
+```bash
+# Budget gate — exits 1 if over budget
+inferwise check . --max-monthly-cost 10000 --format json
+
+# Agent queries cost before choosing a model
+inferwise price openai gpt-4o --input-tokens 2000 --output-tokens 1000 --format json
+
+# Compare model options programmatically
+inferwise price --compare anthropic/claude-sonnet-4 openai/gpt-4o --format json
+```
+
+**Option C: Pricing database — for model routers and cost-aware selection**
+
+```typescript
+import { getModel, calculateCost, getAllModels } from "@inferwise/pricing-db";
+
+// Pre-flight cost check
+const model = getModel("anthropic", "claude-sonnet-4-20250514");
+const cost = calculateCost({ model, inputTokens: 2000, outputTokens: 1000 });
+
+// Build a cost-aware model router
+const budget = 0.01; // max $/call
+const candidates = getAllModels()
+  .filter(m => m.tier === "mid" && m.supports_tools)
+  .sort((a, b) => a.input_cost_per_million - b.input_cost_per_million);
+```
+
+---
 
 ### Concrete Example
 
@@ -124,6 +218,16 @@ Inferwise tracks **pay-as-you-go LLM API calls in your source code** — the cod
 - Codex usage (billed through OpenAI's platform, not your API key)
 
 The distinction: Inferwise doesn't care about the **tool you use to write code** (subscription). It cares about the **LLM API calls your code makes** when it runs in production (pay-as-you-go). A Cursor subscription costs a fixed $20/mo regardless of usage. But the `openai.chat.completions.create()` call that Cursor helped you write? That gets billed per token, at scale, and that's what Inferwise estimates and gates.
+
+---
+
+## What Ships: Three Packages
+
+| Package | Who Uses It | What It Does |
+|---------|------------|--------------|
+| [`inferwise`](https://www.npmjs.com/package/inferwise) | Developers, CI, AI agents | CLI + SDK — scan, estimate, diff, check, enforce budgets |
+| [`@inferwise/pricing-db`](packages/pricing-db) | Model routers, cost-aware apps | Bundled pricing for 35+ models across 4 providers, updated daily |
+| [`inferwise/inferwise-action`](packages/github-action) | GitHub repos | PR cost comments, labels, reviewer requests, merge blocking |
 
 ---
 
@@ -427,65 +531,6 @@ See [HEURISTICS.md](HEURISTICS.md) for full methodology, data sources, and assum
 | Vercel AI SDK | `generateText`, `streamText`, `generateObject`, `streamObject` | Provider inferred from model factory |
 
 **Supported file types:** `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`, `.py`
-
----
-
-## Programmatic and Agent Integration
-
-Inferwise provides three integration levels for agents, pipelines, and automation:
-
-### SDK (for agents and pipelines — no CLI required)
-
-```typescript
-import { estimateAndCheck, estimate } from "inferwise/sdk";
-
-// Simple budget gate — returns { ok, violations, rows, totalMonthlyCost }
-const result = await estimateAndCheck("./src", {
-  maxMonthlyCost: 10000,
-  maxCostPerCall: 0.10,
-  volume: 5000,
-});
-
-if (!result.ok) {
-  console.error("Over budget:", result.violations);
-  process.exit(1);
-}
-
-// Or just get estimates without checking
-const costs = await estimate("./src", { volume: 1000 });
-console.log(`Total: $${costs.totalMonthlyCost.toFixed(2)}/mo`);
-```
-
-Pure data, no console output, no `process.exit` — safe for embedding in agent orchestration layers, n8n/Zapier nodes, or custom pipelines.
-
-### CLI (for tool-use agents and scripts)
-
-```bash
-# Budget gate — exits 1 if over budget
-inferwise check . --max-monthly-cost 10000 --format json
-
-# AI agent queries cost before choosing a model
-inferwise price openai gpt-4o --input-tokens 2000 --output-tokens 1000 --format json
-
-# Compare options programmatically
-inferwise price --compare anthropic/claude-sonnet-4 openai/gpt-4o --format json
-```
-
-### Pricing database (for model routers)
-
-```typescript
-import { getModel, calculateCost, getAllModels } from "@inferwise/pricing-db";
-
-// Pre-flight cost check
-const model = getModel("anthropic", "claude-sonnet-4-20250514");
-const cost = calculateCost({ model, inputTokens: 2000, outputTokens: 1000 });
-
-// Build a cost-aware model router
-const budget = 0.01; // max $/call
-const candidates = getAllModels()
-  .filter(m => m.tier === "mid" && m.supports_tools)
-  .sort((a, b) => a.input_cost_per_million - b.input_cost_per_million);
-```
 
 ---
 
