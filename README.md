@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/banner.png" alt="Inferwise" width="800" />
+  <img src="assets/banner.png" alt="Inferwise" width="120" />
 </p>
 
 # Inferwise
