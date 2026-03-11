@@ -533,7 +533,7 @@ function handleSingleModel(
 export function priceCommand(): Command {
   return new Command("price")
     .description("Look up model pricing, compare models, or list available models")
-    .argument("[provider]", "Provider name (anthropic, openai, google, xai)")
+    .argument("[provider]", "Provider name (anthropic, openai, google, xai, perplexity)")
     .argument("[model]", "Model ID or alias")
     .option("--input-tokens <n>", "Number of input tokens", "1000")
     .option("--output-tokens <n>", "Number of output tokens", "1000")

@@ -31,6 +31,9 @@
     "url": "https://github.com/inferwise/inferwise",
     "directory": "packages/cli"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",

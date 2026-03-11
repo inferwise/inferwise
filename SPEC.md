@@ -468,7 +468,7 @@ Phase 1 is complete and published (v0.2.0):
 9. `inferwise calibrate` command (provider API correction factors)
 10. Budget enforcement system (warn, block, requireApproval)
 11. GitHub Action (PR comments, labels, reviewer requests, merge blocking)
-12. Comprehensive tests (177 passing across all packages)
+12. Comprehensive tests (293 passing across all packages)
 13. Published to npm as `inferwise`
 
 ---

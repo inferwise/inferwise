@@ -239,7 +239,7 @@ The distinction: Inferwise doesn't care about the **tool you use to write code**
 | Package | Who Uses It | What It Does |
 |---------|------------|--------------|
 | [`inferwise`](https://www.npmjs.com/package/inferwise) | Developers, CI, AI agents | CLI + SDK — scan, estimate, diff, check, enforce budgets |
-| [`@inferwise/pricing-db`](packages/pricing-db) | Model routers, cost-aware apps | Bundled pricing for 35+ models across 4 providers, updated daily |
+| [`@inferwise/pricing-db`](packages/pricing-db) | Model routers, cost-aware apps | Bundled pricing for 35+ models across 5 providers, updated daily |
 | [`inferwise/inferwise-action`](packages/github-action) | GitHub repos | PR cost comments, labels, reviewer requests, merge blocking |
 
 ---
@@ -622,7 +622,7 @@ git clone https://github.com/inferwise/inferwise.git
 cd inferwise
 pnpm install
 pnpm build
-pnpm test        # 177 tests
+pnpm test        # 293 tests
 pnpm lint
 pnpm typecheck
 ```
