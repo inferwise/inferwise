@@ -1,7 +1,7 @@
 {
   "name": "inferwise",
   "version": "0.1.0",
-  "description": "Cost gates for LLM API calls.",
+  "description": "FinOps CLI for LLM API costs: scan code, estimate token spend, and block over-budget PRs.",
   "type": "module",
   "bin": {
     "inferwise": "./dist/index.js"
