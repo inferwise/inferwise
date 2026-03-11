@@ -1,0 +1,102 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "BenchmarkData",
+  "description": "Quality benchmark scores for LLM models. Scores normalized 0-100 from Chatbot Arena rankings.",
+  "type": "object",
+  "required": ["version", "last_updated", "sources", "models"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "last_updated": {
+      "description": "ISO date when this file was last updated",
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+    },
+    "total_models_ranked": {
+      "description": "Total number of models in the source leaderboard (used for normalization context)",
+      "type": "integer",
+      "minimum": 1
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "url", "description"],
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string" },
+          "url": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "description": "Keyed by 'provider/model-id'. Each value contains normalized benchmark scores.",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["overall", "primary_source"],
+        "additionalProperties": false,
+        "properties": {
+          "overall": {
+            "description": "Overall quality score, normalized 0-100",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "coding": {
+            "description": "Coding quality score, normalized 0-100",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "reasoning": {
+            "description": "Reasoning/hard prompts quality score, normalized 0-100",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "math": {
+            "description": "Math quality score, normalized 0-100",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "creative_writing": {
+            "description": "Creative writing quality score, normalized 0-100",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "instruction_following": {
+            "description": "Instruction following quality score, normalized 0-100",
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "arena_elo": {
+            "description": "Raw Chatbot Arena Elo rating (if available)",
+            "type": "number"
+          },
+          "arena_rank": {
+            "description": "Rank position on Chatbot Arena leaderboard",
+            "type": "integer",
+            "minimum": 1
+          },
+          "primary_source": {
+            "description": "Source of the benchmark data (e.g., 'chatbot-arena', 'estimate')",
+            "type": "string"
+          },
+          "note": {
+            "description": "Explanation of data provenance (e.g., proxy scores, estimates)",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

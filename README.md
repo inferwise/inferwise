@@ -84,20 +84,49 @@ Inferwise addresses both:
 
 ## How Model Selection Works
 
-Inferwise infers what each LLM call needs by analyzing prompts in your code:
+Inferwise infers what each LLM call needs by analyzing prompts in your code, then ranks alternatives using quality benchmarks from [Chatbot Arena](https://arena.ai/leaderboard):
 
 1. **Capability inference.** Keywords in system/user prompts are matched to capabilities: `code`, `reasoning`, `general`, `creative`, `vision`, `search`, `audio`. This is regex-based pattern matching — fast and deterministic, not AI-powered. If no keywords match, it falls back to `general`.
 
-2. **Cross-provider ranking.** All models with the required capabilities are sorted by output cost, cheapest first. Inferwise is not locked to one provider — it will suggest `gpt-4o-mini` for a classification task even if your current code uses Anthropic.
+2. **Quality-adjusted ranking.** Models are ranked by *value* (cost / quality), not just cost. Quality scores come from Chatbot Arena human preference rankings, normalized 0-100. A $5/M model with quality 90 beats a $2/M model with quality 40. Candidates must score ≥70% of the current model's quality — prevents recommending a budget model for a premium task.
 
 3. **Confidence levels.** Based on what Inferwise can extract from code:
-   - **High** — both system prompt and user prompt found in code
-   - **Medium** — one prompt found
-   - **Low** — prompts are dynamic (variables, not string literals). Low confidence restricts suggestions to same-provider alternatives only.
+   - **High** — both system prompt and user prompt found → any tier drop, any provider
+   - **Medium** — one prompt found → max 1 tier drop (premium→mid OK, premium→budget blocked)
+   - **Low** — prompts are dynamic (variables, not string literals) → same provider, same tier only
 
 4. **Minimum threshold.** Only suggests alternatives with >20% savings. No noise.
 
-Every model in the pricing database is tagged with its capabilities. See `packages/pricing-db/providers/` for the source data.
+### Concrete Example
+
+```
+Your code:
+  anthropic.messages.create({
+    model: "claude-opus-4-20250514",
+    system: "Classify tickets into: billing, technical, account",
+    messages: [{ role: "user", content: ticket }],
+  })
+
+Inferwise analyzes:
+  ✓ System prompt extracted → medium confidence
+  ✓ No code/reasoning keywords → capability: [general]
+  ✓ Opus 4 = premium tier, quality: 94/100, $75/M output
+
+Candidates passing quality gate (general, quality ≥ 66):
+  o3           mid tier, quality: 94, $8/M   → quality-adj: $8.51/M  ✓
+  gpt-4.1      mid tier, quality: 90, $8/M   → quality-adj: $8.89/M  ✓
+  gpt-4o       mid tier, quality: 77, $10/M  → quality-adj: $12.99/M ✓
+
+Blocked by quality gate:
+  flash-lite   budget, quality: 52 → 52/94 = 55% < 70% threshold ✗
+
+Result:
+  chat-service.ts:8  claude-opus-4 → o3 (openai)
+    Use case: [general] (medium confidence)
+    Savings: $527/mo — quality: 94 vs 94
+```
+
+Every model in the pricing database is tagged with its capabilities and quality benchmarks. See `packages/pricing-db/providers/` for pricing and `packages/pricing-db/benchmarks.json` for quality scores.
 
 ---
 

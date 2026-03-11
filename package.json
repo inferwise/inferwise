@@ -19,7 +19,9 @@
     "typecheck": "pnpm -r typecheck",
     "clean": "pnpm -r clean",
     "sync-pricing": "pnpm --filter @inferwise/scripts sync-pricing",
-    "sync-pricing:dry": "pnpm --filter @inferwise/scripts sync-pricing:dry"
+    "sync-pricing:dry": "pnpm --filter @inferwise/scripts sync-pricing:dry",
+    "sync-benchmarks": "pnpm --filter @inferwise/scripts sync-benchmarks",
+    "sync-benchmarks:dry": "pnpm --filter @inferwise/scripts sync-benchmarks:dry"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",

@@ -1,0 +1,293 @@
+{
+  "version": 1,
+  "last_updated": "2026-03-11",
+  "total_models_ranked": 618,
+  "sources": [
+    {
+      "name": "chatbot-arena",
+      "url": "https://arena.ai/leaderboard",
+      "description": "Human preference rankings from Chatbot Arena (LMSYS). Scores normalized 0-100 from rank position across 618 models."
+    }
+  ],
+  "models": {
+    "anthropic/claude-opus-4-6": {
+      "overall": 100,
+      "coding": 100,
+      "reasoning": 100,
+      "math": 100,
+      "creative_writing": 99,
+      "instruction_following": 100,
+      "arena_rank": 1,
+      "primary_source": "chatbot-arena"
+    },
+    "anthropic/claude-opus-4-20250514": {
+      "overall": 94,
+      "coding": 93,
+      "reasoning": 94,
+      "math": 93,
+      "creative_writing": 93,
+      "instruction_following": 94,
+      "primary_source": "chatbot-arena",
+      "note": "Claude Opus 4.0 (legacy). Slightly below 4.6 on Arena."
+    },
+    "anthropic/claude-sonnet-4-6": {
+      "overall": 98,
+      "coding": 98,
+      "reasoning": 98,
+      "math": 99,
+      "creative_writing": 98,
+      "instruction_following": 99,
+      "arena_rank": 16,
+      "primary_source": "chatbot-arena"
+    },
+    "anthropic/claude-sonnet-4-20250514": {
+      "overall": 92,
+      "coding": 91,
+      "reasoning": 92,
+      "math": 91,
+      "creative_writing": 91,
+      "instruction_following": 92,
+      "primary_source": "chatbot-arena",
+      "note": "Claude Sonnet 4.0 (legacy). Below 4.6 on Arena."
+    },
+    "anthropic/claude-haiku-4-5-20251001": {
+      "overall": 89,
+      "coding": 94,
+      "reasoning": 91,
+      "math": 86,
+      "creative_writing": 90,
+      "instruction_following": 92,
+      "arena_rank": 71,
+      "primary_source": "chatbot-arena"
+    },
+    "anthropic/claude-3-5-haiku-20241022": {
+      "overall": 89,
+      "coding": 94,
+      "reasoning": 91,
+      "math": 86,
+      "creative_writing": 90,
+      "instruction_following": 92,
+      "arena_rank": 71,
+      "primary_source": "chatbot-arena",
+      "note": "Uses claude-haiku-4-5 scores (same model, older ID)"
+    },
+    "openai/gpt-4o": {
+      "overall": 77,
+      "coding": 75,
+      "reasoning": 75,
+      "math": 74,
+      "creative_writing": 82,
+      "instruction_following": 77,
+      "arena_rank": 141,
+      "primary_source": "chatbot-arena"
+    },
+    "openai/gpt-4o-mini": {
+      "overall": 71,
+      "coding": 71,
+      "reasoning": 69,
+      "math": 69,
+      "creative_writing": 74,
+      "instruction_following": 70,
+      "arena_rank": 178,
+      "primary_source": "chatbot-arena"
+    },
+    "openai/gpt-4.1": {
+      "overall": 90,
+      "coding": 89,
+      "reasoning": 90,
+      "math": 82,
+      "creative_writing": 93,
+      "instruction_following": 89,
+      "arena_rank": 63,
+      "primary_source": "chatbot-arena"
+    },
+    "openai/gpt-4.1-mini": {
+      "overall": 83,
+      "coding": 85,
+      "reasoning": 84,
+      "math": 79,
+      "creative_writing": 84,
+      "instruction_following": 84,
+      "arena_rank": 103,
+      "primary_source": "chatbot-arena"
+    },
+    "openai/gpt-4.1-nano": {
+      "overall": 73,
+      "coding": 76,
+      "reasoning": 74,
+      "math": 69,
+      "creative_writing": 77,
+      "instruction_following": 72,
+      "arena_rank": 169,
+      "primary_source": "chatbot-arena"
+    },
+    "openai/o3": {
+      "overall": 94,
+      "coding": 90,
+      "reasoning": 92,
+      "math": 97,
+      "creative_writing": 90,
+      "instruction_following": 90,
+      "arena_rank": 38,
+      "primary_source": "chatbot-arena"
+    },
+    "openai/o3-mini": {
+      "overall": 79,
+      "coding": 82,
+      "reasoning": 80,
+      "math": 83,
+      "creative_writing": 75,
+      "instruction_following": 80,
+      "arena_rank": 133,
+      "primary_source": "chatbot-arena",
+      "note": "Average of o3-mini and o3-mini-high ranks"
+    },
+    "openai/o4-mini": {
+      "overall": 86,
+      "coding": 84,
+      "reasoning": 85,
+      "math": 91,
+      "creative_writing": 82,
+      "instruction_following": 83,
+      "arena_rank": 90,
+      "primary_source": "chatbot-arena"
+    },
+    "google/gemini-2.0-flash": {
+      "overall": 81,
+      "coding": 74,
+      "reasoning": 78,
+      "math": 79,
+      "creative_writing": 84,
+      "instruction_following": 80,
+      "arena_rank": 121,
+      "primary_source": "chatbot-arena"
+    },
+    "google/gemini-2.0-flash-lite": {
+      "overall": 80,
+      "coding": 70,
+      "reasoning": 76,
+      "math": 77,
+      "creative_writing": 83,
+      "instruction_following": 77,
+      "arena_rank": 127,
+      "primary_source": "chatbot-arena"
+    },
+    "google/gemini-2.5-flash-lite": {
+      "overall": 80,
+      "coding": 70,
+      "reasoning": 76,
+      "math": 77,
+      "creative_writing": 83,
+      "instruction_following": 77,
+      "primary_source": "chatbot-arena",
+      "note": "Uses gemini-2.0-flash-lite scores as proxy (similar tier)"
+    },
+    "google/gemini-2.5-flash": {
+      "overall": 89,
+      "coding": 83,
+      "reasoning": 88,
+      "math": 90,
+      "creative_writing": 93,
+      "instruction_following": 90,
+      "arena_rank": 66,
+      "primary_source": "chatbot-arena",
+      "note": "Arena lists gemini-2.5-flash with thinking enabled"
+    },
+    "google/gemini-3-flash-preview": {
+      "overall": 99,
+      "coding": 98,
+      "reasoning": 99,
+      "math": 99,
+      "creative_writing": 99,
+      "instruction_following": 98,
+      "arena_rank": 8,
+      "primary_source": "chatbot-arena"
+    },
+    "google/gemini-3.1-pro-preview": {
+      "overall": 100,
+      "coding": 99,
+      "reasoning": 100,
+      "math": 100,
+      "creative_writing": 100,
+      "instruction_following": 100,
+      "arena_rank": 4,
+      "primary_source": "chatbot-arena"
+    },
+    "google/gemini-3.1-flash-lite-preview": {
+      "overall": 94,
+      "coding": 89,
+      "reasoning": 93,
+      "math": 92,
+      "creative_writing": 96,
+      "instruction_following": 92,
+      "arena_rank": 35,
+      "primary_source": "chatbot-arena"
+    },
+    "xai/grok-3": {
+      "overall": 89,
+      "coding": 89,
+      "reasoning": 88,
+      "math": 82,
+      "creative_writing": 93,
+      "instruction_following": 89,
+      "primary_source": "chatbot-arena",
+      "note": "Estimated from grok-3-preview-02-24 (rank ~65)"
+    },
+    "xai/grok-3-mini": {
+      "overall": 80,
+      "coding": 78,
+      "reasoning": 80,
+      "math": 83,
+      "creative_writing": 81,
+      "instruction_following": 82,
+      "primary_source": "chatbot-arena",
+      "note": "Average of grok-3-mini-beta and grok-3-mini-high"
+    },
+    "xai/grok-3-vision": {
+      "overall": 89,
+      "coding": 89,
+      "reasoning": 88,
+      "math": 82,
+      "creative_writing": 93,
+      "instruction_following": 89,
+      "primary_source": "chatbot-arena",
+      "note": "Uses grok-3 scores as proxy (vision variant not separately ranked)"
+    },
+    "perplexity/sonar": {
+      "overall": 70,
+      "coding": 65,
+      "reasoning": 68,
+      "creative_writing": 72,
+      "instruction_following": 70,
+      "primary_source": "estimate",
+      "note": "Not ranked on Arena. Estimated from similar-tier search-focused models."
+    },
+    "perplexity/sonar-pro": {
+      "overall": 78,
+      "coding": 72,
+      "reasoning": 76,
+      "creative_writing": 78,
+      "instruction_following": 76,
+      "primary_source": "estimate",
+      "note": "Not ranked on Arena. Estimated from similar-tier search-focused models."
+    },
+    "perplexity/sonar-reasoning-pro": {
+      "overall": 82,
+      "coding": 76,
+      "reasoning": 84,
+      "creative_writing": 78,
+      "instruction_following": 80,
+      "primary_source": "estimate",
+      "note": "Not ranked on Arena. Estimated with reasoning bonus."
+    },
+    "perplexity/sonar-deep-research": {
+      "overall": 82,
+      "coding": 76,
+      "reasoning": 84,
+      "creative_writing": 78,
+      "instruction_following": 80,
+      "primary_source": "estimate",
+      "note": "Not ranked on Arena. Estimated with reasoning bonus."
+    }
+  }
+}

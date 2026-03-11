@@ -36,6 +36,8 @@ export interface SmartAlternativeFinding {
   requiredCapabilities: Capability[];
   confidence: "high" | "medium" | "low";
   reasoning: string;
+  qualityScore?: number;
+  currentQualityScore?: number;
 }
 
 export interface CachingFinding {
@@ -131,17 +133,13 @@ export function detectSmartAlternatives(
     const capabilities = inferRequiredCapabilities(promptText);
     const confidence = inferConfidence(result);
 
-    const alts = suggestAlternatives(pricing.id, result.provider, capabilities);
+    const alts = suggestAlternatives(pricing.id, result.provider, capabilities, { confidence });
     if (alts.length === 0) continue;
 
     const best = alts[0];
     if (!best) continue;
 
-    // For low confidence, only suggest same-provider alternatives
-    const picked =
-      confidence === "low"
-        ? (alts.find((a) => a.model.provider === result.provider) ?? best)
-        : best;
+    const picked = best;
 
     // Only suggest if savings exceed 20%
     if (picked.savingsPercent < 20) continue;
@@ -168,6 +166,10 @@ export function detectSmartAlternatives(
       requiredCapabilities: capabilities,
       confidence,
       reasoning: picked.reasoning,
+      ...(picked.qualityScore !== undefined ? { qualityScore: picked.qualityScore } : {}),
+      ...(picked.currentQualityScore !== undefined
+        ? { currentQualityScore: picked.currentQualityScore }
+        : {}),
     });
   }
 

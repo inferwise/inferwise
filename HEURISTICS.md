@@ -82,3 +82,53 @@ Typical estimates are marked with `≈` in Inferwise output. For exact estimates
 ## Updating Heuristics
 
 These defaults may be refined as we collect more data. If your use case consistently diverges from typical estimates, use `inferwise calibrate` to apply correction factors based on your actual usage patterns.
+
+---
+
+## Quality Scoring Methodology
+
+When recommending alternative models (`inferwise audit`, MCP `suggest_model`), Inferwise uses quality benchmark scores to avoid recommending cheap models that can't handle the task.
+
+### Data Source
+
+Quality scores come from [Chatbot Arena](https://arena.ai/leaderboard) (formerly LMSYS), the gold standard for LLM quality evaluation. Arena uses human preference voting — real users compare model outputs head-to-head, generating Elo-style rankings.
+
+Scores are stored in `packages/pricing-db/benchmarks.json` and synced weekly via CI.
+
+### Normalization
+
+Arena ranks are normalized to a 0-100 scale: `score = round((1 - (rank - 1) / (total - 1)) * 100)`, where `total` is the number of models on the leaderboard (currently 618). This gives rank 1 = 100, last rank = 0.
+
+### Category Mapping
+
+Arena provides category-specific rankings that map to Inferwise capabilities:
+
+| Capability | Arena Category | Fallback |
+|-----------|---------------|----------|
+| `code` | Coding | Overall |
+| `reasoning` | Hard Prompts / Reasoning | Overall |
+| `general` | Overall | — |
+| `creative` | Creative Writing | Overall |
+| `vision` | Overall | — |
+| `search` | Overall | — |
+| `audio` | Overall | — |
+
+When a task requires multiple capabilities, the **minimum** score across relevant categories is used. This is conservative — the model must be strong at all required capabilities.
+
+### Quality-Adjusted Cost
+
+Models are ranked by quality-adjusted cost rather than raw cost:
+
+```
+effective_cost = output_cost_per_million / (quality_score / 100)
+```
+
+A model at $5/M with quality 90 → effective $5.56/M. A model at $2/M with quality 40 → effective $5/M. The cheap-but-bad model only wins if its quality-adjusted cost is actually lower.
+
+### Minimum Quality Ratio
+
+Candidates must score ≥70% of the current model's quality for the relevant capability. This prevents extreme downgrades — e.g., recommending a budget model with coding quality 48 for a task currently running on a premium model with coding quality 96 (48/96 = 50% < 70% threshold).
+
+### Missing Benchmarks
+
+When benchmark data is unavailable for either model, quality filtering is skipped entirely and the system falls back to cost-only ranking (same as pre-benchmark behavior). This ensures newly added models are still surfaced in recommendations.

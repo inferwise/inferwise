@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "sync-pricing": "tsx sync-pricing.ts",
-    "sync-pricing:dry": "tsx sync-pricing.ts --dry-run"
+    "sync-pricing:dry": "tsx sync-pricing.ts --dry-run",
+    "sync-benchmarks": "tsx sync-benchmarks.ts",
+    "sync-benchmarks:dry": "tsx sync-benchmarks.ts --dry-run"
   },
   "devDependencies": {
     "tsx": "^4.19.0",

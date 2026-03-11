@@ -1,3 +1,4 @@
+import benchmarkData from "../benchmarks.json" with { type: "json" };
 import anthropicData from "../providers/anthropic.json" with { type: "json" };
 import googleData from "../providers/google.json" with { type: "json" };
 import openaiData from "../providers/openai.json" with { type: "json" };
@@ -239,6 +240,96 @@ export function calculateCost(params: CostParams): number {
   return inputCost + cachedCost + outputCost;
 }
 
+// ── Benchmark quality scores ─────────────────────────────────────────
+
+/** Quality benchmark scores for a model, normalized 0-100. */
+export interface ModelBenchmarks {
+  overall: number;
+  coding?: number;
+  reasoning?: number;
+  math?: number;
+  creative_writing?: number;
+  instruction_following?: number;
+  arena_elo?: number;
+  arena_rank?: number;
+  primary_source: string;
+  note?: string;
+}
+
+/** Mapping from capability to benchmark category field. */
+const CAPABILITY_TO_BENCHMARK: Record<Capability, keyof ModelBenchmarks> = {
+  code: "coding",
+  reasoning: "reasoning",
+  general: "overall",
+  creative: "creative_writing",
+  vision: "overall",
+  search: "overall",
+  audio: "overall",
+};
+
+const benchmarks = benchmarkData.models as Record<string, ModelBenchmarks>;
+
+/** Get benchmark scores for a model. Returns undefined if not benchmarked. */
+export function getModelBenchmarks(
+  provider: Provider,
+  modelId: string,
+): ModelBenchmarks | undefined {
+  const key = `${provider}/${modelId}`;
+  if (benchmarks[key]) return benchmarks[key];
+
+  // Try normalized ID
+  const normalized = normalizeModelId(modelId);
+  if (normalized !== modelId) {
+    const normKey = `${provider}/${normalized}`;
+    if (benchmarks[normKey]) return benchmarks[normKey];
+  }
+
+  // Try alias lookup — find the canonical model, then look up by canonical ID
+  const model = getModel(provider, modelId);
+  if (model && model.id !== modelId) {
+    const canonKey = `${provider}/${model.id}`;
+    if (benchmarks[canonKey]) return benchmarks[canonKey];
+  }
+
+  return undefined;
+}
+
+/**
+ * Get quality score for a model on a specific capability.
+ * Returns the benchmark category score mapped from the capability.
+ * For multi-capability tasks, call once per capability and take the minimum.
+ */
+export function getQualityScore(
+  provider: Provider,
+  modelId: string,
+  capability: Capability,
+): number | undefined {
+  const bench = getModelBenchmarks(provider, modelId);
+  if (!bench) return undefined;
+
+  const field = CAPABILITY_TO_BENCHMARK[capability];
+  const score = bench[field];
+  return typeof score === "number" ? score : bench.overall;
+}
+
+/**
+ * Get the minimum quality score across multiple capabilities.
+ * Conservative: model must be good at ALL required capabilities.
+ */
+export function getMinQualityScore(
+  provider: Provider,
+  modelId: string,
+  capabilities: Capability[],
+): number | undefined {
+  const scores: number[] = [];
+  for (const cap of capabilities) {
+    const score = getQualityScore(provider, modelId, cap);
+    if (score === undefined) return undefined;
+    scores.push(score);
+  }
+  return scores.length > 0 ? Math.min(...scores) : undefined;
+}
+
 // ── Capability inference + model suggestion ──────────────────────────
 
 /** Keyword patterns mapped to capabilities for use-case inference. */
@@ -314,33 +405,104 @@ export interface AlternativeSuggestion {
   model: ModelPricing;
   reasoning: string;
   savingsPercent: number;
+  /** Quality score of the suggested model (0-100), if benchmark data exists. */
+  qualityScore?: number;
+  /** Quality score of the current model (0-100), if benchmark data exists. */
+  currentQualityScore?: number;
 }
+
+/** Options for controlling alternative suggestions. */
+export interface SuggestAlternativesOptions {
+  /** Confidence in capability inference. Restricts how aggressively we suggest. */
+  confidence?: "high" | "medium" | "low";
+  /** Minimum quality ratio vs current model (0-1). Default: 0.7 (70%). */
+  minQualityRatio?: number;
+}
+
+/** Tier ordering for tier-distance calculations. */
+const TIER_ORDER: Record<ModelTier, number> = { budget: 0, mid: 1, premium: 2 };
+
+/** Default minimum quality ratio — candidate must be ≥70% of current model's quality. */
+const DEFAULT_MIN_QUALITY_RATIO = 0.7;
 
 /** Suggest cheaper alternatives that match required capabilities. */
 export function suggestAlternatives(
   currentModelId: string,
   currentProvider: Provider,
   requiredCapabilities: Capability[],
+  options?: SuggestAlternativesOptions,
 ): AlternativeSuggestion[] {
   const current = getModel(currentProvider, currentModelId);
   if (!current) return [];
 
+  const confidence = options?.confidence ?? "medium";
+  const minQualityRatio = options?.minQualityRatio ?? DEFAULT_MIN_QUALITY_RATIO;
+
+  const currentQuality = getMinQualityScore(currentProvider, currentModelId, requiredCapabilities);
+
   const candidates = getModelsByCapabilities(requiredCapabilities)
     .filter((m) => !(m.id === current.id && m.provider === current.provider))
-    .filter((m) => m.output_cost_per_million < current.output_cost_per_million);
+    .filter((m) => m.output_cost_per_million < current.output_cost_per_million)
+    .filter((m) => {
+      const currentTier = TIER_ORDER[current.tier];
+      const candidateTier = TIER_ORDER[m.tier];
+      const tierDrop = currentTier - candidateTier;
 
-  return candidates.slice(0, 3).map((m) => {
+      // Low confidence: same provider + same tier only
+      if (confidence === "low") {
+        return m.provider === currentProvider && tierDrop <= 0;
+      }
+      // Medium confidence: max 1 tier drop (cross-provider OK)
+      if (confidence === "medium") {
+        return tierDrop <= 1;
+      }
+      // High confidence: allow any tier drop
+      return true;
+    })
+    .filter((m) => {
+      // Quality gate: skip if benchmark data is missing for either model
+      if (currentQuality === undefined) return true;
+      const candidateQuality = getMinQualityScore(m.provider, m.id, requiredCapabilities);
+      if (candidateQuality === undefined) return true;
+      return candidateQuality >= currentQuality * minQualityRatio;
+    });
+
+  // Sort by quality-adjusted cost (cost / quality) instead of raw cost
+  const sorted = candidates.sort((a, b) => {
+    const aQuality = getMinQualityScore(a.provider, a.id, requiredCapabilities);
+    const bQuality = getMinQualityScore(b.provider, b.id, requiredCapabilities);
+    const aAdj = aQuality
+      ? a.output_cost_per_million / (aQuality / 100)
+      : a.output_cost_per_million;
+    const bAdj = bQuality
+      ? b.output_cost_per_million / (bQuality / 100)
+      : b.output_cost_per_million;
+    return aAdj - bAdj;
+  });
+
+  return sorted.slice(0, 3).map((m) => {
     const savings = Math.round(
       ((current.output_cost_per_million - m.output_cost_per_million) /
         current.output_cost_per_million) *
         100,
     );
     const caps = `[${requiredCapabilities.join(", ")}]`;
+    const candidateQuality = getMinQualityScore(m.provider, m.id, requiredCapabilities);
+    const qualitySuffix =
+      candidateQuality !== undefined && currentQuality !== undefined
+        ? ` (quality: ${candidateQuality} vs ${currentQuality})`
+        : "";
     const reasoning =
       m.provider === currentProvider
-        ? `Task requires ${caps} — ${m.name} handles that at ${savings}% lower cost`
-        : `Task requires ${caps} — ${m.provider}/${m.name} handles that at ${savings}% lower cost`;
-    return { model: m, reasoning, savingsPercent: savings };
+        ? `Task requires ${caps} — ${m.name} handles that at ${savings}% lower cost${qualitySuffix}`
+        : `Task requires ${caps} — ${m.provider}/${m.name} handles that at ${savings}% lower cost${qualitySuffix}`;
+    return {
+      model: m,
+      reasoning,
+      savingsPercent: savings,
+      ...(candidateQuality !== undefined ? { qualityScore: candidateQuality } : {}),
+      ...(currentQuality !== undefined ? { currentQualityScore: currentQuality } : {}),
+    };
   });
 }
 
@@ -351,7 +513,7 @@ export interface TaskSuggestion {
   reasoning: string;
 }
 
-/** Suggest the cheapest capable model for a free-form task description. */
+/** Suggest the best value model for a free-form task description. */
 export function suggestModelForTask(
   text: string,
   options?: { provider?: Provider; maxCostPerMillion?: number },
@@ -362,11 +524,28 @@ export function suggestModelForTask(
     ...(options?.maxCostPerMillion ? { maxOutputCostPerMillion: options.maxCostPerMillion } : {}),
   });
 
-  const best = candidates[0];
+  if (candidates.length === 0) return undefined;
+
+  // Sort by quality-adjusted cost (cost / quality) for best value
+  const sorted = [...candidates].sort((a, b) => {
+    const aQuality = getMinQualityScore(a.provider, a.id, capabilities);
+    const bQuality = getMinQualityScore(b.provider, b.id, capabilities);
+    const aAdj = aQuality
+      ? a.output_cost_per_million / (aQuality / 100)
+      : a.output_cost_per_million;
+    const bAdj = bQuality
+      ? b.output_cost_per_million / (bQuality / 100)
+      : b.output_cost_per_million;
+    return aAdj - bAdj;
+  });
+
+  const best = sorted[0];
   if (!best) return undefined;
 
   const caps = `[${capabilities.join(", ")}]`;
-  const reasoning = `Inferred capabilities: ${caps} — ${best.provider}/${best.name} ($${best.output_cost_per_million}/M output) is the cheapest model with those capabilities`;
+  const quality = getMinQualityScore(best.provider, best.id, capabilities);
+  const qualitySuffix = quality !== undefined ? ` — quality: ${quality}/100` : "";
+  const reasoning = `Inferred capabilities: ${caps} — ${best.provider}/${best.name} ($${best.output_cost_per_million}/M output) is the best value model${qualitySuffix}`;
 
   return { model: best, inferredCapabilities: capabilities, reasoning };
 }

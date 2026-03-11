@@ -3,6 +3,7 @@ import {
   type AlternativeSuggestion,
   type TaskSuggestion,
   getAllProviders,
+  getMinQualityScore,
   suggestAlternatives,
   suggestModelForTask,
 } from "@inferwise/pricing-db";
@@ -21,6 +22,7 @@ interface SuggestModelResult {
     inputCostPerMillion: number;
     outputCostPerMillion: number;
     capabilities: string[];
+    qualityScore?: number;
   };
   alternatives: Array<{
     provider: string;
@@ -28,6 +30,7 @@ interface SuggestModelResult {
     name: string;
     outputCostPerMillion: number;
     savingsPercent: number;
+    qualityScore?: number;
   }>;
   inferredCapabilities: string[];
   reasoning: string;
@@ -64,6 +67,12 @@ function formatResult(
   suggestion: TaskSuggestion,
   alts: AlternativeSuggestion[],
 ): SuggestModelResult {
+  const recQuality = getMinQualityScore(
+    suggestion.model.provider,
+    suggestion.model.id,
+    suggestion.inferredCapabilities,
+  );
+
   return {
     recommended: {
       provider: suggestion.model.provider,
@@ -72,6 +81,7 @@ function formatResult(
       inputCostPerMillion: suggestion.model.input_cost_per_million,
       outputCostPerMillion: suggestion.model.output_cost_per_million,
       capabilities: [...suggestion.model.capabilities],
+      ...(recQuality !== undefined ? { qualityScore: recQuality } : {}),
     },
     alternatives: alts.map((a) => ({
       provider: a.model.provider,
@@ -79,6 +89,7 @@ function formatResult(
       name: a.model.name,
       outputCostPerMillion: a.model.output_cost_per_million,
       savingsPercent: a.savingsPercent,
+      ...(a.qualityScore !== undefined ? { qualityScore: a.qualityScore } : {}),
     })),
     inferredCapabilities: [...suggestion.inferredCapabilities],
     reasoning: suggestion.reasoning,

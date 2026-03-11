@@ -182,11 +182,25 @@ async function scanFile(filePath: string, relativeBase: string): Promise<ScanRes
   const results: ScanResult[] = [];
   const relativePath = path.relative(relativeBase, filePath);
 
+  const matchedLines = new Set<number>();
+
   for (let i = 0; i < lines.length; i++) {
+    if (matchedLines.has(i)) continue;
+
     const line = lines[i] ?? "";
     // Join current + next line (collapsed) to catch multiline method chains
     // e.g., "client.messages\n  .create(" → "client.messages.create("
     const joined2 = line.trimEnd() + (lines[i + 1] ?? "").trimStart();
+
+    const matchedDirect = PATTERNS.some((p) => p.regex.test(line));
+    // Only check joined2 for non-empty lines (to catch split method chains like "client.messages\n  .create(")
+    const matchedJoined =
+      !matchedDirect && line.trim().length > 0 && PATTERNS.some((p) => p.regex.test(joined2));
+
+    if (!matchedDirect && !matchedJoined) continue;
+
+    // If matched via joined2 (multiline chain), mark next line as consumed
+    if (matchedJoined) matchedLines.add(i + 1);
 
     for (const pattern of PATTERNS) {
       if (!pattern.regex.test(line) && !pattern.regex.test(joined2)) continue;
