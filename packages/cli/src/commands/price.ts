@@ -9,6 +9,7 @@ import {
 import chalk from "chalk";
 import Table from "cli-table3";
 import { Command } from "commander";
+import { parseVolume } from "../config.js";
 
 type PriceOutputFormat = "table" | "json" | "markdown";
 
@@ -449,7 +450,7 @@ function handleListProvider(providerName: string, format: PriceOutputFormat): vo
 function handleCompare(args: string[], options: PriceOptions, format: PriceOutputFormat): void {
   const inputTokens = Math.max(1, Number.parseInt(options.inputTokens, 10) || 1000);
   const outputTokens = Math.max(1, Number.parseInt(options.outputTokens, 10) || 1000);
-  const volume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
+  const volume = parseVolume(options.volume, 1000);
 
   const models: ModelPricing[] = [];
   for (const arg of args) {
@@ -506,7 +507,7 @@ function handleSingleModel(
 
   const inputTokens = Math.max(1, Number.parseInt(options.inputTokens, 10) || 1000);
   const outputTokens = Math.max(1, Number.parseInt(options.outputTokens, 10) || 1000);
-  const volume = Math.max(1, Number.parseInt(options.volume, 10) || 1000);
+  const volume = parseVolume(options.volume, 1000);
 
   let output: string;
   if (format === "json") {

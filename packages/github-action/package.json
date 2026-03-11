@@ -1,15 +1,10 @@
 {
   "name": "@inferwise/github-action",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "GitHub Action for Inferwise — posts LLM cost diff comments on pull requests",
   "type": "module",
   "main": "./dist/index.js",
-  "files": [
-    "dist",
-    "action.yml",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist", "action.yml", "README.md", "LICENSE"],
   "engines": {
     "node": ">=20"
   },
@@ -27,18 +22,13 @@
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm --no-splitting --clean",
+    "package": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
     "dev": "tsup src/index.ts --format esm --watch",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
-  "keywords": [
-    "github-action",
-    "llm",
-    "cost",
-    "finops",
-    "ai",
-    "devtools"
-  ],
+  "keywords": ["github-action", "llm", "cost", "finops", "ai", "devtools"],
   "author": "Peter Kim",
   "license": "Apache-2.0",
   "dependencies": {
@@ -50,7 +40,9 @@
   },
   "devDependencies": {
     "@types/node": "^25.3.5",
+    "@vercel/ncc": "^0.38.4",
     "tsup": "^8.0.0",
-    "typescript": "^5.7.0"
+    "typescript": "^5.7.0",
+    "vitest": "^4.0.18"
   }
 }

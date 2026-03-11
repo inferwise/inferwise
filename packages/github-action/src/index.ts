@@ -10,7 +10,7 @@ import { simpleGit } from "simple-git";
 const SUPPORTED_EXTENSIONS = new Set(["ts", "tsx", "js", "jsx", "mjs", "cjs", "py"]);
 const PR_COMMENT_MARKER = "<!-- inferwise-cost-diff -->";
 
-interface ScanResult {
+export interface ScanResult {
   filePath: string;
   lineNumber: number;
   provider: Provider;
@@ -41,7 +41,7 @@ function extractMaxOutputTokens(window: string[]): number | null {
   return null;
 }
 
-interface FileCostEntry {
+export interface FileCostEntry {
   model: string;
   monthlyCost: number;
 }
@@ -76,7 +76,7 @@ async function checkoutRefToDir(gitRoot: string, ref: string): Promise<string> {
   return tmpDir;
 }
 
-function inferProvider(modelId: string): Provider | null {
+export function inferProvider(modelId: string): Provider | null {
   const raw = modelId.toLowerCase();
 
   // Platform prefix detection
@@ -222,12 +222,16 @@ function typicalOutputTokens(pricing: { max_output_tokens: number }): number {
   return Math.max(512, Math.min(4096, Math.round(pricing.max_output_tokens * 0.05)));
 }
 
-function computeFileCosts(results: ScanResult[], volume: number): Map<string, FileCostEntry[]> {
+export function computeFileCosts(
+  results: ScanResult[],
+  volume: number,
+): Map<string, FileCostEntry[]> {
   const byFile = new Map<string, FileCostEntry[]>();
 
   for (const r of results) {
-    // Resolve model — exact match or cheapest current model for the provider
-    const pricing = r.model ? getModel(r.provider, r.model) : fallbackModel(r.provider);
+    // Resolve model — exact match, then fall back to cheapest current model for the provider
+    const directMatch = r.model ? getModel(r.provider, r.model) : undefined;
+    const pricing = directMatch ?? fallbackModel(r.provider);
 
     // Input tokens: use typical heuristic when no static prompt available
     const inputTokens = pricing ? typicalInputTokens(pricing) : 0;
@@ -246,7 +250,7 @@ function computeFileCosts(results: ScanResult[], volume: number): Map<string, Fi
   return byFile;
 }
 
-function buildMarkdownReport(
+export function buildMarkdownReport(
   baseCosts: Map<string, FileCostEntry[]>,
   headCosts: Map<string, FileCostEntry[]>,
   volume: number,

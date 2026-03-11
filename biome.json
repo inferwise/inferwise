@@ -1,19 +1,14 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
-  "assist": {
-    "actions": {
-      "source": {
-        "organizeImports": "on"
-      }
-    }
+  "organizeImports": {
+    "enabled": true
   },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
       "suspicious": {
-        "noExplicitAny": "error",
-        "noTemplateCurlyInString": "off"
+        "noExplicitAny": "error"
       },
       "style": {
         "noDefaultExport": "warn",
@@ -35,7 +30,7 @@
     }
   },
   "files": {
-    "includes": [
+    "include": [
       "packages/*/src/**",
       "scripts/**",
       "*.json",

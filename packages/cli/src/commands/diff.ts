@@ -7,7 +7,7 @@ import { Command } from "commander";
 import { simpleGit } from "simple-git";
 import { loadCalibration } from "../calibration.js";
 import type { InferwiseConfig } from "../config.js";
-import { getEnvVolume, loadConfig } from "../config.js";
+import { getEnvVolume, loadConfig, parseVolume } from "../config.js";
 import { buildEstimateRows } from "../estimate-core.js";
 import { scanDirectory } from "../scanners/index.js";
 
@@ -51,6 +51,14 @@ interface DiffSummary {
 /** Checkout all supported source files from a git ref into a temp directory. */
 async function checkoutRefToDir(gitRoot: string, ref: string): Promise<string> {
   const git = simpleGit(gitRoot);
+
+  // Verify the ref exists before proceeding
+  try {
+    await git.raw(["rev-parse", "--verify", ref]);
+  } catch {
+    throw new Error(`Git ref '${ref}' not found. Run 'git branch -a' to see available refs.`);
+  }
+
   const tmpDir = await mkdtemp(path.join(os.tmpdir(), "inferwise-diff-"));
 
   const lsResult = await git.raw(["ls-tree", "-r", "--name-only", ref]);
@@ -379,8 +387,8 @@ export function diffCommand(): Command {
       const envVolume = getEnvVolume();
       const cliVolumeExplicit = options.volume !== "1000";
       const cliVolume = cliVolumeExplicit
-        ? Math.max(1, Number.parseInt(options.volume, 10) || 1000)
-        : (envVolume ?? Math.max(1, Number.parseInt(options.volume, 10) || 1000));
+        ? parseVolume(options.volume, 1000)
+        : (envVolume ?? parseVolume(options.volume, 1000));
       const format = resolveFormat(options.format);
       const base = options.base;
       const head = options.head;
@@ -395,6 +403,16 @@ export function diffCommand(): Command {
       }
 
       const gitRoot = path.resolve(scanPath);
+
+      // Verify this is a git repository
+      try {
+        const git = simpleGit(gitRoot);
+        await git.raw(["rev-parse", "--git-dir"]);
+      } catch {
+        process.stderr.write(chalk.red(`Error: '${scanPath}' is not inside a git repository.\n`));
+        process.exit(1);
+      }
+
       let baseDir: string | null = null;
       let headDir: string | null = null;
 

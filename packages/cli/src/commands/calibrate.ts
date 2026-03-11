@@ -6,8 +6,9 @@ import { Command } from "commander";
 import type { CalibrationData, ModelCalibration } from "../calibration.js";
 import { computeModelCalibration, saveCalibration } from "../calibration.js";
 import { loadConfig } from "../config.js";
+import { typicalInputTokens, typicalOutputTokens } from "../estimate-core.js";
 import type { ProviderUsageResult } from "../providers/index.js";
-import { fetchProviderUsage, PROVIDER_ENV_KEYS, SUPPORTED_PROVIDERS } from "../providers/index.js";
+import { PROVIDER_ENV_KEYS, SUPPORTED_PROVIDERS, fetchProviderUsage } from "../providers/index.js";
 import type { ScanResult } from "../scanners/index.js";
 import { scanDirectory } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
@@ -20,7 +21,7 @@ interface CalibrateOptions {
   config?: string;
 }
 
-/** Get estimated average input tokens for a model (same logic as estimate command). */
+/** Get estimated average input tokens for a model (same heuristics as estimate command). */
 function estimateInputTokens(result: ScanResult, pricing: ModelPricing | undefined): number {
   if (result.systemPrompt || result.userPrompt) {
     return countMessageTokens(result.provider, result.model ?? "", {
@@ -28,14 +29,14 @@ function estimateInputTokens(result: ScanResult, pricing: ModelPricing | undefin
       ...(result.userPrompt ? { user: result.userPrompt } : {}),
     });
   }
-  if (pricing) return pricing.context_window - pricing.max_output_tokens;
+  if (pricing) return typicalInputTokens(pricing);
   return 0;
 }
 
-/** Get estimated average output tokens for a model (same logic as estimate command). */
+/** Get estimated average output tokens for a model (same heuristics as estimate command). */
 function estimateOutputTokens(result: ScanResult, pricing: ModelPricing | undefined): number {
   if (result.maxOutputTokens) return result.maxOutputTokens;
-  if (pricing) return pricing.max_output_tokens;
+  if (pricing) return typicalOutputTokens(pricing);
   return 0;
 }
 

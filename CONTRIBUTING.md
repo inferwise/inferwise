@@ -21,8 +21,7 @@ inferwise/
 ├── packages/
 │   ├── cli/              # inferwise CLI (Commander.js + tsup)
 │   ├── pricing-db/       # @inferwise/pricing-db — bundled pricing JSON
-│   ├── github-action/    # Standalone GitHub Action
-│   └── sdk/              # @inferwise/sdk — programmatic API
+│   └── github-action/    # Standalone GitHub Action
 ├── scripts/              # Maintenance scripts (pricing sync)
 └── .github/workflows/    # CI, cost-diff, pricing sync, publish
 ```

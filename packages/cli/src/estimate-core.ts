@@ -25,7 +25,7 @@ function fallbackModel(provider: Provider): ModelPricing | undefined {
  * Typical input token heuristic.
  * See HEURISTICS.md for full methodology and sources.
  */
-function typicalInputTokens(pricing: ModelPricing): number {
+export function typicalInputTokens(pricing: ModelPricing): number {
   const TYPICAL_INPUT = 4096;
   if (pricing.context_window < 16_384) {
     return Math.min(TYPICAL_INPUT, Math.round(pricing.context_window * 0.25));
@@ -37,7 +37,7 @@ function typicalInputTokens(pricing: ModelPricing): number {
  * Typical output token heuristic.
  * See HEURISTICS.md for full methodology and sources.
  */
-function typicalOutputTokens(pricing: ModelPricing): number {
+export function typicalOutputTokens(pricing: ModelPricing): number {
   const FLOOR = 512;
   const CEILING = 4096;
   return Math.max(FLOOR, Math.min(CEILING, Math.round(pricing.max_output_tokens * 0.05)));

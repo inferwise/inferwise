@@ -1,6 +1,6 @@
 {
   "name": "inferwise",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "FinOps CLI for LLM API costs: scan code, estimate token spend, and block over-budget PRs.",
   "type": "module",
   "bin": {
@@ -18,11 +18,7 @@
       "import": "./dist/sdk.js"
     }
   },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
+  "files": ["dist", "README.md", "LICENSE"],
   "engines": {
     "node": ">=18"
   },
@@ -42,14 +38,7 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
-  "keywords": [
-    "llm",
-    "tokens",
-    "cost",
-    "finops",
-    "ai",
-    "cli"
-  ],
+  "keywords": ["llm", "tokens", "cost", "finops", "ai", "cli"],
   "author": "Peter Kim",
   "license": "Apache-2.0",
   "dependencies": {

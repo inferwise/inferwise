@@ -108,6 +108,19 @@ export async function loadConfig(configPath?: string): Promise<InferwiseConfig> 
 }
 
 /**
+ * Parse a volume string into a positive integer.
+ * Warns to stderr if the value is invalid and returns the fallback.
+ */
+export function parseVolume(raw: string, fallback: number): number {
+  const parsed = Number.parseInt(raw, 10);
+  if (Number.isNaN(parsed) || parsed < 1) {
+    process.stderr.write(`Warning: invalid volume '${raw}', using default ${fallback}.\n`);
+    return fallback;
+  }
+  return parsed;
+}
+
+/**
  * Resolve the default daily volume from INFERWISE_VOLUME env var.
  * Returns undefined if not set or invalid.
  */

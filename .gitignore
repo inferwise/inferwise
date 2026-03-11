@@ -18,6 +18,9 @@ out/
 **/dist/
 **/build/
 
+# GitHub Action dist must be committed (node20 actions require bundled JS)
+!packages/github-action/dist/
+
 # Environment
 .env
 .env.local

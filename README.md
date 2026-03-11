@@ -6,7 +6,7 @@
 [![npm](https://img.shields.io/npm/v/inferwise)](https://www.npmjs.com/package/inferwise)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-Inferwise scans your codebase for LLM API calls (Anthropic, OpenAI, Google, xAI), estimates per-token costs, and enforces budget guardrails — from pre-commit to CI to merge. Whether a human or an AI agent wrote the code, nothing ships without cost visibility.
+Inferwise scans your codebase for LLM API calls (Anthropic, OpenAI, Google, xAI, Perplexity), estimates per-token costs, and enforces budget guardrails — from pre-commit to CI to merge. Whether a human or an AI agent wrote the code, nothing ships without cost visibility.
 
 ---
 
@@ -542,6 +542,7 @@ See [HEURISTICS.md](HEURISTICS.md) for full methodology, data sources, and assum
 | OpenAI SDK | `.chat.completions.create()` | TS/JS and Python |
 | Google GenAI SDK | `.generateContent()` | |
 | xAI SDK | `.chat.completions.create()` | OpenAI-compatible; provider resolved from model ID (`grok-*`) |
+| Perplexity SDK | `.chat.completions.create()` | OpenAI-compatible; provider resolved from model ID (`sonar-*`) |
 
 **Cloud-hosted providers:**
 

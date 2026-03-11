@@ -124,6 +124,14 @@ function extractModelId(window: string[]): string | null {
   const standard = joined.match(/model\s*[:=]\s*["']([^"'\n]+)["']/);
   if (standard?.[1]) return standard[1];
 
+  // Template literal: model: `claude-sonnet-4` or model=`gpt-4o`
+  // If it contains ${...} interpolation, return null (dynamic model)
+  const templateLiteral = joined.match(/model\s*[:=]\s*`([^`\n]+)`/);
+  if (templateLiteral?.[1]) {
+    if (templateLiteral[1].includes("${")) return null;
+    return templateLiteral[1];
+  }
+
   // Bedrock SDK: modelId="anthropic.claude-..." or modelId: "..."
   const bedrockModel = joined.match(/modelId\s*[:=]\s*["']([^"'\n]+)["']/);
   if (bedrockModel?.[1]) return bedrockModel[1];

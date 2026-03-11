@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { Command } from "commander";
 import { loadCalibration } from "../calibration.js";
 import type { InferwiseConfig } from "../config.js";
-import { getEnvVolume, loadConfig } from "../config.js";
+import { getEnvVolume, loadConfig, parseVolume } from "../config.js";
 import { buildEstimateRows } from "../estimate-core.js";
 import type { EstimateSummary, OutputFormat } from "../formatters/index.js";
 import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
@@ -46,8 +46,8 @@ export function estimateCommand(): Command {
       const envVolume = getEnvVolume();
       const cliVolumeExplicit = options.volume !== "1000";
       const cliVolume = cliVolumeExplicit
-        ? Math.max(1, Number.parseInt(options.volume, 10) || 1000)
-        : (envVolume ?? Math.max(1, Number.parseInt(options.volume, 10) || 1000));
+        ? parseVolume(options.volume, 1000)
+        : (envVolume ?? parseVolume(options.volume, 1000));
       const format = resolveFormat(options.format);
 
       const config = await loadConfig(options.config);

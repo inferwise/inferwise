@@ -2,7 +2,7 @@
 
 ## Overview
 
-Inferwise is a FinOps platform for **pay-as-you-go LLM API costs** — the per-token charges incurred when your application code calls provider APIs (Anthropic, OpenAI, Google, xAI). It does not track flat-rate subscriptions (Claude Code, Cursor, Copilot, ChatGPT Plus, etc.).
+Inferwise is a FinOps platform for **pay-as-you-go LLM API costs** — the per-token charges incurred when your application code calls provider APIs (Anthropic, OpenAI, Google, xAI, Perplexity). It does not track flat-rate subscriptions (Claude Code, Cursor, Copilot, ChatGPT Plus, etc.).
 
 **Website:** inferwise.dev
 **GitHub:** github.com/inferwise
@@ -60,7 +60,8 @@ inferwise/
 │   │   │   ├── anthropic.json
 │   │   │   ├── openai.json
 │   │   │   ├── google.json
-│   │   │   └── xai.json
+│   │   │   ├── xai.json
+│   │   │   └── perplexity.json
 │   │   ├── schema.json
 │   │   └── src/index.ts
 │   └── github-action/
@@ -143,6 +144,18 @@ Fetch real usage data from provider APIs and compute correction factors for more
 - Anthropic: `ANTHROPIC_ADMIN_API_KEY` → Admin API usage reports
 - OpenAI: `OPENAI_API_KEY` → Usage API completions endpoint
 - Google/xAI: Stubs (no public per-model usage API available)
+
+### `inferwise check [path]`
+
+Verify total LLM costs are within budget. Exits with code 1 if any threshold is exceeded. Designed for CI pipelines and pre-commit hooks where automated pass/fail is needed.
+
+**Flags:**
+- `--max-monthly-cost <amount>` — Max total monthly cost (USD). Defaults to `budgets.block` from config.
+- `--max-cost-per-call <amount>` — Max cost per single LLM call (USD)
+- `--volume <n>` — Requests/day for monthly projection (default: 1000)
+- `--format <table|json|markdown>` — Output format (default: table)
+
+Unlike `diff` (which compares branches), `check` validates the **absolute** cost of the current codebase. The `init` command's pre-commit hook uses `check` by default.
 
 ### `inferwise audit [path]`
 
@@ -357,6 +370,7 @@ Regex-based pattern matching (not AST parsing) for speed.
 | OpenAI | OpenAI SDK (TS/JS/Python) | `.chat.completions.create()` | |
 | Google | Google GenAI SDK | `.generateContent()` | |
 | xAI | OpenAI-compatible SDK | `.chat.completions.create()` | Same pattern as OpenAI; provider resolved from model ID (e.g., `grok-3` → xAI) |
+| Perplexity | OpenAI-compatible SDK | `.chat.completions.create()` | Same pattern as OpenAI; provider resolved from model ID (e.g., `sonar-pro` → Perplexity) |
 | Anthropic | LangChain | `new ChatAnthropic()` | |
 | OpenAI | LangChain | `new ChatOpenAI()` | |
 | Google | LangChain | `new ChatGoogleGenerativeAI()` | |
