@@ -88,20 +88,21 @@ jobs:
         run: |
           if [ -f new-models-report.txt ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
-            DELIM="INFERWISE_REPORT_$(date +%s)"
-            echo "report<<${DELIM}" >> "$GITHUB_OUTPUT"
-            cat new-models-report.txt >> "$GITHUB_OUTPUT"
-            echo "${DELIM}" >> "$GITHUB_OUTPUT"
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Ensure new-models label exists
+      - name: Open issue for new models
         if: steps.new-models.outputs.found == 'true'
         continue-on-error: true
         uses: actions/github-script@v7
         with:
           script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('new-models-report.txt', 'utf8').trim();
+            const truncated = report.length > 60000 ? report.slice(0, 60000) + '\n\n... (truncated)' : report;
+
+            // Ensure label exists
             try {
               await github.rest.issues.getLabel({ ...context.repo, name: 'new-models' });
             } catch {
@@ -113,12 +114,6 @@ jobs:
               });
             }
 
-      - name: Open issue for new models
-        if: steps.new-models.outputs.found == 'true'
-        continue-on-error: true
-        uses: actions/github-script@v7
-        with:
-          script: |
             const title = 'New LLM models detected — pricing database update needed';
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
@@ -127,19 +122,20 @@ jobs:
               labels: 'new-models',
               per_page: 1,
             });
+            const body = '```\n' + truncated + '\n```';
             if (issues.length > 0) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issues[0].number,
-                body: `Updated discovery report:\n\n\`\`\`\n${{ steps.new-models.outputs.report }}\n\`\`\``,
+                body: `Updated discovery report:\n\n${body}`,
               });
             } else {
               await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 title,
-                body: `The daily pricing sync detected new models not yet in our database.\n\n\`\`\`\n${{ steps.new-models.outputs.report }}\n\`\`\`\n\nAdd these models to \`scripts/sync-pricing.ts\` SYNC_CONFIG and the corresponding provider JSON files.`,
+                body: `The daily pricing sync detected new models not yet in our database.\n\n${body}\n\nAdd these models to \`scripts/sync-pricing.ts\` SYNC_CONFIG and the corresponding provider JSON files.`,
                 labels: ['new-models', 'pricing'],
               });
             }
