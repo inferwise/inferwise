@@ -1,6 +1,6 @@
 {
   "name": "@inferwise/pricing-db",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Maintained pricing database for LLM providers",
   "type": "module",
   "main": "./dist/index.js",
