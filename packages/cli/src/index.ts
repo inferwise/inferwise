@@ -18,10 +18,7 @@ const pkg = JSON.parse(readFileSync(join(__dirname, "../package.json"), "utf-8")
 
 const program = new Command();
 
-program
-  .name("inferwise")
-  .description("Cost gates for LLM API calls.")
-  .version(pkg.version);
+program.name("inferwise").description("Cost gates for LLM API calls.").version(pkg.version);
 
 program.addCommand(initCommand());
 program.addCommand(estimateCommand());
