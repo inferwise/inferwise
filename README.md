@@ -65,9 +65,8 @@ Code written (by human or AI agent)
         v
   +-----------+
   |  TIER 3   |  Budget policy (inferwise.config.json)
-  |           |  warn: $2,000    -> yellow label
-  |           |  approve: $10,000 -> request reviewer
-  |           |  block: $50,000  -> fail CI, block merge
+  |           |  warn: $2,000   -> yellow label, warning in PR
+  |           |  block: $50,000 -> exit code 1, fails CI, blocks merge
   +-----------+
 ```
 
@@ -75,7 +74,21 @@ Code written (by human or AI agent)
 |------|-------|--------------|
 | Pre-commit hook | Developer machine | Shows costs before commit, catches obvious spikes |
 | CI required check | PR/MR merge gate | Blocks merge if budget exceeded, comments cost report |
-| Budget policy | `inferwise.config.json` | Org-wide thresholds, approval workflows, code-reviewed |
+| Budget policy | `inferwise.config.json` | Org-wide thresholds committed to the repo, code-reviewed like any other config |
+
+### How budget thresholds behave
+
+| Threshold | CLI (`diff` / `check`) | GitHub Action |
+|-----------|----------------------|---------------|
+| `warn` | Prints warning to stderr | Yellow `cost-warning` label + warning in PR comment |
+| `requireApproval` | No effect | Orange `cost-approval-required` label + requests review from configured `approvers` |
+| `block` | **Exit code 1** — fails the pipeline | Red `cost-blocked` label + **fails the CI check**, blocks merge |
+
+**`warn`** and **`block`** are hard guardrails — they work in any CI system because they're driven by the CLI's exit code. `block` is the real enforcement: if the cost delta exceeds the threshold, the command fails and the merge is blocked.
+
+**`requireApproval`** is a soft gate — it only works in the GitHub Action. It applies a label and requests reviewers, but does not fail CI on its own. Whether it actually blocks the merge depends on your GitHub branch protection rules (e.g., "require approving reviews before merge"). If you don't have branch protection configured, `requireApproval` is advisory only.
+
+**For AI agents and pipelines:** Only `block` matters. The SDK and CLI return a pass/fail result. There is no concept of "request approval" in an automated pipeline — if the cost is over budget, the check fails (exit code 1) and the agent can react (swap models, add `max_tokens`, etc.).
 
 ---
 
@@ -411,12 +424,12 @@ Create with `inferwise init` or manually:
 
 **Budget thresholds** (monthly cost increase in USD):
 
-| Field | Description |
-|-------|-------------|
-| `warn` | Post a warning label on the PR. Default: `$2,000` |
-| `block` | Fail the CI check and block merge. Default: `$50,000` |
-| `requireApproval` | Request review from `approvers` before merge |
-| `approvers` | GitHub teams or users who can approve over-budget PRs |
+| Field | Default | Description |
+|-------|---------|-------------|
+| `warn` | `$2,000` | Warning in stderr (CLI) or yellow label on PR (GitHub Action) |
+| `block` | `$50,000` | **Hard gate.** Exit code 1 (CLI) or red label + failed check (GitHub Action). Blocks merge in any CI. |
+| `requireApproval` | — | **Soft gate, GitHub Action only.** Orange label + requests review from `approvers`. Does not fail CI — relies on branch protection rules to enforce. |
+| `approvers` | — | GitHub teams or users who can approve over-budget PRs. Only used with `requireApproval`. |
 
 Budget defaults are deliberately high — `block` is an emergency brake for catastrophic changes (wrong model at scale, missing max_tokens cap), not routine cost increases.
 
