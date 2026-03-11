@@ -1,10 +1,10 @@
-import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
 import type { ModelPricing, ModelTier, Provider } from "@inferwise/pricing-db";
+import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import { Command } from "commander";
-import { getEnvVolume, loadConfig, resolveVolume } from "../config.js";
-import { scanDirectory } from "../scanners/index.js";
+import { getEnvVolume, loadConfig } from "../config.js";
 import type { ScanResult } from "../scanners/index.js";
+import { scanDirectory } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
 
 const DAYS_PER_MONTH = 30;

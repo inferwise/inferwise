@@ -2,8 +2,9 @@
  * Core estimation logic shared between CLI commands and the SDK.
  * Extracted so `estimate`, `check`, and `estimateAndCheck()` all use the same math.
  */
-import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
+
 import type { ModelPricing, Provider } from "@inferwise/pricing-db";
+import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
 import type { CalibrationData } from "./calibration.js";
 import type { InferwiseConfig } from "./config.js";
 import { resolveVolume } from "./config.js";

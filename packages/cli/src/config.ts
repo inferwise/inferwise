@@ -7,16 +7,28 @@ const overrideSchema = z.object({
   volume: z.number().positive().optional(),
 });
 
-const budgetSchema = z.object({
-  /** Monthly cost increase (USD) that triggers a warning label on PRs. */
-  warn: z.number().min(0).optional(),
-  /** Monthly cost increase (USD) that blocks merge (CI exit 1). */
-  block: z.number().min(0).optional(),
-  /** Monthly cost increase (USD) that requires explicit approval. */
-  requireApproval: z.number().min(0).optional(),
-  /** GitHub teams or users who can approve over-budget PRs. */
-  approvers: z.array(z.string()).optional(),
-});
+const budgetSchema = z
+  .object({
+    /** Monthly cost increase (USD) that triggers a warning label on PRs. */
+    warn: z.number().min(0).optional(),
+    /** Monthly cost increase (USD) that blocks merge (CI exit 1). */
+    block: z.number().min(0).optional(),
+    /** Monthly cost increase (USD) that requires explicit approval. */
+    requireApproval: z.number().min(0).optional(),
+    /** GitHub teams or users who can approve over-budget PRs. */
+    approvers: z.array(z.string()).optional(),
+  })
+  .refine(
+    (b) => {
+      if (b.warn !== undefined && b.block !== undefined && b.warn >= b.block) return false;
+      if (b.warn !== undefined && b.requireApproval !== undefined && b.warn >= b.requireApproval)
+        return false;
+      if (b.requireApproval !== undefined && b.block !== undefined && b.requireApproval >= b.block)
+        return false;
+      return true;
+    },
+    { message: "Budget thresholds must be ordered: warn < requireApproval < block" },
+  );
 
 export type BudgetConfig = z.infer<typeof budgetSchema>;
 

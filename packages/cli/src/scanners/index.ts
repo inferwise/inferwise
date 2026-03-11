@@ -27,8 +27,12 @@ interface PatternDef {
 const PATTERNS: PatternDef[] = [
   // Anthropic SDK (TS/JS and Python)
   { regex: /\.messages\.create\s*\(/, provider: "anthropic", framework: "anthropic-sdk" },
+  // Anthropic SDK streaming helper
+  { regex: /\.messages\.stream\s*\(/, provider: "anthropic", framework: "anthropic-sdk" },
   // OpenAI SDK (TS/JS and Python)
   { regex: /\.chat\.completions\.create\s*\(/, provider: "openai", framework: "openai-sdk" },
+  // OpenAI SDK streaming helper
+  { regex: /\.chat\.completions\.stream\s*\(/, provider: "openai", framework: "openai-sdk" },
   // Google GenAI — JS/TS camelCase and Python snake_case
   { regex: /\.generateContent\s*\(/, provider: "google", framework: "google-genai" },
   { regex: /\.generate_content\s*\(/, provider: "google", framework: "google-genai" },
@@ -53,11 +57,13 @@ const PATTERNS: PatternDef[] = [
     provider: null,
     framework: "bedrock-sdk",
   },
+  // AWS Bedrock Converse API
+  { regex: /\.converse(?:_stream)?\s*\(/, provider: null, framework: "bedrock-sdk" },
   // Azure OpenAI SDK
   { regex: /new\s+AzureOpenAI\s*\(/, provider: "openai", framework: "azure-openai-sdk" },
   // LiteLLM (Python)
   {
-    regex: /\blitellm\.(?:a?completion|atext_completion)\s*\(/,
+    regex: /\blitellm\.(?:a?completion|a?text_completion)\s*\(/,
     provider: null,
     framework: "litellm",
   },

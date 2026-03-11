@@ -102,10 +102,15 @@ export function getProviderModels(provider: Provider): ModelPricing[] {
  */
 export function normalizeModelId(modelId: string): string {
   let id = modelId;
+  // OpenRouter prefix — strip it and then strip any nested provider prefix
+  id = id.replace(/^openrouter\//, "");
   // LiteLLM routing prefixes
   id = id.replace(/^(bedrock\/|azure\/|vertex_ai\/|azure_ai\/)/, "");
-  // Framework prefixes
-  id = id.replace(/^(models\/|gemini\/|xai\/|openai\/|perplexity\/)/, "");
+  // Framework prefixes (also strips nested provider prefix after openrouter/)
+  id = id.replace(
+    /^(models\/|gemini\/|xai\/|openai\/|perplexity\/|anthropic\/|google\/|meta-llama\/)/,
+    "",
+  );
   // Bedrock provider prefixes
   id = id.replace(/^(anthropic|amazon|meta|cohere|ai21|mistral|stability)\./, "");
   // Bedrock version suffix
@@ -197,7 +202,8 @@ export function calculateCost(params: CostParams): number {
 
   // Auto-detect long context if not explicitly set
   const isLongContext = params.isLongContext ?? inputTokens > 200_000;
-  const uncachedInputTokens = Math.max(0, inputTokens - cachedInputTokens);
+  const effectiveCached = Math.min(cachedInputTokens, inputTokens);
+  const uncachedInputTokens = Math.max(0, inputTokens - effectiveCached);
 
   // Input cost (uncached portion)
   let inputRatePerMillion: number;
@@ -225,8 +231,8 @@ export function calculateCost(params: CostParams): number {
 
   const inputCost = (uncachedInputTokens / 1_000_000) * inputRatePerMillion;
   const cachedCost =
-    cachedInputTokens > 0 && model.cache_read_input_cost_per_million !== undefined
-      ? (cachedInputTokens / 1_000_000) * model.cache_read_input_cost_per_million
+    effectiveCached > 0 && model.cache_read_input_cost_per_million !== undefined
+      ? (effectiveCached / 1_000_000) * model.cache_read_input_cost_per_million
       : 0;
   const outputCost = (outputTokens / 1_000_000) * outputRatePerMillion;
 

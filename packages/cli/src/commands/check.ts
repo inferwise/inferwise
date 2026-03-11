@@ -3,8 +3,8 @@ import { Command } from "commander";
 import { loadCalibration } from "../calibration.js";
 import { getEnvVolume, loadConfig } from "../config.js";
 import { buildEstimateRows } from "../estimate-core.js";
-import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
 import type { EstimateSummary, OutputFormat } from "../formatters/index.js";
+import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
 import { scanDirectory } from "../scanners/index.js";
 
 interface CheckOptions {

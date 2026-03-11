@@ -4,7 +4,13 @@
   "description": "FinOps CLI for LLM API costs: scan code, estimate token spend, and block over-budget PRs.",
   "private": true,
   "packageManager": "pnpm@9.15.0",
-  "keywords": ["llm", "tokens", "cost", "finops", "ai"],
+  "keywords": [
+    "llm",
+    "tokens",
+    "cost",
+    "finops",
+    "ai"
+  ],
   "author": "Peter Kim",
   "license": "Apache-2.0",
   "repository": {

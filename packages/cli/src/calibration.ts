@@ -5,8 +5,8 @@ import { z } from "zod";
 export type Confidence = "low" | "medium" | "high";
 
 const modelCalibrationSchema = z.object({
-  inputRatio: z.number().min(0.01).max(10),
-  outputRatio: z.number().min(0.01).max(10),
+  inputRatio: z.number().min(0.001).max(100),
+  outputRatio: z.number().min(0.001).max(100),
   sampleSize: z.number().int().min(0),
   confidence: z.enum(["low", "medium", "high"]),
   actualAvgInput: z.number().min(0),
@@ -48,9 +48,9 @@ export function computeConfidence(sampleSize: number): Confidence {
   return "low";
 }
 
-/** Clamp a ratio to [0.01, 10.0] to prevent nonsensical corrections. */
+/** Clamp a ratio to [0.001, 100.0] to prevent nonsensical corrections. */
 export function clampRatio(ratio: number): number {
-  return Math.max(0.01, Math.min(10, ratio));
+  return Math.max(0.001, Math.min(100, ratio));
 }
 
 /** Compute calibration factors for a single model. */

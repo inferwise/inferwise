@@ -4,8 +4,8 @@ import { loadCalibration } from "../calibration.js";
 import type { InferwiseConfig } from "../config.js";
 import { getEnvVolume, loadConfig } from "../config.js";
 import { buildEstimateRows } from "../estimate-core.js";
-import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
 import type { EstimateSummary, OutputFormat } from "../formatters/index.js";
+import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
 import { scanDirectory } from "../scanners/index.js";
 import type { ModelStats } from "../stats-client.js";
 import { fetchProductionStats } from "../stats-client.js";
@@ -42,7 +42,6 @@ export function estimateCommand(): Command {
     .option("--config <path>", "Path to inferwise.config.json")
     .option("--api-url <url>", "Inferwise Cloud API URL for production stats")
     .option("--api-key <key>", "Inferwise Cloud API key")
-    .option("--precise", "Use provider APIs for exact token counts (requires API keys)")
     .action(async (scanPath: string, options: EstimateOptions) => {
       const envVolume = getEnvVolume();
       const cliVolumeExplicit = options.volume !== "1000";

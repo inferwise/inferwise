@@ -1,3 +1,4 @@
+import type { ModelPricing, Provider } from "@inferwise/pricing-db";
 import {
   calculateCost,
   getAllModels,
@@ -5,7 +6,6 @@ import {
   getModel,
   getProviderModels,
 } from "@inferwise/pricing-db";
-import type { ModelPricing, Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import Table from "cli-table3";
 import { Command } from "commander";

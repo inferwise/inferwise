@@ -17,7 +17,7 @@ const PRE_COMMIT_HOOK = `#!/bin/sh
 # Installed by: inferwise init
 # Config: inferwise.config.json
 
-npx inferwise estimate . --format table 2>&1
+npx inferwise check .
 `;
 
 const PRE_PUSH_HOOK = `#!/bin/sh
@@ -129,9 +129,7 @@ export function initCommand(): Command {
           process.stdout.write(chalk.dim(`  ${hookName}:\n`));
           process.stdout.write(chalk.dim("    commands:\n"));
           process.stdout.write(chalk.dim("      inferwise:\n"));
-          process.stdout.write(
-            chalk.dim("        run: npx inferwise estimate . --format table\n\n"),
-          );
+          process.stdout.write(chalk.dim("        run: npx inferwise check .\n\n"));
         } else {
           // Plain git hooks
           const hooksDir = path.join(gitRoot, ".git", "hooks");

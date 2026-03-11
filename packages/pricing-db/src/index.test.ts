@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -255,6 +255,33 @@ describe("calculateCost", () => {
     expect(batch).toBeLessThan(standard);
   });
 
+  it("clamps cachedInputTokens to inputTokens when cached > input", () => {
+    const model = getModel("anthropic", "claude-sonnet-4-20250514");
+    expect(model).toBeDefined();
+    if (!model || !model.cache_read_input_cost_per_million) return;
+
+    // cachedInputTokens (5000) exceeds inputTokens (1000) — should be clamped to 1000
+    const cost = calculateCost({
+      model,
+      inputTokens: 1000,
+      outputTokens: 0,
+      cachedInputTokens: 5000,
+    });
+
+    // All 1000 tokens should be at cache rate since effective cached = min(5000, 1000) = 1000
+    const expectedCost = (1000 / 1_000_000) * model.cache_read_input_cost_per_million;
+    expect(cost).toBeCloseTo(expectedCost, 8);
+
+    // Verify it matches the case where cachedInputTokens === inputTokens exactly
+    const exactCacheCost = calculateCost({
+      model,
+      inputTokens: 1000,
+      outputTokens: 0,
+      cachedInputTokens: 1000,
+    });
+    expect(cost).toBeCloseTo(exactCacheCost, 8);
+  });
+
   it("auto-detects long context when inputTokens > 200k", () => {
     const model = getAllModels().find((m) => m.input_cost_above_200k_per_million !== undefined);
     if (!model) return; // Skip if no model has long-context pricing
@@ -401,6 +428,7 @@ describe("common production models resolve in pricing DB", () => {
         "claude-3-5-haiku",
         "claude-haiku-3-5-20241022",
         "claude-3-opus-20240229",
+        "claude-3-sonnet-20240229",
         "claude-3-haiku-20240307",
       ],
     },
@@ -410,6 +438,8 @@ describe("common production models resolve in pricing DB", () => {
         "gpt-4o",
         "gpt-4o-mini",
         "gpt-4-turbo",
+        "gpt-4",
+        "gpt-3.5-turbo",
         "o3",
         "o3-mini",
         "o4-mini",

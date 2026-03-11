@@ -3,8 +3,8 @@ import os from "node:os";
 import path from "node:path";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
 import type { ModelPricing, Provider } from "@inferwise/pricing-db";
+import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
 import { simpleGit } from "simple-git";
 
 const SUPPORTED_EXTENSIONS = new Set(["ts", "tsx", "js", "jsx", "mjs", "cjs", "py"]);
@@ -479,11 +479,9 @@ async function run(): Promise<void> {
           // Request review from approvers
           if (budgets.approvers && budgets.approvers.length > 0) {
             const reviewers = budgets.approvers
-              .filter((a) => !a.startsWith("@"))
-              .map((a) => a.replace(/^@/, ""));
-            const teamReviewers = budgets.approvers
               .filter((a) => a.startsWith("@"))
               .map((a) => a.replace(/^@/, ""));
+            const teamReviewers = budgets.approvers.filter((a) => !a.startsWith("@"));
             await octokit.rest.pulls
               .requestReviewers({
                 owner: ctx.repo.owner,

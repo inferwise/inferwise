@@ -1,15 +1,15 @@
-import { getModel, getProviderModels } from "@inferwise/pricing-db";
 import type { ModelPricing, Provider } from "@inferwise/pricing-db";
+import { getModel, getProviderModels } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import Table from "cli-table3";
 import { Command } from "commander";
 import type { CalibrationData, ModelCalibration } from "../calibration.js";
 import { computeModelCalibration, saveCalibration } from "../calibration.js";
 import { loadConfig } from "../config.js";
-import { PROVIDER_ENV_KEYS, SUPPORTED_PROVIDERS, fetchProviderUsage } from "../providers/index.js";
-import type { ProviderUsageRecord, ProviderUsageResult } from "../providers/index.js";
-import { scanDirectory } from "../scanners/index.js";
+import type { ProviderUsageResult } from "../providers/index.js";
+import { fetchProviderUsage, PROVIDER_ENV_KEYS, SUPPORTED_PROVIDERS } from "../providers/index.js";
 import type { ScanResult } from "../scanners/index.js";
+import { scanDirectory } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
 
 interface CalibrateOptions {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatJson, formatMarkdown, formatTable } from "./index.js";
 import type { EstimateRow, EstimateSummary } from "./index.js";
+import { formatJson, formatMarkdown, formatTable } from "./index.js";
 
 function makeRow(overrides: Partial<EstimateRow> = {}): EstimateRow {
   return {

@@ -8,8 +8,8 @@
  *   if (!result.ok) process.exit(1);
  */
 import { loadCalibration } from "./calibration.js";
-import { loadConfig } from "./config.js";
 import type { InferwiseConfig } from "./config.js";
+import { loadConfig } from "./config.js";
 import { buildEstimateRows } from "./estimate-core.js";
 import type { EstimateRow } from "./formatters/index.js";
 import { scanDirectory } from "./scanners/index.js";

@@ -31,15 +31,15 @@ describe("computeConfidence", () => {
 });
 
 describe("clampRatio", () => {
-  it("clamps below minimum to 0.01", () => {
-    expect(clampRatio(0.001)).toBe(0.01);
-    expect(clampRatio(0)).toBe(0.01);
-    expect(clampRatio(-5)).toBe(0.01);
+  it("clamps below minimum to 0.001", () => {
+    expect(clampRatio(0.0001)).toBe(0.001);
+    expect(clampRatio(0)).toBe(0.001);
+    expect(clampRatio(-5)).toBe(0.001);
   });
 
-  it("clamps above maximum to 10", () => {
-    expect(clampRatio(15)).toBe(10);
-    expect(clampRatio(100)).toBe(10);
+  it("clamps above maximum to 100", () => {
+    expect(clampRatio(150)).toBe(100);
+    expect(clampRatio(1000)).toBe(100);
   });
 
   it("passes through values in range", () => {
@@ -66,8 +66,8 @@ describe("computeModelCalibration", () => {
 
   it("clamps extreme ratios", () => {
     const cal = computeModelCalibration(1, 1, 100000, 100000, 50);
-    expect(cal.inputRatio).toBe(10);
-    expect(cal.outputRatio).toBe(10);
+    expect(cal.inputRatio).toBe(100);
+    expect(cal.outputRatio).toBe(100);
   });
 });
 

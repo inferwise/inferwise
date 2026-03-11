@@ -520,6 +520,112 @@ const result = await client.chat.completions
     expect(hit?.model).toBe("gpt-4o");
   });
 
+  it("detects Anthropic SDK messages.stream (streaming helper)", async () => {
+    await writeFixture(
+      "anthropic-stream.ts",
+      `
+import Anthropic from "@anthropic-ai/sdk";
+const client = new Anthropic();
+const stream = client.messages.stream({
+  model: "claude-sonnet-4-20250514",
+  messages: [{ role: "user", content: "Hello!" }],
+  max_tokens: 1024,
+});
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "anthropic-stream.ts");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("anthropic");
+    expect(hit?.model).toBe("claude-sonnet-4-20250514");
+    expect(hit?.framework).toBe("anthropic-sdk");
+    expect(hit?.maxOutputTokens).toBe(1024);
+  });
+
+  it("detects OpenAI SDK chat.completions.stream (streaming helper)", async () => {
+    await writeFixture(
+      "openai-stream.ts",
+      `
+import OpenAI from "openai";
+const client = new OpenAI();
+const stream = await client.chat.completions.stream({
+  model: "gpt-4o",
+  messages: [{ role: "user", content: "Hello" }],
+});
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "openai-stream.ts");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("openai");
+    expect(hit?.model).toBe("gpt-4o");
+    expect(hit?.framework).toBe("openai-sdk");
+  });
+
+  it("detects AWS Bedrock converse API call", async () => {
+    await writeFixture(
+      "bedrock-converse.py",
+      `
+import boto3
+client = boto3.client("bedrock-runtime")
+response = client.converse(
+    modelId="anthropic.claude-sonnet-4-20250514-v1:0",
+    messages=[{"role": "user", "content": [{"text": "Hello"}]}],
+)
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "bedrock-converse.py");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("anthropic");
+    expect(hit?.model).toBe("anthropic.claude-sonnet-4-20250514-v1:0");
+    expect(hit?.framework).toBe("bedrock-sdk");
+  });
+
+  it("detects AWS Bedrock converse_stream API call", async () => {
+    await writeFixture(
+      "bedrock-converse-stream.py",
+      `
+import boto3
+client = boto3.client("bedrock-runtime")
+response = client.converse_stream(
+    modelId="anthropic.claude-sonnet-4-20250514-v1:0",
+    messages=[{"role": "user", "content": [{"text": "Hello"}]}],
+)
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "bedrock-converse-stream.py");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("anthropic");
+    expect(hit?.model).toBe("anthropic.claude-sonnet-4-20250514-v1:0");
+    expect(hit?.framework).toBe("bedrock-sdk");
+  });
+
+  it("detects LiteLLM text_completion (sync version)", async () => {
+    await writeFixture(
+      "litellm-text.py",
+      `
+import litellm
+response = litellm.text_completion(
+    model="gpt-4o",
+    prompt="Hello, world",
+)
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "litellm-text.py");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("openai");
+    expect(hit?.model).toBe("gpt-4o");
+    expect(hit?.framework).toBe("litellm");
+  });
+
   it("handles subdirectories", async () => {
     const subDir = path.join(tmpDir, "sub");
     await mkdir(subDir, { recursive: true });

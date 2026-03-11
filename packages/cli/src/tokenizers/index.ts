@@ -1,30 +1,60 @@
 import type { Provider } from "@inferwise/pricing-db";
-import { type Tiktoken, type TiktokenModel, encoding_for_model, get_encoding } from "tiktoken";
+import { encoding_for_model, get_encoding, type Tiktoken, type TiktokenModel } from "tiktoken";
 
-// Cache encoders — creating them is expensive (WASM init)
-let cl100kEncoder: Tiktoken | null = null;
+// Cache encoders keyed by encoding name — creating them is expensive (WASM init).
+// Multiple models share the same encoding (e.g. gpt-4o and gpt-4 both use o200k_base),
+// so we cache by encoding name, not model name.
+const encoderCache = new Map<string, Tiktoken>();
 
-function getCl100kEncoder(): Tiktoken {
-  if (!cl100kEncoder) {
-    cl100kEncoder = get_encoding("cl100k_base");
+/** Get or create an encoder by encoding name. */
+function getEncoderByName(encodingName: string): Tiktoken {
+  const cached = encoderCache.get(encodingName);
+  if (cached) return cached;
+  const enc = get_encoding(encodingName as Parameters<typeof get_encoding>[0]);
+  encoderCache.set(encodingName, enc);
+  return enc;
+}
+
+/**
+ * Get or create an encoder for a specific model.
+ * Falls back to cl100k_base if the model is not known to tiktoken.
+ */
+function getEncoderForModel(modelId: string): Tiktoken {
+  try {
+    const enc = encoding_for_model(modelId as TiktokenModel);
+    // encoding_for_model always creates a new instance; check if we already
+    // have one cached for this encoding by comparing the model's encoding name.
+    // tiktoken doesn't expose the encoding name directly, so we use the model
+    // as cache key when it's a known model.
+    const cacheKey = `model:${modelId}`;
+    const cached = encoderCache.get(cacheKey);
+    if (cached) {
+      enc.free();
+      return cached;
+    }
+    encoderCache.set(cacheKey, enc);
+    return enc;
+  } catch {
+    return getEncoderByName("cl100k_base");
   }
-  return cl100kEncoder;
 }
 
 /** Free all cached encoders. Call on process exit for clean shutdown. */
 export function freeEncoders(): void {
-  if (cl100kEncoder) {
-    cl100kEncoder.free();
-    cl100kEncoder = null;
+  for (const enc of encoderCache.values()) {
+    enc.free();
   }
+  encoderCache.clear();
 }
 
 /** Check if a model ID is known to tiktoken (OpenAI native support). */
 function isTiktokenNativeModel(modelId: string): boolean {
   try {
-    const enc = encoding_for_model(modelId as TiktokenModel);
-    enc.free();
-    return true;
+    // This also populates the cache, so the subsequent encode call is free
+    getEncoderForModel(modelId);
+    // If getEncoderForModel didn't throw and the model-specific key exists,
+    // it's a native model. If it fell back to cl100k_base, it's not.
+    return encoderCache.has(`model:${modelId}`);
   } catch {
     return false;
   }
@@ -60,12 +90,8 @@ export function countTokens(provider: Provider, modelId: string, text: string): 
 
 function countOpenAiTokens(modelId: string, text: string): number {
   if (isTiktokenNativeModel(modelId)) {
-    // Use a fresh encoder per call for OpenAI models to avoid WASM state issues
-    // across different model encodings (gpt-3.5 uses cl100k, gpt-4 uses o200k_base, etc.)
-    const enc = encoding_for_model(modelId as TiktokenModel);
-    const count = enc.encode(text).length;
-    enc.free();
-    return count;
+    const enc = getEncoderForModel(modelId);
+    return enc.encode(text).length;
   }
   // Unknown OpenAI model — fall back to cl100k
   return countWithCl100k(text);
@@ -76,7 +102,7 @@ function countGoogleTokens(text: string): number {
 }
 
 function countWithCl100k(text: string): number {
-  return getCl100kEncoder().encode(text).length;
+  return getEncoderByName("cl100k_base").encode(text).length;
 }
 
 /**

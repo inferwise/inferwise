@@ -1,14 +1,19 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.0/schema.json",
-  "organizeImports": {
-    "enabled": true
+  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
       "suspicious": {
-        "noExplicitAny": "error"
+        "noExplicitAny": "error",
+        "noTemplateCurlyInString": "off"
       },
       "style": {
         "noDefaultExport": "warn",
@@ -30,6 +35,12 @@
     }
   },
   "files": {
-    "ignore": ["node_modules", "dist", "build", "*.tsbuildinfo", "coverage"]
+    "includes": [
+      "packages/*/src/**",
+      "scripts/**",
+      "*.json",
+      "packages/*/tsup.config.ts",
+      "packages/*/vitest.config.ts"
+    ]
   }
 }
