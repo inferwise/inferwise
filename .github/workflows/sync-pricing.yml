@@ -88,9 +88,10 @@ jobs:
         run: |
           if [ -f new-models-report.txt ]; then
             echo "found=true" >> "$GITHUB_OUTPUT"
-            echo "report<<EOF" >> "$GITHUB_OUTPUT"
+            DELIM="INFERWISE_REPORT_$(date +%s)"
+            echo "report<<${DELIM}" >> "$GITHUB_OUTPUT"
             cat new-models-report.txt >> "$GITHUB_OUTPUT"
-            echo "EOF" >> "$GITHUB_OUTPUT"
+            echo "${DELIM}" >> "$GITHUB_OUTPUT"
           else
             echo "found=false" >> "$GITHUB_OUTPUT"
           fi
