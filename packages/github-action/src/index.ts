@@ -369,12 +369,65 @@ interface InferwiseActionConfig {
   budgets?: BudgetConfig;
 }
 
+/** Validate and sanitize a parsed config object. */
+function validateActionConfig(raw: Record<string, unknown>): InferwiseActionConfig {
+  const config: InferwiseActionConfig = {};
+
+  if (typeof raw.defaultVolume === "number" && raw.defaultVolume > 0) {
+    config.defaultVolume = raw.defaultVolume;
+  }
+
+  if (raw.budgets && typeof raw.budgets === "object" && !Array.isArray(raw.budgets)) {
+    const b = raw.budgets as Record<string, unknown>;
+    const budgets: BudgetConfig = {};
+    if (typeof b.warn === "number" && b.warn >= 0) budgets.warn = b.warn;
+    if (typeof b.block === "number" && b.block >= 0) budgets.block = b.block;
+    if (typeof b.requireApproval === "number" && b.requireApproval >= 0)
+      budgets.requireApproval = b.requireApproval;
+    if (Array.isArray(b.approvers))
+      budgets.approvers = b.approvers.filter((a) => typeof a === "string");
+
+    // Validate ordering: warn < requireApproval < block
+    if (
+      budgets.warn !== undefined &&
+      budgets.block !== undefined &&
+      budgets.warn >= budgets.block
+    ) {
+      core.warning(
+        "inferwise.config.json: budgets.warn must be less than budgets.block — ignoring budgets",
+      );
+    } else if (
+      budgets.warn !== undefined &&
+      budgets.requireApproval !== undefined &&
+      budgets.warn >= budgets.requireApproval
+    ) {
+      core.warning(
+        "inferwise.config.json: budgets.warn must be less than budgets.requireApproval — ignoring budgets",
+      );
+    } else if (
+      budgets.requireApproval !== undefined &&
+      budgets.block !== undefined &&
+      budgets.requireApproval >= budgets.block
+    ) {
+      core.warning(
+        "inferwise.config.json: budgets.requireApproval must be less than budgets.block — ignoring budgets",
+      );
+    } else {
+      config.budgets = budgets;
+    }
+  }
+
+  return config;
+}
+
 /** Load inferwise.config.json from the repo root. */
 async function loadActionConfig(dir: string): Promise<InferwiseActionConfig> {
   const { readFile } = await import("node:fs/promises");
   try {
     const raw = await readFile(path.join(dir, "inferwise.config.json"), "utf-8");
-    return JSON.parse(raw) as InferwiseActionConfig;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return validateActionConfig(parsed as Record<string, unknown>);
   } catch {
     return {};
   }

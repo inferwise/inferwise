@@ -233,11 +233,38 @@ ${body}`;
     });
   }
 }
+function validateActionConfig(raw) {
+  const config = {};
+  if (typeof raw.defaultVolume === "number" && raw.defaultVolume > 0) {
+    config.defaultVolume = raw.defaultVolume;
+  }
+  if (raw.budgets && typeof raw.budgets === "object" && !Array.isArray(raw.budgets)) {
+    const b = raw.budgets;
+    const budgets = {};
+    if (typeof b.warn === "number" && b.warn >= 0) budgets.warn = b.warn;
+    if (typeof b.block === "number" && b.block >= 0) budgets.block = b.block;
+    if (typeof b.requireApproval === "number" && b.requireApproval >= 0)
+      budgets.requireApproval = b.requireApproval;
+    if (Array.isArray(b.approvers)) budgets.approvers = b.approvers.filter((a) => typeof a === "string");
+    if (budgets.warn !== void 0 && budgets.block !== void 0 && budgets.warn >= budgets.block) {
+      core.warning("inferwise.config.json: budgets.warn must be less than budgets.block \u2014 ignoring budgets");
+    } else if (budgets.warn !== void 0 && budgets.requireApproval !== void 0 && budgets.warn >= budgets.requireApproval) {
+      core.warning("inferwise.config.json: budgets.warn must be less than budgets.requireApproval \u2014 ignoring budgets");
+    } else if (budgets.requireApproval !== void 0 && budgets.block !== void 0 && budgets.requireApproval >= budgets.block) {
+      core.warning("inferwise.config.json: budgets.requireApproval must be less than budgets.block \u2014 ignoring budgets");
+    } else {
+      config.budgets = budgets;
+    }
+  }
+  return config;
+}
 async function loadActionConfig(dir) {
   const { readFile } = await import("fs/promises");
   try {
     const raw = await readFile(path.join(dir, "inferwise.config.json"), "utf-8");
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
+    return validateActionConfig(parsed);
   } catch {
     return {};
   }
