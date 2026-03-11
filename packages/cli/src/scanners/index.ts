@@ -29,8 +29,11 @@ const PATTERNS: PatternDef[] = [
   { regex: /\.messages\.create\s*\(/, provider: "anthropic", framework: "anthropic-sdk" },
   // OpenAI SDK (TS/JS and Python)
   { regex: /\.chat\.completions\.create\s*\(/, provider: "openai", framework: "openai-sdk" },
-  // Google GenAI — only match generateContent (the actual API call, not model init)
+  // Google GenAI — JS/TS camelCase and Python snake_case
   { regex: /\.generateContent\s*\(/, provider: "google", framework: "google-genai" },
+  { regex: /\.generate_content\s*\(/, provider: "google", framework: "google-genai" },
+  // OpenAI Responses API (2025+)
+  { regex: /\.responses\.create\s*\(/, provider: "openai", framework: "openai-sdk" },
   // Vercel AI SDK — provider inferred from model factory
   { regex: /\bgenerateText\s*\(/, provider: null, framework: "vercel-ai-sdk" },
   { regex: /\bstreamText\s*\(/, provider: null, framework: "vercel-ai-sdk" },
@@ -167,9 +170,12 @@ async function scanFile(filePath: string, relativeBase: string): Promise<ScanRes
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? "";
+    // Join current + next line (collapsed) to catch multiline method chains
+    // e.g., "client.messages\n  .create(" → "client.messages.create("
+    const joined2 = line.trimEnd() + (lines[i + 1] ?? "").trimStart();
 
     for (const pattern of PATTERNS) {
-      if (!pattern.regex.test(line)) continue;
+      if (!pattern.regex.test(line) && !pattern.regex.test(joined2)) continue;
 
       const window = getContextWindow(lines, i);
 

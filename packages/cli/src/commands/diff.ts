@@ -1,16 +1,15 @@
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
-import type { ModelPricing, Provider } from "@inferwise/pricing-db";
 import chalk from "chalk";
 import Table from "cli-table3";
 import { Command } from "commander";
 import { simpleGit } from "simple-git";
+import { loadCalibration } from "../calibration.js";
 import type { InferwiseConfig } from "../config.js";
-import { getEnvVolume, loadConfig, resolveVolume } from "../config.js";
+import { getEnvVolume, loadConfig } from "../config.js";
+import { buildEstimateRows } from "../estimate-core.js";
 import { scanDirectory } from "../scanners/index.js";
-import { countMessageTokens } from "../tokenizers/index.js";
 
 const SUPPORTED_EXTENSIONS = new Set(["ts", "tsx", "js", "jsx", "mjs", "cjs", "py"]);
 
@@ -25,7 +24,7 @@ interface DiffOptions {
 
 export type DiffOutputFormat = "table" | "json" | "markdown";
 
-interface FileCost {
+export interface FileCost {
   file: string;
   model: string;
   provider: string;
@@ -33,7 +32,7 @@ interface FileCost {
   costPerCall: number;
 }
 
-interface DiffRow {
+export interface DiffRow {
   file: string;
   baseModel: string | null;
   headModel: string | null;
@@ -80,96 +79,46 @@ async function checkoutRefToDir(gitRoot: string, ref: string): Promise<string> {
   return tmpDir;
 }
 
-/** Use cheapest current model for a provider when model ID is unknown. */
-function fallbackModel(provider: Provider): ModelPricing | undefined {
-  const models = getProviderModels(provider).filter((m) => m.status === "current");
-  if (models.length === 0) return undefined;
-  models.sort((a, b) => a.input_cost_per_million - b.input_cost_per_million);
-  return models[0];
-}
-
-/** Compute cost for a single scan result. */
-function computeFileCostEntry(
-  result: {
-    filePath: string;
-    provider: Provider;
-    model: string | null;
-    systemPrompt: string | null;
-    userPrompt: string | null;
-    maxOutputTokens?: number | null;
-  },
-  config: InferwiseConfig,
-  cliVolume: number,
-  cliVolumeExplicit: boolean,
-): FileCost {
-  const provider = result.provider;
-  const modelId = result.model;
-  const volume = resolveVolume(config, result.filePath, cliVolume, cliVolumeExplicit);
-
-  const pricing = modelId ? getModel(provider, modelId) : fallbackModel(provider);
-
-  let inputTokens = 0;
-  if (result.systemPrompt || result.userPrompt) {
-    inputTokens = countMessageTokens(provider, modelId ?? "", {
-      ...(result.systemPrompt ? { system: result.systemPrompt } : {}),
-      ...(result.userPrompt ? { user: result.userPrompt } : {}),
-    });
-  } else if (pricing) {
-    // Typical heuristic: 4K tokens for most prompts, 25% of window for small-context models
-    inputTokens =
-      pricing.context_window < 16_384
-        ? Math.min(4096, Math.round(pricing.context_window * 0.25))
-        : 4096;
-  }
-
-  let outputTokens = 0;
-  if (result.maxOutputTokens) {
-    outputTokens = result.maxOutputTokens;
-  } else if (pricing) {
-    // Typical heuristic: 5% of max output, clamped to [512, 4096]
-    outputTokens = Math.max(512, Math.min(4096, Math.round(pricing.max_output_tokens * 0.05)));
-  }
-
-  const costPerCall = pricing ? calculateCost({ model: pricing, inputTokens, outputTokens }) : 0;
-  const monthlyCost = costPerCall * volume * 30;
-
-  return {
-    file: result.filePath,
-    model: modelId ?? "unknown",
-    provider,
-    costPerCall,
-    monthlyCost,
-  };
-}
-
-/** Aggregate per-file costs from a scan directory. */
+/** Aggregate per-file costs from a scan directory using shared estimation logic. */
 async function getFileCosts(
   dirPath: string,
   config: InferwiseConfig,
   cliVolume: number,
   cliVolumeExplicit: boolean,
+  calibration: Awaited<ReturnType<typeof loadCalibration>>,
 ): Promise<Map<string, FileCost[]>> {
   const results = await scanDirectory(dirPath, config.ignore);
+  const { rows } = buildEstimateRows(
+    results,
+    config,
+    cliVolume,
+    cliVolumeExplicit,
+    null,
+    calibration,
+  );
+
   const byFile = new Map<string, FileCost[]>();
-
-  for (const result of results) {
-    const entry = computeFileCostEntry(
-      { ...result, provider: result.provider as Provider },
-      config,
-      cliVolume,
-      cliVolumeExplicit,
-    );
-
-    const existing = byFile.get(result.filePath) ?? [];
+  for (const row of rows) {
+    const entry: FileCost = {
+      file: row.file,
+      model: row.model,
+      provider: row.provider,
+      costPerCall: row.costPerCall,
+      monthlyCost: row.monthlyCost,
+    };
+    const existing = byFile.get(row.file) ?? [];
     existing.push(entry);
-    byFile.set(result.filePath, existing);
+    byFile.set(row.file, existing);
   }
 
   return byFile;
 }
 
 /** Determine the change type between base and head models. */
-function classifyChange(baseModel: string | null, headModel: string | null): DiffRow["change"] {
+export function classifyChange(
+  baseModel: string | null,
+  headModel: string | null,
+): DiffRow["change"] {
   if (!baseModel && headModel) return "added";
   if (baseModel && !headModel) return "removed";
   if (baseModel === headModel) return "unchanged";
@@ -184,7 +133,7 @@ function classifyChange(baseModel: string | null, headModel: string | null): Dif
  * Matches base and head call sites by model within each file,
  * so model changes (e.g., Opus → Sonnet) surface as separate rows.
  */
-function buildDiff(
+export function buildDiff(
   baseCosts: Map<string, FileCost[]>,
   headCosts: Map<string, FileCost[]>,
 ): DiffRow[] {
@@ -438,6 +387,9 @@ export function diffCommand(): Command {
 
       const config = await loadConfig(options.config);
 
+      // Load calibration data if available (same as estimate command)
+      const calibration = await loadCalibration();
+
       if (format === "table") {
         process.stderr.write(chalk.dim(`Comparing ${base} → ${head}...\n`));
       }
@@ -458,15 +410,15 @@ export function diffCommand(): Command {
           if (format === "table")
             process.stderr.write(chalk.dim("Scanning working directory...\n"));
           [baseCosts, headCosts] = await Promise.all([
-            getFileCosts(baseDir, config, cliVolume, cliVolumeExplicit),
-            getFileCosts(gitRoot, config, cliVolume, cliVolumeExplicit),
+            getFileCosts(baseDir, config, cliVolume, cliVolumeExplicit, calibration),
+            getFileCosts(gitRoot, config, cliVolume, cliVolumeExplicit, calibration),
           ]);
         } else {
           if (format === "table") process.stderr.write(chalk.dim(`Checking out ${head}...\n`));
           headDir = await checkoutRefToDir(gitRoot, head);
           [baseCosts, headCosts] = await Promise.all([
-            getFileCosts(baseDir, config, cliVolume, cliVolumeExplicit),
-            getFileCosts(headDir, config, cliVolume, cliVolumeExplicit),
+            getFileCosts(baseDir, config, cliVolume, cliVolumeExplicit, calibration),
+            getFileCosts(headDir, config, cliVolume, cliVolumeExplicit, calibration),
           ]);
         }
 

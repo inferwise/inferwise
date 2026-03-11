@@ -34,6 +34,9 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
+  "keywords": ["llm", "pricing", "tokens", "cost", "ai", "models", "finops"],
+  "author": "Peter Kim",
+  "license": "Apache-2.0",
   "devDependencies": {
     "tsup": "^8.0.0",
     "typescript": "^5.7.0",

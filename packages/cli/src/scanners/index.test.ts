@@ -435,6 +435,91 @@ const result = await client.chat.completions.create({
     expect(hits.every((h) => h.provider === "openai")).toBe(true);
   });
 
+  it("detects Python Google GenAI generate_content (snake_case)", async () => {
+    await writeFixture(
+      "google-python.py",
+      `
+import google.generativeai as genai
+
+model = genai.GenerativeModel("gemini-2.5-pro")
+response = model.generate_content(
+    "Summarize this document.",
+)
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "google-python.py");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("google");
+    expect(hit?.framework).toBe("google-genai");
+  });
+
+  it("detects OpenAI Responses API responses.create", async () => {
+    await writeFixture(
+      "openai-responses.ts",
+      `
+import OpenAI from "openai";
+const client = new OpenAI();
+const response = await client.responses.create({
+  model: "gpt-4o",
+  input: "What is the capital of France?",
+});
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "openai-responses.ts");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("openai");
+    expect(hit?.model).toBe("gpt-4o");
+    expect(hit?.framework).toBe("openai-sdk");
+  });
+
+  it("detects multiline method chains (Prettier-formatted)", async () => {
+    await writeFixture(
+      "multiline.ts",
+      `
+import Anthropic from "@anthropic-ai/sdk";
+const client = new Anthropic();
+const response = await client.messages
+  .create({
+    model: "claude-sonnet-4-20250514",
+    messages: [{ role: "user", content: "Hello!" }],
+    max_tokens: 1024,
+  });
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "multiline.ts");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("anthropic");
+    expect(hit?.model).toBe("claude-sonnet-4-20250514");
+    expect(hit?.maxOutputTokens).toBe(1024);
+  });
+
+  it("detects multiline OpenAI chat.completions split across lines", async () => {
+    await writeFixture(
+      "multiline-openai.ts",
+      `
+import OpenAI from "openai";
+const client = new OpenAI();
+const result = await client.chat.completions
+  .create({
+    model: "gpt-4o",
+    messages: [{ role: "user", content: "Hello" }],
+  });
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "multiline-openai.ts");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("openai");
+    expect(hit?.model).toBe("gpt-4o");
+  });
+
   it("handles subdirectories", async () => {
     const subDir = path.join(tmpDir, "sub");
     await mkdir(subDir, { recursive: true });

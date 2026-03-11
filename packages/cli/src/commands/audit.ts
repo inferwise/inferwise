@@ -17,7 +17,7 @@ interface AuditOptions {
   config?: string;
 }
 
-interface CheaperModelFinding {
+export interface CheaperModelFinding {
   type: "cheaper-model";
   file: string;
   line: number;
@@ -29,7 +29,7 @@ interface CheaperModelFinding {
   monthlySavings: number;
 }
 
-interface CachingFinding {
+export interface CachingFinding {
   type: "caching";
   systemPrompt: string;
   locations: Array<{ file: string; line: number }>;
@@ -39,7 +39,7 @@ interface CachingFinding {
   monthlySavings: number;
 }
 
-interface BatchFinding {
+export interface BatchFinding {
   type: "batch";
   file: string;
   model: string;
@@ -130,7 +130,7 @@ function findCheaperAlternative(
   return candidates[0];
 }
 
-function detectCheaperModels(results: ScanResult[], volume: number): CheaperModelFinding[] {
+export function detectCheaperModels(results: ScanResult[], volume: number): CheaperModelFinding[] {
   const findings: CheaperModelFinding[] = [];
 
   for (const result of results) {
@@ -168,7 +168,10 @@ function detectCheaperModels(results: ScanResult[], volume: number): CheaperMode
 
 // ── Finding: prompt caching opportunities ───────────────────────────
 
-function detectCachingOpportunities(results: ScanResult[], volume: number): CachingFinding[] {
+export function detectCachingOpportunities(
+  results: ScanResult[],
+  volume: number,
+): CachingFinding[] {
   const promptMap = new Map<string, Array<{ file: string; line: number; result: ScanResult }>>();
 
   for (const result of results) {
@@ -228,7 +231,7 @@ function truncatePrompt(prompt: string): string {
 
 // ── Finding: batch API opportunities ────────────────────────────────
 
-function detectBatchOpportunities(results: ScanResult[], volume: number): BatchFinding[] {
+export function detectBatchOpportunities(results: ScanResult[], volume: number): BatchFinding[] {
   // Group by file + model
   const groups = new Map<
     string,

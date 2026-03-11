@@ -26,6 +26,9 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
+  "keywords": ["github-action", "llm", "cost", "finops", "ai", "devtools"],
+  "author": "Peter Kim",
+  "license": "Apache-2.0",
   "dependencies": {
     "@actions/core": "^1.10.0",
     "@actions/github": "^6.0.0",
