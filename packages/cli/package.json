@@ -18,7 +18,11 @@
       "import": "./dist/sdk.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -38,7 +42,14 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
-  "keywords": ["llm", "tokens", "cost", "finops", "ai", "cli"],
+  "keywords": [
+    "llm",
+    "tokens",
+    "cost",
+    "finops",
+    "ai",
+    "cli"
+  ],
   "author": "Peter Kim",
   "license": "Apache-2.0",
   "dependencies": {
@@ -54,6 +65,6 @@
   "devDependencies": {
     "tsup": "^8.0.0",
     "typescript": "^5.7.0",
-    "vitest": "^2.0.0"
+    "vitest": "^4.0.18"
   }
 }
