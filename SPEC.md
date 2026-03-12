@@ -52,9 +52,10 @@ inferwise/
 │   │       ├── scanners/       # Regex-based LLM API call detection
 │   │       ├── tokenizers/     # Provider tokenizer wrappers
 │   │       ├── formatters/     # table, markdown, JSON output
-│   │       ├── providers/      # Provider usage API clients (calibrate)
+│   │       ├── providers/      # Provider usage API clients (calibrate) — Anthropic, OpenAI, OpenRouter
 │   │       ├── calibration.ts  # Calibration schema, load/save, ratio math
-│   │       ├── config.ts       # Config schema (budgets, overrides, volumes)
+│   │       ├── telemetry-client.ts # OTel telemetry client (Grafana Tempo, Prometheus, legacy)
+│   │       ├── config.ts       # Config schema (budgets, overrides, volumes, telemetry)
 │   │       └── index.ts        # CLI entry point
 │   ├── pricing-db/             # @inferwise/pricing-db
 │   │   ├── providers/
@@ -133,14 +134,14 @@ Compare token costs between two git refs. Enforces budget policy from config.
 Fetch real usage data from provider APIs and compute correction factors for more accurate estimates.
 
 **Flags:**
-- `--provider <name>` — Calibrate only one provider
+- `--provider <name>` — Calibrate only one provider (e.g. `anthropic`, `openai`, `openrouter`)
 - `--dry-run` — Show comparison without saving
 - `--days <n>` — Usage period (default: 30)
 - `--format <table|json>` — Output format (default: table)
 - `--config <path>` — Config file path
 
 **Behavior:**
-- Fetches actual token usage from Anthropic Admin API and OpenAI Usage API
+- Fetches actual token usage from provider APIs
 - Compares actual vs estimated per model, computes correction ratios
 - Stores ratios in `.inferwise/calibration.json`
 - Future `estimate` runs auto-load calibration and adjust typical/model-limit values
@@ -149,7 +150,10 @@ Fetch real usage data from provider APIs and compute correction factors for more
 **Provider APIs:**
 - Anthropic: `ANTHROPIC_ADMIN_API_KEY` → Admin API usage reports
 - OpenAI: `OPENAI_API_KEY` → Usage API completions endpoint
-- Google/xAI: Stubs (no public per-model usage API available)
+- OpenRouter: `OPENROUTER_API_KEY` → Activity API (covers ALL providers in one call)
+- Google/xAI/Perplexity: No direct usage API — use `--provider openrouter` to calibrate via OpenRouter
+
+**OpenRouter calibration:** If `OPENROUTER_API_KEY` is set, `inferwise calibrate` automatically fetches usage data from OpenRouter for any providers that lack direct APIs (Google, xAI, Perplexity). Use `--provider openrouter` to calibrate exclusively from OpenRouter data.
 
 ### `inferwise check [path]`
 
@@ -209,6 +213,12 @@ Check the freshness of the bundled pricing database.
     "block": 50000,
     "requireApproval": 10000,
     "approvers": ["platform-eng", "@infra-team"]
+  },
+  "telemetry": {
+    "backend": "grafana-tempo",
+    "endpoint": "https://tempo.internal:3200",
+    "headers": { "X-Scope-OrgID": "my-org" },
+    "apiKey": "glsa_..."
   }
 }
 ```
@@ -248,7 +258,15 @@ const configSchema = z.object({
     approvers: z.array(z.string()).optional(),
     maxMonthlyCost: z.number().min(0).optional(),
   }).optional(),
+  telemetry: z.object({
+    backend: z.enum(["otlp", "grafana-tempo", "inferwise-cloud"]),
+    endpoint: z.string().url(),
+    headers: z.record(z.string(), z.string()).optional(),
+    apiKey: z.string().optional(),
+  }).optional(),
+  /** @deprecated Use telemetry.endpoint instead. */
   apiUrl: z.string().url().optional(),
+  /** @deprecated Use telemetry.apiKey instead. */
   apiKey: z.string().optional(),
 });
 ```
@@ -293,14 +311,14 @@ Token counts are derived from code extraction, typical heuristics, or model spec
 
 **Input tokens (priority order):**
 1. Static prompt found in code → tokenized for exact count (source: `code`)
-2. Production stats from cloud API (≥10 requests) → real average (source: `production`)
+2. Production stats from telemetry backend (≥10 requests) → real average (source: `production`)
 3. Dynamic prompt → typical estimate of 4,096 tokens (source: `typical`)
 4. Calibrated → typical adjusted by provider usage data (source: `calibrated`)
 5. Unknown model → cheapest current model for the provider used as floor
 
 **Output tokens (priority order):**
 1. `max_tokens` / `maxTokens` / `max_output_tokens` extracted from code → exact (source: `code`)
-2. Production stats from cloud API (≥10 requests) → real average (source: `production`)
+2. Production stats from telemetry backend (≥10 requests) → real average (source: `production`)
 3. Dynamic → 5% of model's `max_output_tokens`, clamped to [512, 4096] (source: `typical`)
 4. Calibrated → typical adjusted by provider usage data (source: `calibrated`)
 5. Unknown model → cheapest current model for the provider used as floor
@@ -320,7 +338,7 @@ Token counts are derived from code extraction, typical heuristics, or model spec
 | `typical` | `≈` | 2-5x | Industry-standard heuristic estimate |
 | `calibrated` | `~` | Within 20% | Adjusted by real provider usage data |
 | `model_limit` | `*` | 10-50x | Worst-case ceiling from model spec |
-| `production` | `†` | Within 10% | Cloud telemetry (future) |
+| `production` | `†` | Within 10% | OTel telemetry (Grafana Tempo, Prometheus, or legacy Inferwise Cloud) |
 
 **Tokenizer implementations:**
 
@@ -375,6 +393,79 @@ interface CalibrationData {
 - Only adjusts `typical` and `model_limit` source values
 - `code`-extracted values are already exact and left untouched
 - Calibrated values tagged as `"calibrated"` source, displayed with `~` marker
+
+### OpenRouter Calibration
+
+OpenRouter is a unified LLM proxy that tracks per-model token usage across all providers. By adding `OPENROUTER_API_KEY`, users get calibration data for providers that lack direct usage APIs:
+
+```bash
+# Calibrate all providers via OpenRouter
+OPENROUTER_API_KEY=sk-or-... inferwise calibrate .
+
+# OpenRouter-only calibration
+inferwise calibrate . --provider openrouter
+```
+
+OpenRouter Activity API returns per-model, per-day usage data. Inferwise maps OpenRouter provider names (e.g. "Anthropic", "Google AI Studio", "Vertex AI") to Inferwise provider IDs and strips the `provider/` prefix from model IDs (e.g. `anthropic/claude-sonnet-4` → `claude-sonnet-4`).
+
+When `OPENROUTER_API_KEY` is set alongside direct provider keys (e.g. `ANTHROPIC_ADMIN_API_KEY`), OpenRouter data is used as a fallback for providers without direct APIs. Direct provider APIs take precedence when available.
+
+---
+
+## Telemetry System
+
+Inferwise can fetch real production token usage from OTel-compatible backends to provide the most accurate estimates (`"production"` source, `†` marker).
+
+### How It Works
+
+Configure a telemetry backend in `inferwise.config.json`:
+
+```json
+{
+  "telemetry": {
+    "backend": "grafana-tempo",
+    "endpoint": "https://tempo.internal:3200",
+    "headers": { "X-Scope-OrgID": "my-org" },
+    "apiKey": "glsa_..."
+  }
+}
+```
+
+When `inferwise estimate` runs and a telemetry backend is configured, it queries for real token usage data per model. If a model has ≥10 requests in the telemetry data, those averages are used instead of heuristic estimates.
+
+### Supported Backends
+
+| Backend | Config value | Query method | What it reads |
+|---------|-------------|-------------|---------------|
+| Grafana Tempo | `grafana-tempo` | Tempo search API | GenAI semantic convention spans (`gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`) |
+| OTLP / Prometheus | `otlp` | PromQL queries | `gen_ai_client_token_usage` histogram metrics |
+| Inferwise Cloud | `inferwise-cloud` | REST API (`/v1/stats`) | Legacy proprietary format |
+
+### OTel GenAI Semantic Conventions
+
+Inferwise reads the standard [OpenTelemetry GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/):
+
+| OTel Attribute | Inferwise Use |
+|---|---|
+| `gen_ai.provider.name` | Provider (anthropic, openai, etc.) |
+| `gen_ai.request.model` | Requested model ID |
+| `gen_ai.response.model` | Actual model used (preferred over request.model) |
+| `gen_ai.usage.input_tokens` | Input token count per request |
+| `gen_ai.usage.output_tokens` | Output token count per request |
+
+Users instrument their LLM calls with standard OTel SDKs (many already do for general observability). Inferwise reads the existing traces/metrics — no custom telemetry pipeline needed.
+
+### Backward Compatibility
+
+The legacy `apiUrl` + `apiKey` config fields still work and are mapped to the `inferwise-cloud` backend internally. New deployments should use the `telemetry` config field.
+
+### Source Priority with Telemetry
+
+When telemetry data is available:
+1. **Code-extracted** values (static prompts, `max_tokens`) always take priority
+2. **Production stats** from telemetry (≥10 requests) override typical heuristics
+3. **Calibration** ratios are applied to typical/model_limit values only
+4. If both production stats and calibration exist, production stats win
 
 ---
 
@@ -473,6 +564,7 @@ ANTHROPIC_API_KEY=            # Calibration (Anthropic usage data)
 OPENAI_API_KEY=               # Precise token counting + calibration
 GOOGLE_API_KEY=               # Precise token counting
 ANTHROPIC_ADMIN_API_KEY=      # Calibration (Anthropic Admin API)
+OPENROUTER_API_KEY=           # Calibration via OpenRouter (all providers in one call)
 INFERWISE_CONFIG=             # Config file path override
 INFERWISE_VOLUME=             # Default daily request volume
 ```
@@ -481,7 +573,7 @@ INFERWISE_VOLUME=             # Default daily request volume
 
 ## Current Status
 
-Phase 1 is complete and published (v0.2.1):
+Phase 1 is complete and published (v0.3.0):
 
 1. Pricing database package with all provider JSON files (35+ models, cross-validated in CI)
 2. Capability-based model selection (`inferRequiredCapabilities`, `suggestModelForTask`, `suggestAlternatives`)
@@ -499,6 +591,8 @@ Phase 1 is complete and published (v0.2.1):
 14. MCP Server (`@inferwise/mcp`) for AI agent integration (suggest_model, estimate_cost, audit tools)
 15. SDK entry point (`inferwise/sdk`) with `estimate()` and `estimateAndCheck()`
 16. Published to npm as `inferwise`, `@inferwise/pricing-db`, `@inferwise/mcp`
+17. OpenTelemetry integration — production stats from Grafana Tempo, Prometheus/OTLP, or legacy Inferwise Cloud
+18. OpenRouter calibration provider — calibrate all providers in one command via OpenRouter Activity API
 
 ---
 

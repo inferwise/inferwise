@@ -62,10 +62,11 @@ inferwise check . --max-cost-per-call 0.05
 
 ### `inferwise calibrate [path]`
 
-Fetch real usage from provider APIs (Anthropic, OpenAI) and compute correction factors for more accurate estimates.
+Fetch real usage from provider APIs (Anthropic, OpenAI, OpenRouter) and compute correction factors for more accurate estimates.
 
 ```bash
 ANTHROPIC_ADMIN_API_KEY=sk-ant-admin-... inferwise calibrate .
+OPENROUTER_API_KEY=sk-or-... inferwise calibrate .  # All providers via OpenRouter
 inferwise calibrate . --dry-run
 ```
 

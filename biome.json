@@ -37,5 +37,17 @@
       "packages/*/tsup.config.ts",
       "packages/*/vitest.config.ts"
     ]
-  }
+  },
+  "overrides": [
+    {
+      "include": ["packages/*/tsup.config.ts", "packages/*/vitest.config.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noDefaultExport": "off"
+          }
+        }
+      }
+    }
+  ]
 }

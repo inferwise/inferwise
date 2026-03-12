@@ -8,7 +8,12 @@ import { computeModelCalibration, saveCalibration } from "../calibration.js";
 import { loadConfig } from "../config.js";
 import { typicalInputTokens, typicalOutputTokens } from "../estimate-core.js";
 import type { ProviderUsageResult } from "../providers/index.js";
-import { PROVIDER_ENV_KEYS, SUPPORTED_PROVIDERS, fetchProviderUsage } from "../providers/index.js";
+import {
+  PROVIDER_ENV_KEYS,
+  SUPPORTED_PROVIDERS,
+  fetchOpenRouterUsage,
+  fetchProviderUsage,
+} from "../providers/index.js";
 import type { ScanResult } from "../scanners/index.js";
 import { scanDirectory } from "../scanners/index.js";
 import { countMessageTokens } from "../tokenizers/index.js";
@@ -278,29 +283,71 @@ export function calibrateCommand(): Command {
       const usageResults: ProviderUsageResult[] = [];
       const skipped: string[] = [];
 
-      for (const provider of providers) {
-        const envKey = PROVIDER_ENV_KEYS[provider];
-        if (!process.env[envKey] && SUPPORTED_PROVIDERS.includes(provider)) {
-          skipped.push(`${provider} (set ${envKey})`);
-          continue;
-        }
+      // Try OpenRouter first — covers all providers in one API call
+      const useOpenRouter = options.provider === "openrouter" || process.env.OPENROUTER_API_KEY;
+      let openRouterResults: ProviderUsageResult[] | null = null;
 
-        if (!SUPPORTED_PROVIDERS.includes(provider)) {
-          skipped.push(`${provider} (no usage API available)`);
-          continue;
-        }
-
-        process.stderr.write(chalk.dim(`Fetching ${provider} usage data (last ${days} days)...\n`));
+      if (useOpenRouter) {
+        process.stderr.write(chalk.dim(`Fetching OpenRouter usage data (last ${days} days)...\n`));
         try {
-          const usage = await fetchProviderUsage(provider, days);
-          if (usage && usage.records.length > 0) {
-            usageResults.push(usage);
-          } else {
-            skipped.push(`${provider} (no usage data returned)`);
+          openRouterResults = await fetchOpenRouterUsage(days);
+          if (openRouterResults && openRouterResults.length > 0) {
+            // If --provider openrouter, use only OpenRouter data
+            if (options.provider === "openrouter") {
+              usageResults.push(...openRouterResults);
+            }
+          } else if (options.provider === "openrouter") {
+            process.stdout.write(
+              chalk.yellow("No OpenRouter usage data returned. Check your OPENROUTER_API_KEY.\n"),
+            );
+            return;
           }
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          process.stderr.write(chalk.red(`Failed to fetch ${provider} usage: ${msg}\n`));
+          process.stderr.write(chalk.red(`Failed to fetch OpenRouter usage: ${msg}\n`));
+          if (options.provider === "openrouter") return;
+        }
+      }
+
+      // Fetch from direct provider APIs (skip if --provider openrouter)
+      if (options.provider !== "openrouter") {
+        const openRouterProviders = new Set(openRouterResults?.map((r) => r.provider) ?? []);
+
+        for (const provider of providers) {
+          // If OpenRouter already returned data for this provider, use that
+          if (openRouterProviders.has(provider)) {
+            const orResult = openRouterResults?.find((r) => r.provider === provider);
+            if (orResult && orResult.records.length > 0) {
+              usageResults.push(orResult);
+              continue;
+            }
+          }
+
+          const envKey = PROVIDER_ENV_KEYS[provider];
+          if (!process.env[envKey] && SUPPORTED_PROVIDERS.includes(provider)) {
+            skipped.push(`${provider} (set ${envKey})`);
+            continue;
+          }
+
+          if (!SUPPORTED_PROVIDERS.includes(provider)) {
+            skipped.push(`${provider} (no usage API available — try --provider openrouter)`);
+            continue;
+          }
+
+          process.stderr.write(
+            chalk.dim(`Fetching ${provider} usage data (last ${days} days)...\n`),
+          );
+          try {
+            const usage = await fetchProviderUsage(provider, days);
+            if (usage && usage.records.length > 0) {
+              usageResults.push(usage);
+            } else {
+              skipped.push(`${provider} (no usage data returned)`);
+            }
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err);
+            process.stderr.write(chalk.red(`Failed to fetch ${provider} usage: ${msg}\n`));
+          }
         }
       }
 
@@ -310,7 +357,10 @@ export function calibrateCommand(): Command {
 
       if (usageResults.length === 0) {
         process.stdout.write(
-          chalk.yellow("No provider usage data available. Set API keys to enable calibration.\n"),
+          chalk.yellow(
+            "No provider usage data available. Set API keys to enable calibration.\n" +
+              "Tip: Set OPENROUTER_API_KEY to calibrate all providers via OpenRouter.\n",
+          ),
         );
         return;
       }

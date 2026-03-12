@@ -257,10 +257,30 @@ If the increase exceeds `budgets.block`, the PR is blocked from merging.
 **5. Calibrate for tighter estimates (optional)**
 
 ```bash
+# Direct provider APIs
 ANTHROPIC_ADMIN_API_KEY=sk-ant-admin-... inferwise calibrate .
+
+# Or calibrate ALL providers via OpenRouter (one API key covers everything)
+OPENROUTER_API_KEY=sk-or-... inferwise calibrate .
 ```
 
-Fetches real usage data from provider APIs, computes correction ratios, and stores them locally. Future estimates go from "2-5x accuracy" to "within 20%".
+Fetches real usage data from provider APIs (or OpenRouter), computes correction ratios, and stores them locally. Future estimates go from "2-5x accuracy" to "within 20%".
+
+**6. Connect to OTel for production-accurate estimates (optional)**
+
+Add to `inferwise.config.json`:
+
+```json
+{
+  "telemetry": {
+    "backend": "grafana-tempo",
+    "endpoint": "https://tempo.internal:3200",
+    "apiKey": "glsa_..."
+  }
+}
+```
+
+If your LLM calls are instrumented with OpenTelemetry (using the [GenAI semantic conventions](https://opentelemetry.io/docs/specs/semconv/gen-ai/)), Inferwise reads your existing traces to get real token averages per model. Estimates go from "2-5x accuracy" to "within 10%". Supports Grafana Tempo and Prometheus/OTLP backends.
 
 ---
 
@@ -461,17 +481,21 @@ Fetch real usage data from provider APIs and compute correction factors. Makes f
 ```bash
 ANTHROPIC_ADMIN_API_KEY=sk-ant-admin-... inferwise calibrate .
 OPENAI_API_KEY=sk-... inferwise calibrate . --provider openai
-inferwise calibrate . --dry-run    # Preview without saving
+OPENROUTER_API_KEY=sk-or-... inferwise calibrate .           # All providers via OpenRouter
+inferwise calibrate . --provider openrouter                   # OpenRouter only
+inferwise calibrate . --dry-run                               # Preview without saving
 ```
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--provider <name>` | all | Calibrate only one provider |
+| `--provider <name>` | all | Calibrate only one provider (`anthropic`, `openai`, `openrouter`) |
 | `--dry-run` | off | Show comparison without saving |
 | `--days <n>` | `30` | Usage period to fetch |
 | `--format <table\|json>` | `table` | Output format |
 
 Stores correction ratios in `.inferwise/calibration.json`. Future `estimate` runs auto-load these and adjust typical/model-limit values. Only adjusts heuristic estimates — code-extracted values are already exact and left untouched.
+
+**OpenRouter:** Set `OPENROUTER_API_KEY` to calibrate ALL providers in one step — including Google, xAI, and Perplexity which don't have direct usage APIs. OpenRouter data is used as a fallback; direct provider APIs take precedence when both are available.
 
 ---
 
@@ -532,6 +556,11 @@ Create with `inferwise init` or manually:
     "block": 50000,
     "requireApproval": 10000,
     "approvers": ["platform-eng", "@infra-team"]
+  },
+  "telemetry": {
+    "backend": "grafana-tempo",
+    "endpoint": "https://tempo.internal:3200",
+    "apiKey": "glsa_..."
   }
 }
 ```
@@ -641,7 +670,8 @@ Inferwise uses static analysis — it reads your source code, not runtime traffi
 
 **To improve accuracy:**
 1. Set `max_tokens` in your LLM calls (gives exact output estimates)
-2. Run `inferwise calibrate` with provider API keys (corrects heuristics with real data)
+2. Run `inferwise calibrate` with provider API keys or `OPENROUTER_API_KEY` (corrects heuristics with real data)
+3. Connect to an OTel backend via the `telemetry` config field (uses production trace data for real-time averages)
 
 See [HEURISTICS.md](HEURISTICS.md) for full methodology, data sources, and assumptions.
 
@@ -706,8 +736,9 @@ console.log(`Cost: $${cost.toFixed(6)}`);
 |----------|-------------|
 | `INFERWISE_CONFIG` | Path to config file (overrides auto-discovery) |
 | `INFERWISE_VOLUME` | Default daily request volume (overridden by `--volume`) |
-| `ANTHROPIC_ADMIN_API_KEY` | Real usage data for `inferwise calibrate` |
-| `OPENAI_API_KEY` | Real usage data for `inferwise calibrate --provider openai` |
+| `ANTHROPIC_ADMIN_API_KEY` | Calibration via Anthropic Admin API |
+| `OPENAI_API_KEY` | Calibration via OpenAI Usage API |
+| `OPENROUTER_API_KEY` | Calibration via OpenRouter (all providers in one call) |
 
 ---
 

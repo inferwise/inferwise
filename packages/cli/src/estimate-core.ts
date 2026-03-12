@@ -10,7 +10,7 @@ import type { InferwiseConfig } from "./config.js";
 import { resolveVolume } from "./config.js";
 import type { EstimateRow, TokenSource } from "./formatters/index.js";
 import type { ScanResult } from "./scanners/index.js";
-import type { ModelStats } from "./stats-client.js";
+import type { ModelStats } from "./telemetry-client.js";
 import { countMessageTokens } from "./tokenizers/index.js";
 
 /** When model is unknown, use the cheapest current model for the provider as a floor. */

@@ -7,8 +7,8 @@ import { buildEstimateRows } from "../estimate-core.js";
 import type { EstimateSummary, OutputFormat } from "../formatters/index.js";
 import { formatJson, formatMarkdown, formatTable } from "../formatters/index.js";
 import { scanDirectory } from "../scanners/index.js";
-import type { ModelStats } from "../stats-client.js";
-import { fetchProductionStats } from "../stats-client.js";
+import type { ModelStats, TelemetryConfig } from "../telemetry-client.js";
+import { buildLegacyTelemetryConfig, fetchProductionStats } from "../telemetry-client.js";
 
 interface EstimateOptions {
   volume: string;
@@ -26,14 +26,31 @@ function resolveFormat(raw: string): OutputFormat {
   return "table";
 }
 
-/** Resolve API URL from CLI flag, config, or env var. */
-function resolveApiUrl(options: EstimateOptions, config: InferwiseConfig): string | undefined {
-  return options.apiUrl ?? config.apiUrl ?? process.env.INFERWISE_API_URL;
-}
+/** Resolve telemetry config from new telemetry field, legacy apiUrl/apiKey, or env vars. */
+function resolveTelemetryConfig(
+  options: EstimateOptions,
+  config: InferwiseConfig,
+): TelemetryConfig | undefined {
+  // New telemetry config takes precedence
+  if (config.telemetry) {
+    const t = config.telemetry;
+    return {
+      backend: t.backend,
+      endpoint: t.endpoint,
+      ...(t.headers ? { headers: t.headers } : {}),
+      ...(t.apiKey ? { apiKey: t.apiKey } : {}),
+    };
+  }
 
-/** Resolve API key from CLI flag, config, or env var. */
-function resolveApiKey(options: EstimateOptions, config: InferwiseConfig): string | undefined {
-  return options.apiKey ?? config.apiKey ?? process.env.INFERWISE_API_KEY;
+  // Fall back to legacy apiUrl + apiKey
+  const apiUrl = options.apiUrl ?? config.apiUrl ?? process.env.INFERWISE_API_URL;
+  const apiKey = options.apiKey ?? config.apiKey ?? process.env.INFERWISE_API_KEY;
+
+  if (apiUrl && apiKey) {
+    return buildLegacyTelemetryConfig(apiUrl, apiKey);
+  }
+
+  return undefined;
 }
 
 export function estimateCommand(): Command {
@@ -55,16 +72,22 @@ export function estimateCommand(): Command {
 
       const config = await loadConfig(options.config);
 
-      // Fetch production stats if API credentials are available
-      const apiUrl = resolveApiUrl(options, config);
-      const apiKey = resolveApiKey(options, config);
+      // Fetch production stats from telemetry backend
+      const telemetryConfig = resolveTelemetryConfig(options, config);
       let statsMap: Map<string, ModelStats> | null = null;
 
-      if (apiUrl && apiKey) {
+      if (telemetryConfig) {
         if (format === "table") {
-          process.stderr.write(chalk.dim("Fetching production stats...\n"));
+          process.stderr.write(
+            chalk.dim(`Fetching production stats (${telemetryConfig.backend})...\n`),
+          );
         }
-        statsMap = await fetchProductionStats(apiUrl, apiKey);
+        try {
+          statsMap = await fetchProductionStats(telemetryConfig);
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          process.stderr.write(chalk.yellow(`Warning: Failed to fetch production stats: ${msg}\n`));
+        }
       }
 
       // Load calibration data if available

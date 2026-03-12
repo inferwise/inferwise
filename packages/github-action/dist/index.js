@@ -5,6 +5,7 @@ import path from "path";
 import * as core from "@actions/core";
 import * as github from "@actions/github";
 import { calculateCost, getModel, getProviderModels } from "@inferwise/pricing-db";
+import { scanDirectory } from "inferwise/sdk";
 import { simpleGit } from "simple-git";
 var SUPPORTED_EXTENSIONS = /* @__PURE__ */ new Set(["ts", "tsx", "js", "jsx", "mjs", "cjs", "py"]);
 var PR_COMMENT_MARKER = "<!-- inferwise-cost-diff -->";
@@ -13,17 +14,6 @@ function fallbackModel(provider) {
   if (models.length === 0) return void 0;
   models.sort((a, b) => a.input_cost_per_million - b.input_cost_per_million);
   return models[0];
-}
-function extractMaxOutputTokens(window) {
-  const joined = window.join("\n");
-  const match = joined.match(
-    /(?:max_tokens|maxTokens|max_output_tokens|maxOutputTokens)\s*[:=]\s*(\d+)/
-  );
-  if (match?.[1]) {
-    const value = Number.parseInt(match[1], 10);
-    if (value > 0) return value;
-  }
-  return null;
 }
 async function checkoutRefToDir(gitRoot, ref) {
   const git = simpleGit(gitRoot);
@@ -46,100 +36,6 @@ async function checkoutRefToDir(gitRoot, ref) {
     })
   );
   return tmpDir;
-}
-function inferProvider(modelId) {
-  const raw = modelId.toLowerCase();
-  if (raw.startsWith("bedrock/anthropic.") || raw.startsWith("anthropic.")) return "anthropic";
-  if (raw.startsWith("azure/") || raw.startsWith("azure_ai/")) return "openai";
-  if (raw.startsWith("vertex_ai/")) return "google";
-  const id = raw.replace(/^(bedrock\/|azure\/|vertex_ai\/|azure_ai\/)/, "").replace(/^(models\/|gemini\/|xai\/|openai\/|perplexity\/)/, "").replace(/^(anthropic|amazon|meta|cohere|ai21|mistral|stability)\./, "").replace(/-v\d+:\d+$/, "");
-  if (id.startsWith("claude")) return "anthropic";
-  if (id.startsWith("gpt-") || id.startsWith("o1") || id.startsWith("o3") || id.startsWith("o4"))
-    return "openai";
-  if (id.startsWith("gemini")) return "google";
-  if (id.startsWith("grok")) return "xai";
-  if (id.startsWith("sonar")) return "perplexity";
-  return null;
-}
-var PATTERNS = [
-  // Anthropic SDK (TS/JS and Python)
-  { regex: /\.messages\.create\s*\(/, provider: "anthropic" },
-  // OpenAI SDK (TS/JS and Python) — also matches xAI/Perplexity (OpenAI-compatible); provider resolved from model ID
-  { regex: /\.chat\.completions\.create\s*\(/, provider: "openai" },
-  // Google GenAI SDK — only match the actual API call, not model init
-  { regex: /\.generateContent\s*\(/, provider: "google" },
-  // Vercel AI SDK — provider inferred from model factory
-  { regex: /\bgenerateText\s*\(/, provider: null },
-  { regex: /\bstreamText\s*\(/, provider: null },
-  { regex: /\bgenerateObject\s*\(/, provider: null },
-  { regex: /\bstreamObject\s*\(/, provider: null },
-  // LangChain
-  { regex: /new\s+ChatAnthropic\s*\(/, provider: "anthropic" },
-  { regex: /new\s+ChatOpenAI\s*\(/, provider: "openai" },
-  { regex: /new\s+ChatGoogleGenerativeAI\s*\(/, provider: "google" },
-  { regex: /new\s+ChatXAI\s*\(/, provider: "xai" },
-  // LangChain Bedrock / Azure
-  { regex: /new\s+ChatBedrock(?:Converse)?\s*\(/, provider: null },
-  { regex: /new\s+AzureChatOpenAI\s*\(/, provider: "openai" },
-  // AWS Bedrock SDK (Python boto3)
-  { regex: /\binvoke_model(?:_with_response_stream)?\s*\(/, provider: null },
-  // Azure OpenAI SDK
-  { regex: /new\s+AzureOpenAI\s*\(/, provider: "openai" },
-  // LiteLLM (Python)
-  { regex: /\blitellm\.(?:a?completion|atext_completion)\s*\(/, provider: null }
-];
-var IGNORE = /* @__PURE__ */ new Set([".git", "node_modules", "dist", "build", "out"]);
-async function inlineScan(dirPath) {
-  const { readdir, readFile, stat } = await import("fs/promises");
-  const results = [];
-  async function walk(dir) {
-    const entries = await readdir(dir).catch(() => []);
-    await Promise.all(
-      entries.map(async (entry) => {
-        if (IGNORE.has(entry)) return;
-        const full = path.join(dir, entry);
-        const s = await stat(full).catch(() => null);
-        if (!s) return;
-        if (s.isDirectory()) {
-          await walk(full);
-          return;
-        }
-        const ext = entry.split(".").pop() ?? "";
-        if (!SUPPORTED_EXTENSIONS.has(ext)) return;
-        if (entry.endsWith(".test.ts") || entry.endsWith(".spec.ts")) return;
-        const content = await readFile(full, "utf-8").catch(() => "");
-        const lines = content.split("\n");
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i] ?? "";
-          for (const pat of PATTERNS) {
-            if (!pat.regex.test(line)) continue;
-            const window = lines.slice(Math.max(0, i - 3), Math.min(lines.length, i + 20));
-            const joined = window.join("\n");
-            const modelMatch = joined.match(/model\s*[:=]\s*["']([^"'\n]+)["']/) ?? joined.match(/modelId\s*[:=]\s*["']([^"'\n]+)["']/) ?? joined.match(/model\s*:\s*\w+\(\s*["']([^"'\n]+)["']/);
-            const modelId = modelMatch?.[1] ?? null;
-            const inferred = modelId ? inferProvider(modelId) : null;
-            const provider = inferred ?? pat.provider;
-            if (!provider) continue;
-            const maxOutputTokens = extractMaxOutputTokens(window);
-            results.push({
-              filePath: path.relative(dirPath, full),
-              lineNumber: i + 1,
-              provider,
-              model: modelId,
-              systemPrompt: null,
-              userPrompt: null,
-              maxOutputTokens,
-              isDynamic: !modelId
-            });
-            break;
-          }
-        }
-      })
-    );
-  }
-  await walk(dirPath);
-  results.sort((a, b) => a.filePath.localeCompare(b.filePath) || a.lineNumber - b.lineNumber);
-  return results;
 }
 function typicalInputTokens(pricing) {
   return pricing.context_window < 16384 ? Math.min(4096, Math.round(pricing.context_window * 0.25)) : 4096;
@@ -306,8 +202,8 @@ async function run() {
     core.info(`Comparing ${baseRef} \u2192 ${headSha}`);
     baseDir = await checkoutRefToDir(gitRoot, `origin/${baseRef}`);
     const [baseResults, headResults] = await Promise.all([
-      inlineScan(baseDir),
-      inlineScan(gitRoot)
+      scanDirectory(baseDir),
+      scanDirectory(gitRoot)
     ]);
     const baseCosts = computeFileCosts(baseResults, effectiveVolume);
     const headCosts = computeFileCosts(headResults, effectiveVolume);
@@ -403,6 +299,5 @@ run().catch((err) => {
 });
 export {
   buildMarkdownReport,
-  computeFileCosts,
-  inferProvider
+  computeFileCosts
 };

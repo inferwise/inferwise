@@ -129,7 +129,7 @@ const r = await client.messages.create({
   it("returns empty results for directory with no LLM calls", async () => {
     const emptyDir = path.join(auditTmpDir, "empty");
     await mkdir(emptyDir, { recursive: true });
-    await writeFile(path.join(emptyDir, "plain.ts"), 'const x = 1;\n');
+    await writeFile(path.join(emptyDir, "plain.ts"), "const x = 1;\n");
 
     const result = await handleAudit({ directory: emptyDir });
     expect(result.callSites).toBe(0);

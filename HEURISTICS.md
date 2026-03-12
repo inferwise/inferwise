@@ -67,8 +67,8 @@ Typical estimates are marked with `≈` in Inferwise output. For exact estimates
 
 1. **Set `max_tokens`** in your API calls — this gives Inferwise an exact output ceiling
 2. **Use static prompts** where possible — Inferwise tokenizes these for exact input counts
-3. **Run `inferwise calibrate`** — fetches actual usage from provider APIs and stores correction factors
-4. **Connect to Inferwise Cloud** — uses production telemetry for real-time averages
+3. **Run `inferwise calibrate`** — fetches actual usage from provider APIs (or OpenRouter) and stores correction factors
+4. **Connect an OTel backend** — configure `telemetry` in `inferwise.config.json` to read production traces from Grafana Tempo or Prometheus for real-time averages
 
 ## Accuracy Expectations
 
@@ -77,7 +77,7 @@ Typical estimates are marked with `≈` in Inferwise output. For exact estimates
 | `code` (static prompt / max_tokens) | (none) | Exact |
 | `typical` (heuristic) | ≈ | Within 2-5x of actual (vs 100-2000x for old ceiling) |
 | `calibrated` (provider API data) | ~ | Within 20% of actual |
-| `production` (Inferwise Cloud) | † | Within 10% of actual |
+| `production` (OTel telemetry) | † | Within 10% of actual |
 
 ## Updating Heuristics
 

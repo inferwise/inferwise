@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PROVIDER_ENV_KEYS, SUPPORTED_PROVIDERS, fetchProviderUsage } from "./index.js";
+import {
+  PROVIDER_ENV_KEYS,
+  SUPPORTED_PROVIDERS,
+  fetchOpenRouterUsage,
+  fetchProviderUsage,
+} from "./index.js";
 
 describe("PROVIDER_ENV_KEYS", () => {
   it("maps all supported providers to env var names", () => {
@@ -46,5 +51,11 @@ describe("fetchProviderUsage", () => {
   it("returns null for perplexity", async () => {
     const result = await fetchProviderUsage("perplexity", 30);
     expect(result).toBeNull();
+  });
+});
+
+describe("fetchOpenRouterUsage export", () => {
+  it("is exported from providers/index", () => {
+    expect(typeof fetchOpenRouterUsage).toBe("function");
   });
 });

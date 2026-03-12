@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { z } from "zod";
+import { telemetryConfigSchema } from "./telemetry-client.js";
 
 const overrideSchema = z.object({
   pattern: z.string(),
@@ -39,7 +40,10 @@ const configSchema = z.object({
   ignore: z.array(z.string()).optional(),
   overrides: z.array(overrideSchema).optional(),
   budgets: budgetSchema.optional(),
+  telemetry: telemetryConfigSchema.optional(),
+  /** @deprecated Use telemetry.endpoint instead. Kept for backward compatibility. */
   apiUrl: z.string().url().optional(),
+  /** @deprecated Use telemetry.apiKey instead. Kept for backward compatibility. */
   apiKey: z.string().optional(),
 });
 

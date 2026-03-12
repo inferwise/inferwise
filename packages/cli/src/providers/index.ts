@@ -2,6 +2,7 @@ import type { Provider } from "@inferwise/pricing-db";
 import { fetchAnthropicUsage } from "./anthropic.js";
 import { fetchGoogleUsage } from "./google.js";
 import { fetchOpenAIUsage } from "./openai.js";
+import { fetchOpenRouterUsage } from "./openrouter.js";
 import type { ProviderUsageResult } from "./types.js";
 import { fetchXaiUsage } from "./xai.js";
 
@@ -38,3 +39,10 @@ export async function fetchProviderUsage(
   const fetcher = PROVIDER_FETCHERS[provider];
   return fetcher(days);
 }
+
+/**
+ * Fetch usage data from OpenRouter for ALL providers in a single step.
+ * Returns an array of ProviderUsageResults (one per provider with data),
+ * or null if the OPENROUTER_API_KEY env var is not set.
+ */
+export { fetchOpenRouterUsage } from "./openrouter.js";
