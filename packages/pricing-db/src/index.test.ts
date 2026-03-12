@@ -162,6 +162,26 @@ describe("normalizeModelId", () => {
     expect(normalizeModelId("claude-sonnet-4-20250514")).toBe("claude-sonnet-4-20250514");
     expect(normalizeModelId("gpt-4o")).toBe("gpt-4o");
   });
+
+  it("strips gateway routing prefix aws/anthropic/bedrock-", () => {
+    expect(normalizeModelId("aws/anthropic/bedrock-claude-opus-4-6")).toBe("claude-opus-4-6");
+  });
+
+  it("strips gateway routing prefix aws/openai/", () => {
+    expect(normalizeModelId("aws/openai/gpt-4o")).toBe("gpt-4o");
+  });
+
+  it("strips gateway routing prefix gcp/google/", () => {
+    expect(normalizeModelId("gcp/google/gemini-2.5-pro")).toBe("gemini-2.5-pro");
+  });
+
+  it("strips meta/ provider prefix", () => {
+    expect(normalizeModelId("meta/llama-3.3-70b-instruct")).toBe("llama-3.3-70b-instruct");
+  });
+
+  it("strips mistralai/ provider prefix", () => {
+    expect(normalizeModelId("mistralai/mistral-large-2-instruct")).toBe("mistral-large-2-instruct");
+  });
 });
 
 describe("getModel with platform-prefixed IDs", () => {
@@ -193,6 +213,18 @@ describe("getModel with platform-prefixed IDs", () => {
     const model = getModel("anthropic", "claude-sonnet-4-20250514-v1:0");
     expect(model).toBeDefined();
     expect(model?.id).toBe("claude-sonnet-4-20250514");
+  });
+
+  it("resolves gateway-routed aws/anthropic/bedrock- prefix", () => {
+    const model = getModel("anthropic", "aws/anthropic/bedrock-claude-opus-4-6");
+    expect(model).toBeDefined();
+    expect(model?.id).toBe("claude-opus-4-6");
+  });
+
+  it("resolves gateway-routed aws/openai/ prefix", () => {
+    const model = getModel("openai", "aws/openai/gpt-4o");
+    expect(model).toBeDefined();
+    expect(model?.id).toBe("gpt-4o");
   });
 });
 

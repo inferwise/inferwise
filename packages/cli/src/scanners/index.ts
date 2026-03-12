@@ -111,6 +111,16 @@ function inferProviderFromModel(modelId: string): Provider | null {
   if (raw.startsWith("azure/") || raw.startsWith("azure_ai/")) return "openai";
   if (raw.startsWith("vertex_ai/")) return "google";
 
+  // Gateway / proxy routing prefixes (cloud routing, inference gateways)
+  // e.g., "aws/anthropic/bedrock-claude-opus-4-6" → anthropic
+  if (/^(aws|gcp|azure)\/anthropic\//.test(raw)) return "anthropic";
+  if (/^(aws|gcp|azure)\/openai\//.test(raw)) return "openai";
+  if (/^(aws|gcp|azure)\/google\//.test(raw)) return "google";
+  // Direct provider-org prefixes from inference gateways
+  if (raw.startsWith("anthropic/")) return "anthropic";
+  if (raw.startsWith("mistralai/")) return null; // not in pricing DB yet
+  if (raw.startsWith("meta/")) return null; // not in pricing DB yet
+
   // Normalize and match by model name
   const id = normalizeModelId(modelId).toLowerCase();
   if (id.startsWith("claude")) return "anthropic";

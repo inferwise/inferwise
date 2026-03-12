@@ -105,13 +105,18 @@ export function normalizeModelId(modelId: string): string {
   let id = modelId;
   // OpenRouter prefix — strip it and then strip any nested provider prefix
   id = id.replace(/^openrouter\//, "");
+  // Gateway / proxy routing prefixes (cloud routing, inference gateways)
+  // e.g., "aws/anthropic/bedrock-claude-opus-4-6" → "bedrock-claude-opus-4-6"
+  id = id.replace(/^(aws|gcp|azure)\/(anthropic|openai|google|meta|mistralai|cohere|ai21)\//, "");
   // LiteLLM routing prefixes
   id = id.replace(/^(bedrock\/|azure\/|vertex_ai\/|azure_ai\/)/, "");
   // Framework prefixes (also strips nested provider prefix after openrouter/)
   id = id.replace(
-    /^(models\/|gemini\/|xai\/|openai\/|perplexity\/|anthropic\/|google\/|meta-llama\/)/,
+    /^(models\/|gemini\/|xai\/|openai\/|perplexity\/|anthropic\/|google\/|meta-llama\/|meta\/|mistralai\/)/,
     "",
   );
+  // Gateway model-name prefixes (e.g., "bedrock-claude-opus-4-6" → "claude-opus-4-6")
+  id = id.replace(/^bedrock-/, "");
   // Bedrock provider prefixes
   id = id.replace(/^(anthropic|amazon|meta|cohere|ai21|mistral|stability)\./, "");
   // Bedrock version suffix

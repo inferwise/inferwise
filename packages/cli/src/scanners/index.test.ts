@@ -395,6 +395,32 @@ const llm = new AzureChatOpenAI({
     expect(hit?.framework).toBe("langchain");
   });
 
+  it("detects gateway-routed model via OpenAI-compatible SDK (cloud inference gateway)", async () => {
+    await writeFixture(
+      "cloud-gateway.py",
+      `
+from openai import OpenAI
+
+client = OpenAI(base_url="https://gateway.example.com/v1", api_key="key-...")
+response = client.chat.completions.create(
+    model="aws/anthropic/bedrock-claude-opus-4-6",
+    max_tokens=1024,
+    messages=[
+        {"role": "system", "content": "You are a helpful assistant."},
+        {"role": "user", "content": "Hello!"},
+    ],
+)
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hit = results.find((r) => r.filePath === "cloud-gateway.py");
+    expect(hit).toBeDefined();
+    expect(hit?.provider).toBe("anthropic");
+    expect(hit?.model).toBe("aws/anthropic/bedrock-claude-opus-4-6");
+    expect(hit?.maxOutputTokens).toBe(1024);
+  });
+
   it("detects Perplexity via OpenAI-compatible SDK", async () => {
     await writeFixture(
       "perplexity-sdk.py",
