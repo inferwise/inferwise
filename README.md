@@ -383,14 +383,12 @@ Scan a directory for LLM API calls and estimate token costs.
 inferwise estimate .
 inferwise estimate ./src --volume 5000
 inferwise estimate . --format json
-inferwise estimate . --precise          # Use provider APIs for exact counts
 ```
 
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--volume <n>` | `1000` | Requests/day for monthly cost projection |
 | `--format <table\|json\|markdown>` | `table` | Output format |
-| `--precise` | off | Use provider APIs for exact token counts (requires API keys) |
 | `--config <path>` | auto | Path to `inferwise.config.json` |
 
 **Example output:**
@@ -644,7 +642,6 @@ Inferwise uses static analysis — it reads your source code, not runtime traffi
 **To improve accuracy:**
 1. Set `max_tokens` in your LLM calls (gives exact output estimates)
 2. Run `inferwise calibrate` with provider API keys (corrects heuristics with real data)
-3. Use `--precise` flag for exact tokenization of static prompts
 
 See [HEURISTICS.md](HEURISTICS.md) for full methodology, data sources, and assumptions.
 
@@ -709,10 +706,8 @@ console.log(`Cost: $${cost.toFixed(6)}`);
 |----------|-------------|
 | `INFERWISE_CONFIG` | Path to config file (overrides auto-discovery) |
 | `INFERWISE_VOLUME` | Default daily request volume (overridden by `--volume`) |
-| `ANTHROPIC_API_KEY` | Precise token counting (with `--precise`) |
-| `OPENAI_API_KEY` | Precise token counting (with `--precise`) |
-| `GOOGLE_API_KEY` | Precise token counting (with `--precise`) |
 | `ANTHROPIC_ADMIN_API_KEY` | Real usage data for `inferwise calibrate` |
+| `OPENAI_API_KEY` | Real usage data for `inferwise calibrate --provider openai` |
 
 ---
 

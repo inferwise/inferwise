@@ -39,7 +39,6 @@ Scan for LLM API calls and estimate costs.
 inferwise estimate .
 inferwise estimate ./src --volume 5000
 inferwise estimate . --format json
-inferwise estimate . --precise          # Exact counts via provider APIs
 ```
 
 ### `inferwise diff [path]`

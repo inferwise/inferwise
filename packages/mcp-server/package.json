@@ -13,7 +13,7 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "README.md", "LICENSE"],
   "engines": {
     "node": ">=18"
   },
