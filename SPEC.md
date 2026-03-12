@@ -157,7 +157,7 @@ Fetch real usage data from provider APIs and compute correction factors for more
 Verify total LLM costs are within budget. Exits with code 1 if any threshold is exceeded. Designed for CI pipelines and pre-commit hooks where automated pass/fail is needed.
 
 **Flags:**
-- `--max-monthly-cost <amount>` — Max total monthly cost (USD). Defaults to `budgets.block` from config.
+- `--max-monthly-cost <amount>` — Max total monthly cost (USD). Defaults to `budgets.maxMonthlyCost` from config, then `budgets.block` for backward compatibility.
 - `--max-cost-per-call <amount>` — Max cost per single LLM call (USD)
 - `--volume <n>` — Requests/day for monthly projection (default: 1000)
 - `--format <table|json|markdown>` — Output format (default: table)
@@ -214,6 +214,8 @@ Check the freshness of the bundled pricing database.
 }
 ```
 
+**Note:** Volume overrides match at the **file level**, not the call-site level. If a single file contains multiple LLM calls with different expected traffic, split them into separate files or use the higher volume for conservative estimates.
+
 ### Budget Thresholds
 
 Monthly cost increase (USD) that triggers enforcement actions:
@@ -224,6 +226,9 @@ Monthly cost increase (USD) that triggers enforcement actions:
 | `block` | `50000` | Fail CI check, block merge. Emergency brake — only fires on catastrophic changes |
 | `requireApproval` | — | Request review from `approvers` before merge |
 | `approvers` | — | GitHub teams or users who can approve over-budget PRs |
+| `maxMonthlyCost` | — | **Absolute** total monthly cost cap (USD) for `check` command. Unlike `block` (which gates on cost *increase* between refs), this is a ceiling on the total projected spend of the codebase. |
+
+`warn`, `block`, and `requireApproval` are **delta-based** — they compare the cost difference between two git refs (used by `diff` and the GitHub Action). `maxMonthlyCost` is **absolute** — it caps the total projected monthly cost of the entire codebase (used by `check`). If `maxMonthlyCost` is not set, `check` falls back to `block` for backward compatibility.
 
 Defaults are deliberately high. `block` is meant to catch catastrophic mistakes (wrong model at scale, missing max_tokens cap), not routine cost increases. Teams should tune thresholds to their own spending patterns.
 
@@ -242,6 +247,7 @@ const configSchema = z.object({
     block: z.number().min(0).optional(),
     requireApproval: z.number().min(0).optional(),
     approvers: z.array(z.string()).optional(),
+    maxMonthlyCost: z.number().min(0).optional(),
   }).optional(),
   apiUrl: z.string().url().optional(),
   apiKey: z.string().optional(),
@@ -288,17 +294,19 @@ Token counts are derived from code extraction, typical heuristics, or model spec
 
 **Input tokens (priority order):**
 1. Static prompt found in code → tokenized for exact count (source: `code`)
-2. Dynamic prompt → typical estimate of 4,096 tokens (source: `typical`)
-3. Calibrated → typical adjusted by provider usage data (source: `calibrated`)
-4. Fallback → `context_window - max_output_tokens` from model spec (source: `model_limit`)
+2. Production stats from cloud API (≥10 requests) → real average (source: `production`)
+3. Dynamic prompt → typical estimate of 4,096 tokens (source: `typical`)
+4. Calibrated → typical adjusted by provider usage data (source: `calibrated`)
 5. Unknown model → cheapest current model for the provider used as floor
 
 **Output tokens (priority order):**
 1. `max_tokens` / `maxTokens` / `max_output_tokens` extracted from code → exact (source: `code`)
-2. Dynamic → 5% of model's `max_output_tokens`, clamped to [512, 4096] (source: `typical`)
-3. Calibrated → typical adjusted by provider usage data (source: `calibrated`)
-4. Fallback → `max_output_tokens` from model spec (source: `model_limit`)
+2. Production stats from cloud API (≥10 requests) → real average (source: `production`)
+3. Dynamic → 5% of model's `max_output_tokens`, clamped to [512, 4096] (source: `typical`)
+4. Calibrated → typical adjusted by provider usage data (source: `calibrated`)
 5. Unknown model → cheapest current model for the provider used as floor
+
+> **Note:** The `model_limit` source (`context_window - max_output_tokens` for input, `max_output_tokens` for output) is not a direct fallback in the estimation pipeline — `typical` heuristics always fire first when model pricing data exists. `model_limit` only appears as a calibration-adjustable source tag when calibration data is applied.
 
 **Typical heuristics rationale:**
 - 4,096 input tokens: median observed across Anthropic docs, Helicone analytics, LangSmith traces
@@ -399,6 +407,12 @@ Regex-based pattern matching (not AST parsing) for speed.
 - Dynamic flag: true when model or prompts are not statically resolvable
 
 **Supported file types:** `.ts`, `.tsx`, `.js`, `.jsx`, `.py`, `.mjs`, `.cjs`
+
+**Scanner limitations:**
+- Context window is 3 lines before + 20 lines after the API call. Model, prompt, or `max_tokens` defined farther away won't be extracted.
+- Prompt extraction captures up to 500 characters of inline string literals. Template literals with interpolation, multi-line prompts, or prompts stored in variables are marked as dynamic.
+- Only the first matching pattern per line is used — multiple API calls on the same line are not supported.
+- Dynamic calls (where model or prompts can't be statically resolved) use typical heuristic estimates. Run `inferwise calibrate` to correct these with real usage data.
 
 ---
 

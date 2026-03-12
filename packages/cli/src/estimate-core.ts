@@ -167,6 +167,8 @@ function computeRowCost(
     outputTokenSource,
     costPerCall,
     monthlyCost,
+    ...(result.systemPrompt ? { systemPrompt: result.systemPrompt } : {}),
+    ...(result.userPrompt ? { userPrompt: result.userPrompt } : {}),
   };
 }
 

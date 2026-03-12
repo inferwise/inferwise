@@ -467,25 +467,36 @@ export function suggestAlternatives(
       return candidateQuality >= currentQuality * minQualityRatio;
     });
 
+  // Representative token counts for cost comparison (typical workload)
+  const REF_INPUT = 4096;
+  const REF_OUTPUT = 1024;
+  const currentTotalCost = calculateCost({
+    model: current,
+    inputTokens: REF_INPUT,
+    outputTokens: REF_OUTPUT,
+  });
+
   // Sort by quality-adjusted cost (cost / quality) instead of raw cost
   const sorted = candidates.sort((a, b) => {
+    const aCost = calculateCost({ model: a, inputTokens: REF_INPUT, outputTokens: REF_OUTPUT });
+    const bCost = calculateCost({ model: b, inputTokens: REF_INPUT, outputTokens: REF_OUTPUT });
     const aQuality = getMinQualityScore(a.provider, a.id, requiredCapabilities);
     const bQuality = getMinQualityScore(b.provider, b.id, requiredCapabilities);
-    const aAdj = aQuality
-      ? a.output_cost_per_million / (aQuality / 100)
-      : a.output_cost_per_million;
-    const bAdj = bQuality
-      ? b.output_cost_per_million / (bQuality / 100)
-      : b.output_cost_per_million;
+    const aAdj = aQuality ? aCost / (aQuality / 100) : aCost;
+    const bAdj = bQuality ? bCost / (bQuality / 100) : bCost;
     return aAdj - bAdj;
   });
 
   return sorted.slice(0, 3).map((m) => {
-    const savings = Math.round(
-      ((current.output_cost_per_million - m.output_cost_per_million) /
-        current.output_cost_per_million) *
-        100,
-    );
+    const candidateTotalCost = calculateCost({
+      model: m,
+      inputTokens: REF_INPUT,
+      outputTokens: REF_OUTPUT,
+    });
+    const savings =
+      currentTotalCost > 0
+        ? Math.round(((currentTotalCost - candidateTotalCost) / currentTotalCost) * 100)
+        : 0;
     const caps = `[${requiredCapabilities.join(", ")}]`;
     const candidateQuality = getMinQualityScore(m.provider, m.id, requiredCapabilities);
     const qualitySuffix =

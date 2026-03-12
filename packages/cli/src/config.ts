@@ -17,6 +17,8 @@ const budgetSchema = z
     requireApproval: z.number().min(0).optional(),
     /** GitHub teams or users who can approve over-budget PRs. */
     approvers: z.array(z.string()).optional(),
+    /** Absolute total monthly cost cap (USD) for `check` command. Unlike `block` (which is delta-based), this is an absolute ceiling. */
+    maxMonthlyCost: z.number().min(0).optional(),
   })
   .refine(
     (b) => {

@@ -102,7 +102,8 @@ export async function estimateAndCheck(
   const result = await estimate(scanPath, options);
   const config = options?.config ?? (await loadConfig(options?.configPath));
 
-  const maxMonthlyCost = options?.maxMonthlyCost ?? config.budgets?.block;
+  const maxMonthlyCost =
+    options?.maxMonthlyCost ?? config.budgets?.maxMonthlyCost ?? config.budgets?.block;
   const maxCostPerCall = options?.maxCostPerCall;
 
   const violations: Violation[] = [];

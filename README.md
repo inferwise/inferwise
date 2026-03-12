@@ -563,6 +563,8 @@ Different endpoints have different traffic. A chat endpoint might handle 5,000 r
 }
 ```
 
+**Note:** Volume overrides match at the file level, not per call site. If one file has multiple LLM calls with different traffic, split them into separate files or use the higher volume.
+
 ---
 
 ## CI Setup

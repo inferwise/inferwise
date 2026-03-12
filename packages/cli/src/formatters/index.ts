@@ -22,6 +22,10 @@ export interface EstimateRow {
   outputTokenSource: TokenSource;
   costPerCall: number;
   monthlyCost: number;
+  /** System prompt extracted from code, if available. */
+  systemPrompt?: string;
+  /** User prompt extracted from code, if available. */
+  userPrompt?: string;
 }
 
 export interface EstimateSummary {

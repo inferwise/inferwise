@@ -40,10 +40,10 @@ export function checkCommand(): Command {
       const config = await loadConfig(options.config);
       const calibration = await loadCalibration();
 
-      // Resolve thresholds: CLI flags > config budgets
+      // Resolve thresholds: CLI flags > budgets.maxMonthlyCost > budgets.block (backward compat)
       const maxMonthlyCost = options.maxMonthlyCost
         ? Number.parseFloat(options.maxMonthlyCost)
-        : config.budgets?.block;
+        : (config.budgets?.maxMonthlyCost ?? config.budgets?.block);
       const maxCostPerCall = options.maxCostPerCall
         ? Number.parseFloat(options.maxCostPerCall)
         : undefined;

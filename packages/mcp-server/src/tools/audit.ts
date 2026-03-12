@@ -42,7 +42,8 @@ export async function handleAudit(input: AuditInput): Promise<AuditResult> {
   for (const row of result.rows) {
     if (!validProviders.has(row.provider)) continue;
     const provider = row.provider as Provider;
-    const capabilities = inferRequiredCapabilities(row.model);
+    const promptText = [row.systemPrompt, row.userPrompt].filter(Boolean).join(" ");
+    const capabilities = inferRequiredCapabilities(promptText || row.model);
     const alts = suggestAlternatives(row.model, provider, capabilities);
     const best = alts[0];
     if (!best || best.savingsPercent < 20) continue;
