@@ -41,21 +41,39 @@ jobs:
           echo "::warning::Benchmark sync failed (Arena API may be unavailable). Skipping PR creation."
           exit 0
 
-      - name: Check for changes
+      - name: Classify changes
         if: steps.sync.outcome == 'success'
         id: diff
         run: |
           if git diff --quiet packages/pricing-db/benchmarks.json; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "scores_changed=false" >> "$GITHUB_OUTPUT"
             echo "No benchmark changes detected."
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Benchmark changes detected:"
-            git diff --stat packages/pricing-db/benchmarks.json
+            # Check if only metadata changed (last_synced etc) vs actual scores
+            SCORE_DIFF=$(git diff packages/pricing-db/benchmarks.json | grep '^[+-]' | grep -v '^[+-][+-][+-]' | grep -v 'last_synced' | grep -v 'synced_at' | head -1)
+            if [ -z "$SCORE_DIFF" ]; then
+              echo "scores_changed=false" >> "$GITHUB_OUTPUT"
+              echo "Only metadata changed (no score changes)."
+            else
+              echo "scores_changed=true" >> "$GITHUB_OUTPUT"
+              echo "Benchmark score changes detected:"
+              git diff --stat packages/pricing-db/benchmarks.json
+            fi
           fi
 
+      - name: Auto-commit metadata update
+        if: steps.diff.outputs.changed == 'true' && steps.diff.outputs.scores_changed == 'false'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add packages/pricing-db/benchmarks.json
+          git commit -m "chore(benchmarks): verify Arena scores (${{ github.run_started_at }})"
+          git push
+
       - name: Ensure labels exist
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.diff.outputs.scores_changed == 'true'
         continue-on-error: true
         uses: actions/github-script@v7
         with:
@@ -74,14 +92,14 @@ jobs:
             }
 
       - name: Create PR if benchmarks changed
-        if: steps.diff.outputs.changed == 'true'
+        if: steps.diff.outputs.scores_changed == 'true'
         continue-on-error: true
         uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "chore(benchmarks): sync Arena quality scores ${{ github.run_started_at }}"
           title: "chore(benchmarks): update Chatbot Arena quality scores"
           body: |
-            Automated benchmark data sync from Chatbot Arena.
+            Automated benchmark data sync from Chatbot Arena — **actual score changes detected**.
 
             This PR was created automatically by the weekly sync workflow.
             Review the score changes and merge to update bundled benchmark data.
