@@ -626,6 +626,82 @@ response = litellm.text_completion(
     expect(hit?.framework).toBe("litellm");
   });
 
+  it("skips API call patterns inside comments", async () => {
+    await writeFixture(
+      "commented-out.ts",
+      `
+// Example: client.messages.create({ model: "claude-sonnet-4-20250514" })
+// await openai.chat.completions.create({ model: "gpt-4o" })
+/* old code: .messages.create() */
+const x = 1;
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hits = results.filter((r) => r.filePath === "commented-out.ts");
+    expect(hits).toHaveLength(0);
+  });
+
+  it("skips Python comment lines with API patterns", async () => {
+    await writeFixture(
+      "commented-out.py",
+      `
+# response = client.messages.create(model="claude-sonnet-4-20250514")
+# client.chat.completions.create(model="gpt-4o")
+x = 1
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const hits = results.filter((r) => r.filePath === "commented-out.py");
+    expect(hits).toHaveLength(0);
+  });
+
+  it("does not bleed prompts across adjacent call sites", async () => {
+    await writeFixture(
+      "adjacent-calls.ts",
+      `
+import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
+
+const anthropic = new Anthropic();
+const openai = new OpenAI();
+
+const r1 = await anthropic.messages.create({
+  model: "claude-sonnet-4-20250514",
+  max_tokens: 4096,
+  system: "You are a code reviewer.",
+  messages: [{ role: "user", content: prompt }],
+});
+
+const r2 = await openai.chat.completions.create({
+  model: "gpt-4o",
+  max_tokens: 1024,
+  messages: [
+    { role: "system", content: "Summarize the document in 2-3 sentences." },
+    { role: "user", content: doc },
+  ],
+});
+`,
+    );
+
+    const results = await scanDirectory(tmpDir);
+    const sonnet = results.find(
+      (r) => r.filePath === "adjacent-calls.ts" && r.model === "claude-sonnet-4-20250514",
+    );
+    const gpt = results.find((r) => r.filePath === "adjacent-calls.ts" && r.model === "gpt-4o");
+
+    expect(sonnet).toBeDefined();
+    expect(gpt).toBeDefined();
+
+    // Sonnet call should NOT pick up the OpenAI call's "Summarize" prompt
+    expect(sonnet?.userPrompt).toBeNull();
+    expect(sonnet?.systemPrompt).toBe("You are a code reviewer.");
+
+    // GPT call should have its own system prompt
+    expect(gpt?.systemPrompt).toBe("Summarize the document in 2-3 sentences.");
+  });
+
   it("handles subdirectories", async () => {
     const subDir = path.join(tmpDir, "sub");
     await mkdir(subDir, { recursive: true });

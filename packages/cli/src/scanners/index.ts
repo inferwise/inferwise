@@ -84,6 +84,17 @@ const IGNORE_PATTERNS = [
   "**/*.d.ts",
 ];
 
+function isCommentLine(line: string, ext: string): boolean {
+  const trimmed = line.trimStart();
+  // JS/TS/Python single-line comments
+  if (trimmed.startsWith("//") || trimmed.startsWith("#")) return true;
+  // Block comment lines: /* ... */, * ..., or standalone */
+  if (trimmed.startsWith("/*") || trimmed.startsWith("*") || trimmed.startsWith("*/")) return true;
+  // Python docstrings
+  if (ext === "py" && (trimmed.startsWith('"""') || trimmed.startsWith("'''"))) return true;
+  return false;
+}
+
 function extractString(lines: string[], pattern: RegExp): string | null {
   for (const line of lines) {
     const match = line.match(pattern);
@@ -164,8 +175,10 @@ function extractPrompts(window: string[]): {
   systemPrompt: string | null;
   userPrompt: string | null;
 } {
-  // System prompt: system: "..." (short inline strings only)
-  const systemPrompt = extractString(window, /system\s*:\s*["']([^"']{1,500})["']/);
+  // System prompt: system: "..." (Anthropic top-level) or role: "system", content: "..." (OpenAI messages array)
+  const systemPrompt =
+    extractString(window, /system\s*:\s*["']([^"']{1,500})["']/) ??
+    extractString(window, /role\s*:\s*["']system["']\s*,\s*content\s*:\s*["']([^"']{1,500})["']/);
 
   // User/content prompt
   const userPrompt =
@@ -176,11 +189,35 @@ function extractPrompts(window: string[]): {
   return { systemPrompt, userPrompt };
 }
 
+function findNextCallSiteLine(lines: string[], startLine: number, skip = 1): number {
+  for (let j = startLine + skip; j < lines.length; j++) {
+    const l = lines[j] ?? "";
+    if (PATTERNS.some((p) => p.regex.test(l))) return j;
+  }
+  return lines.length;
+}
+
+function getBoundedContextWindow(
+  lines: string[],
+  lineIndex: number,
+  after = 20,
+  multilineMatch = false,
+): string[] {
+  const start = Math.max(0, lineIndex - 3);
+  const rawEnd = Math.min(lines.length - 1, lineIndex + after);
+  // Don't let the context window cross into the next API call site
+  // When current match spans two lines (multiline chain), skip the consumed line
+  const nextCall = findNextCallSiteLine(lines, lineIndex, multilineMatch ? 2 : 1);
+  const end = Math.min(rawEnd, nextCall - 1);
+  return lines.slice(start, end + 1);
+}
+
 async function scanFile(filePath: string, relativeBase: string): Promise<ScanResult[]> {
   const content = await readFile(filePath, "utf-8");
   const lines = content.split("\n");
   const results: ScanResult[] = [];
   const relativePath = path.relative(relativeBase, filePath);
+  const ext = path.extname(filePath).replace(".", "");
 
   const matchedLines = new Set<number>();
 
@@ -188,6 +225,10 @@ async function scanFile(filePath: string, relativeBase: string): Promise<ScanRes
     if (matchedLines.has(i)) continue;
 
     const line = lines[i] ?? "";
+
+    // Skip comment lines — they can't be real API calls
+    if (isCommentLine(line, ext)) continue;
+
     // Join current + next line (collapsed) to catch multiline method chains
     // e.g., "client.messages\n  .create(" → "client.messages.create("
     const joined2 = line.trimEnd() + (lines[i + 1] ?? "").trimStart();
@@ -205,7 +246,8 @@ async function scanFile(filePath: string, relativeBase: string): Promise<ScanRes
     for (const pattern of PATTERNS) {
       if (!pattern.regex.test(line) && !pattern.regex.test(joined2)) continue;
 
-      const window = getContextWindow(lines, i);
+      // Use bounded context window that stops before the next API call site
+      const window = getBoundedContextWindow(lines, i, 20, matchedJoined);
 
       const modelId = extractModelId(window);
 

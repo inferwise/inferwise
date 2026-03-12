@@ -5,9 +5,13 @@ import { handleAudit } from "./tools/audit.js";
 import { handleEstimateCost } from "./tools/estimate-cost.js";
 import { handleSuggestModel } from "./tools/suggest-model.js";
 
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
+const { version } = require("../package.json") as { version: string };
+
 const server = new McpServer({
   name: "inferwise",
-  version: "0.2.1",
+  version,
 });
 
 // ── suggest_model ────────────────────────────────────────────────────

@@ -109,7 +109,6 @@ Scan a directory for LLM API calls and estimate costs.
 **Flags:**
 - `--volume <n>` — Requests/day for monthly projection (default: 1000)
 - `--format <table|json|markdown>` — Output format (default: table)
-- `--precise` — Use provider APIs for exact token counts (requires API keys)
 - `--config <path>` — Path to inferwise.config.json
 
 **Unknown model detection:** When the scanner finds a model ID that doesn't exist in the pricing database, a warning is printed with the missing model ID and a link to the issue tracker.
@@ -470,7 +469,7 @@ The GitHub Action reads `inferwise.config.json` and applies:
 ## Environment Variables
 
 ```
-ANTHROPIC_API_KEY=            # Precise token counting (--precise flag)
+ANTHROPIC_API_KEY=            # Calibration (Anthropic usage data)
 OPENAI_API_KEY=               # Precise token counting + calibration
 GOOGLE_API_KEY=               # Precise token counting
 ANTHROPIC_ADMIN_API_KEY=      # Calibration (Anthropic Admin API)

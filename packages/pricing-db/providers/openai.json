@@ -59,7 +59,7 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "creative", "vision"]
+      "capabilities": ["code", "reasoning", "general", "creative", "vision"]
     },
     {
       "id": "gpt-4.1-mini",

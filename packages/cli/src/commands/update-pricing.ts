@@ -11,11 +11,11 @@ export function updatePricingCommand(): Command {
       const providers = getAllProviders();
       let anyStale = false;
 
-      console.log("Inferwise Pricing Database Status\n");
-      console.log(
-        `${"Provider".padEnd(12)} ${"Last Verified".padEnd(14)} ${"Age".padEnd(8)} ${"Status".padEnd(10)} Source`,
+      process.stdout.write("Inferwise Pricing Database Status\n\n");
+      process.stdout.write(
+        `${"Provider".padEnd(12)} ${"Last Verified".padEnd(14)} ${"Age".padEnd(8)} ${"Status".padEnd(10)} Source\n`,
       );
-      console.log("─".repeat(90));
+      process.stdout.write(`${"─".repeat(90)}\n`);
 
       for (const provider of providers) {
         const meta = getProviderMeta(provider);
@@ -24,27 +24,29 @@ export function updatePricingCommand(): Command {
         if (isStale) anyStale = true;
 
         const status = isStale ? "STALE" : "OK";
-        console.log(
-          `${provider.padEnd(12)} ${meta.last_verified.padEnd(14)} ${`${age}d`.padEnd(8)} ${status.padEnd(10)} ${meta.source}`,
+        process.stdout.write(
+          `${provider.padEnd(12)} ${meta.last_verified.padEnd(14)} ${`${age}d`.padEnd(8)} ${status.padEnd(10)} ${meta.source}\n`,
         );
       }
 
-      console.log();
+      process.stdout.write("\n");
 
       if (anyStale) {
-        console.log(
-          `Warning: Some providers have pricing data older than ${STALE_THRESHOLD_DAYS} days.`,
+        process.stdout.write(
+          `Warning: Some providers have pricing data older than ${STALE_THRESHOLD_DAYS} days.\n`,
         );
-        console.log(
-          "Run the sync script to refresh:\n  pnpm --filter @inferwise/scripts sync-pricing\n",
+        process.stdout.write(
+          "Run the sync script to refresh:\n  pnpm --filter @inferwise/scripts sync-pricing\n\n",
         );
-        console.log("Source: https://github.com/inferwise/inferwise/tree/main/packages/pricing-db");
+        process.stdout.write(
+          "Source: https://github.com/inferwise/inferwise/tree/main/packages/pricing-db\n",
+        );
 
         if (options.check) {
           process.exit(1);
         }
       } else {
-        console.log("All provider pricing is up to date.");
+        process.stdout.write("All provider pricing is up to date.\n");
       }
     });
 }

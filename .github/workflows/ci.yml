@@ -42,3 +42,8 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Smoke test (end-to-end)
+        shell: bash
+        run: |
+          node packages/cli/dist/index.js estimate smoke-test/ --format json | node smoke-test/validate.mjs
