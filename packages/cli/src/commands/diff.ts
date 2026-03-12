@@ -370,6 +370,9 @@ function formatDiffJson(summary: DiffSummary): string {
 
 function resolveFormat(raw: string): DiffOutputFormat {
   if (raw === "json" || raw === "markdown") return raw;
+  if (raw !== "table") {
+    process.stderr.write(`Warning: Unknown format "${raw}" — using table.\n`);
+  }
   return "table";
 }
 

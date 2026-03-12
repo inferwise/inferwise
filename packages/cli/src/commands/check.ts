@@ -17,6 +17,9 @@ interface CheckOptions {
 
 function resolveFormat(raw: string): OutputFormat {
   if (raw === "json" || raw === "markdown") return raw;
+  if (raw !== "table") {
+    process.stderr.write(`Warning: Unknown format "${raw}" — using table.\n`);
+  }
   return "table";
 }
 

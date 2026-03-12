@@ -122,12 +122,6 @@ function inferProviderFromModel(modelId: string): Provider | null {
   return null;
 }
 
-function getContextWindow(lines: string[], lineIndex: number, after = 20): string[] {
-  const start = Math.max(0, lineIndex - 3);
-  const end = Math.min(lines.length - 1, lineIndex + after);
-  return lines.slice(start, end + 1);
-}
-
 function extractModelId(window: string[]): string | null {
   const joined = window.join("\n");
 

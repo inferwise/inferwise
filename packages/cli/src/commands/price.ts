@@ -30,6 +30,9 @@ const DAYS_PER_MONTH = 30;
 
 function resolveFormat(raw: string): PriceOutputFormat {
   if (raw === "json" || raw === "markdown") return raw;
+  if (raw !== "table") {
+    process.stderr.write(`Warning: Unknown format "${raw}" — using table.\n`);
+  }
   return "table";
 }
 

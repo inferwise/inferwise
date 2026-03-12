@@ -78,6 +78,9 @@ function inferConfidence(result: ScanResult): "high" | "medium" | "low" {
 
 function resolveFormat(raw: string): AuditOutputFormat {
   if (raw === "json" || raw === "markdown") return raw;
+  if (raw !== "table") {
+    process.stderr.write(`Warning: Unknown format "${raw}" — using table.\n`);
+  }
   return "table";
 }
 

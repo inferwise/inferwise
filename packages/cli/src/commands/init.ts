@@ -86,6 +86,16 @@ export function initCommand(): Command {
     .option("--no-config", "Skip config file creation")
     .option("--hook <type>", "Hook type: pre-commit or pre-push", "pre-commit")
     .action(async (options: { hooks: boolean; config: boolean; hook: string }) => {
+      const validHooks = ["pre-commit", "pre-push"];
+      if (!validHooks.includes(options.hook)) {
+        process.stderr.write(
+          chalk.red(
+            `Error: Invalid hook type "${options.hook}". Must be: ${validHooks.join(", ")}\n`,
+          ),
+        );
+        process.exit(1);
+      }
+
       const cwd = process.cwd();
       const gitRoot = await findGitRoot(cwd);
 

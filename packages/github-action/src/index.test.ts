@@ -1,62 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { FileCostEntry, ScanResult } from "./index.js";
-import { buildMarkdownReport, computeFileCosts, inferProvider } from "./index.js";
+import { buildMarkdownReport, computeFileCosts } from "./index.js";
 
 describe("GitHub Action core logic", () => {
-  describe("inferProvider", () => {
-    it("identifies Claude models as Anthropic", () => {
-      expect(inferProvider("claude-sonnet-4-20250514")).toBe("anthropic");
-      expect(inferProvider("claude-opus-4-20250514")).toBe("anthropic");
-      expect(inferProvider("claude-haiku-4-5-20250101")).toBe("anthropic");
-    });
-
-    it("identifies GPT models as OpenAI", () => {
-      expect(inferProvider("gpt-4o")).toBe("openai");
-      expect(inferProvider("gpt-4.1")).toBe("openai");
-      expect(inferProvider("gpt-4o-mini")).toBe("openai");
-    });
-
-    it("identifies o-series models as OpenAI", () => {
-      expect(inferProvider("o3")).toBe("openai");
-      expect(inferProvider("o3-mini")).toBe("openai");
-      expect(inferProvider("o4-mini")).toBe("openai");
-      expect(inferProvider("o1")).toBe("openai");
-    });
-
-    it("identifies Gemini models as Google", () => {
-      expect(inferProvider("gemini-2.5-pro")).toBe("google");
-      expect(inferProvider("gemini-2.5-flash")).toBe("google");
-    });
-
-    it("identifies Grok models as xAI", () => {
-      expect(inferProvider("grok-3")).toBe("xai");
-      expect(inferProvider("grok-3-mini")).toBe("xai");
-    });
-
-    it("identifies Sonar models as Perplexity", () => {
-      expect(inferProvider("sonar-pro")).toBe("perplexity");
-      expect(inferProvider("sonar-reasoning-pro")).toBe("perplexity");
-    });
-
-    it("handles Bedrock-prefixed model IDs", () => {
-      expect(inferProvider("bedrock/anthropic.claude-sonnet-4")).toBe("anthropic");
-      expect(inferProvider("anthropic.claude-sonnet-4")).toBe("anthropic");
-    });
-
-    it("handles Azure-prefixed model IDs", () => {
-      expect(inferProvider("azure/gpt-4o")).toBe("openai");
-      expect(inferProvider("azure_ai/gpt-4o")).toBe("openai");
-    });
-
-    it("handles Vertex AI-prefixed model IDs", () => {
-      expect(inferProvider("vertex_ai/gemini-2.5-pro")).toBe("google");
-    });
-
-    it("returns null for unknown models", () => {
-      expect(inferProvider("unknown-model-123")).toBeNull();
-    });
-  });
-
   describe("computeFileCosts", () => {
     it("computes costs for known models", () => {
       const results: ScanResult[] = [
@@ -69,6 +15,7 @@ describe("GitHub Action core logic", () => {
           userPrompt: null,
           maxOutputTokens: 1024,
           isDynamic: false,
+          framework: "anthropic-sdk",
         },
       ];
 
@@ -91,6 +38,7 @@ describe("GitHub Action core logic", () => {
           userPrompt: null,
           maxOutputTokens: 1024,
           isDynamic: false,
+          framework: "anthropic-sdk",
         },
         {
           filePath: "src/api.ts",
@@ -101,6 +49,7 @@ describe("GitHub Action core logic", () => {
           userPrompt: null,
           maxOutputTokens: 512,
           isDynamic: false,
+          framework: "openai-sdk",
         },
       ];
 
@@ -121,6 +70,7 @@ describe("GitHub Action core logic", () => {
           userPrompt: null,
           maxOutputTokens: null,
           isDynamic: true,
+          framework: "anthropic-sdk",
         },
       ];
 

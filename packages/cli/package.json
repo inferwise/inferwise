@@ -6,12 +6,12 @@
   "bin": {
     "inferwise": "./dist/index.js"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/sdk.js",
+  "types": "./dist/sdk.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/sdk.d.ts",
+      "import": "./dist/sdk.js"
     },
     "./sdk": {
       "types": "./dist/sdk.d.ts",
