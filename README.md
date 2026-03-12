@@ -38,7 +38,7 @@ An AI coding agent builds a RAG pipeline and picks Opus for every step — embed
 
 ## How It Works
 
-Inferwise has six layers, each building on the last:
+Inferwise has seven layers, each building on the last:
 
 **1. Code Scanner** — Reads your source files (.ts, .js, .py) and finds every AI API call. For each one, it extracts which provider, which model, the prompt text, and the max token setting. This is static analysis — it reads your code, it doesn't run it. Works offline, no API keys needed.
 
@@ -439,12 +439,12 @@ inferwise estimate . --format json
 File               Line  Provider   Model              Input    Output   Cost/Call  Monthly
 src/chat.ts        42    anthropic  claude-sonnet-4    1,200    600      $0.0126    $378/mo
 src/summarize.ts   18    openai     gpt-4o              800    400      $0.0064    $192/mo
-src/rag.ts         91    anthropic  claude-opus-4      4,096 ~  2,048 ~  $0.0429    $1,287/mo
+src/rag.ts         91    anthropic  claude-opus-4      4,096 ≈  2,048 ≈  $0.0429    $1,287/mo
 ```
 
 Token source markers:
 - No marker — extracted from code (exact)
-- `~` — typical estimate (no static prompt or max_tokens found)
+- `≈` — typical estimate (no static prompt or max_tokens found)
 - `*` — worst-case ceiling from model spec
 - `~` — calibrated from real provider usage data
 
@@ -710,7 +710,7 @@ Inferwise uses static analysis — it reads your source code, not runtime traffi
 | Source | Marker | Accuracy | How |
 |--------|--------|----------|-----|
 | Code-extracted | (none) | Exact | Static prompts tokenized, `max_tokens` read from code |
-| Typical estimate | `~` | 2-5x of actual | Industry heuristics: 4K input tokens, 5% of max output |
+| Typical estimate | `≈` | 2-5x of actual | Industry heuristics: 4K input tokens, 5% of max output |
 | Model limit | `*` | 10-50x of actual | Worst-case ceiling from model spec |
 | Calibrated | `~` | Within 20% | Corrected by real provider usage data |
 

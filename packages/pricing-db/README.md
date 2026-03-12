@@ -1,6 +1,6 @@
 # @inferwise/pricing-db
 
-Maintained pricing database for LLM providers. Ships bundled JSON pricing for Anthropic, OpenAI, Google, and xAI models.
+Maintained pricing database for LLM providers. Ships bundled JSON pricing for Anthropic, OpenAI, Google, xAI, and Perplexity models.
 
 ## Install
 

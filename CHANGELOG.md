@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] - 2026-03-12
+
+### Added
+- **`inferwise fix`** command — auto-apply model swap recommendations to source files. Rewrites model IDs in-place, skips dynamic models, supports `--dry-run`, `--provider`, `--min-savings` filters.
+- **`apply_recommendations` MCP tool** — AI agents can auto-fix expensive models programmatically. Accepts explicit swaps or runs audit internally.
+- **OpenTelemetry integration** — fetch production token usage from Grafana Tempo or Prometheus/OTLP backends. New `telemetry` config field.
+- **OpenRouter calibration provider** — calibrate all 5 providers in one command via `OPENROUTER_API_KEY`.
+- 27 e2e integration tests, 13 fix-core tests (380 total)
+
+### Changed
+- Replaced `stats-client.ts` with `telemetry-client.ts` supporting three backends
+- CI workflows bumped to Node 22 (Node 20 deprecated on GitHub Actions)
+- Sync workflows now auto-commit `last_verified` directly to main (no stale PRs)
+- Biome config: suppressed `noDefaultExport` for tsup/vitest config files
+
+### Fixed
+- CI lint failures caused by biome formatting drift and `noDefaultExport` warnings
+- Branch protection required checks mismatched after Node version bump
+- Pricing `last_verified` dates going stale (sync PRs never merged)
+
 ## [0.2.1] - 2026-03-11
 
 ### Added

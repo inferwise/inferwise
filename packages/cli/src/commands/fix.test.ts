@@ -61,7 +61,24 @@ describe("fix-core", () => {
       expect(result?.content).toContain("`claude-sonnet-4-20250514`");
     });
 
-    it("returns null if model not found on target line", () => {
+    it("finds model string on nearby lines (window search)", () => {
+      // Scanner reports line 1 (.create), but model is on line 2
+      const content = `const response = await anthropic.messages.create({
+  model: "claude-opus-4-20250514",
+  max_tokens: 1024,
+});`;
+      const result = applyModelSwap(
+        content,
+        1,
+        "claude-opus-4-20250514",
+        "claude-sonnet-4-20250514",
+      );
+      expect(result).not.toBeNull();
+      expect(result?.content).toContain('"claude-sonnet-4-20250514"');
+      expect(result?.actualLine).toBe(2);
+    });
+
+    it("returns null if model not found anywhere in window", () => {
       const content = `const model = getModel();
 const response = await anthropic.messages.create({
   model: model,

@@ -583,10 +583,8 @@ The GitHub Action reads `inferwise.config.json` and applies:
 ## Environment Variables
 
 ```
-ANTHROPIC_API_KEY=            # Calibration (Anthropic usage data)
-OPENAI_API_KEY=               # Precise token counting + calibration
-GOOGLE_API_KEY=               # Precise token counting
 ANTHROPIC_ADMIN_API_KEY=      # Calibration (Anthropic Admin API)
+OPENAI_API_KEY=               # Calibration (OpenAI Usage API)
 OPENROUTER_API_KEY=           # Calibration via OpenRouter (all providers in one call)
 INFERWISE_CONFIG=             # Config file path override
 INFERWISE_VOLUME=             # Default daily request volume

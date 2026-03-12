@@ -37,8 +37,14 @@ export interface ApplyResult {
   estimatedMonthlySavings: number;
 }
 
+/** How many lines above/below the reported line to search for the model string. */
+const SEARCH_WINDOW = 10;
+
 /**
  * Apply a single model swap to a source file.
+ * The scanner reports the API call line, but the model string is often on a
+ * nearby line (e.g. `model: "claude-opus-4"` is 1-3 lines after `.create({`).
+ * We search a window of lines around the reported line number.
  * Returns the updated file content, or null if the swap could not be applied.
  */
 export function applyModelSwap(
@@ -46,7 +52,7 @@ export function applyModelSwap(
   lineNumber: number,
   currentModel: string,
   suggestedModel: string,
-): { content: string; reason?: string } | null {
+): { content: string; actualLine: number } | null {
   const lines = fileContent.split("\n");
   const lineIndex = lineNumber - 1;
 
@@ -54,30 +60,24 @@ export function applyModelSwap(
     return null;
   }
 
-  const line = lines[lineIndex] ?? "";
-
-  // Check if the current model appears as a string literal on this line
-  // Match both single and double quotes, and backtick templates
   const patterns = [`"${currentModel}"`, `'${currentModel}'`, `\`${currentModel}\``];
 
-  let found = false;
-  let updatedLine = line;
+  // Search a window around the reported line (model string is often a few lines away)
+  const startIndex = Math.max(0, lineIndex - SEARCH_WINDOW);
+  const endIndex = Math.min(lines.length - 1, lineIndex + SEARCH_WINDOW);
 
-  for (const pattern of patterns) {
-    if (line.includes(pattern)) {
-      const quote = pattern[0];
-      updatedLine = line.replace(pattern, `${quote}${suggestedModel}${quote}`);
-      found = true;
-      break;
+  for (let i = startIndex; i <= endIndex; i++) {
+    const line = lines[i] ?? "";
+    for (const pattern of patterns) {
+      if (line.includes(pattern)) {
+        const quote = pattern[0];
+        lines[i] = line.replace(pattern, `${quote}${suggestedModel}${quote}`);
+        return { content: lines.join("\n"), actualLine: i + 1 };
+      }
     }
   }
 
-  if (!found) {
-    return null;
-  }
-
-  lines[lineIndex] = updatedLine;
-  return { content: lines.join("\n") };
+  return null;
 }
 
 /**
