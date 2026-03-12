@@ -1,13 +1,15 @@
 {
   "provider": "xai",
   "last_updated": "2026-03-07",
-  "last_verified": "2026-03-09",
+  "last_verified": "2026-03-12",
   "source": "https://docs.x.ai/docs/models",
   "models": [
     {
       "id": "grok-3",
       "name": "Grok 3",
-      "aliases": ["xai/grok-3"],
+      "aliases": [
+        "xai/grok-3"
+      ],
       "status": "current",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -21,12 +23,19 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "reasoning", "general", "creative"]
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative"
+      ]
     },
     {
       "id": "grok-3-mini",
       "name": "Grok 3 Mini",
-      "aliases": ["xai/grok-3-mini"],
+      "aliases": [
+        "xai/grok-3-mini"
+      ],
       "status": "current",
       "input_cost_per_million": 0.3,
       "output_cost_per_million": 0.5,
@@ -40,12 +49,18 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "reasoning"]
+      "capabilities": [
+        "code",
+        "general",
+        "reasoning"
+      ]
     },
     {
       "id": "grok-3-vision",
       "name": "Grok 3 Vision",
-      "aliases": ["xai/grok-3-vision"],
+      "aliases": [
+        "xai/grok-3-vision"
+      ],
       "status": "current",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -57,12 +72,19 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "vision"]
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ]
     },
     {
       "id": "grok-2",
       "name": "Grok 2",
-      "aliases": ["grok-2-1212", "xai/grok-2"],
+      "aliases": [
+        "grok-2-1212",
+        "xai/grok-2"
+      ],
       "status": "legacy",
       "input_cost_per_million": 2,
       "output_cost_per_million": 10,
@@ -73,12 +95,19 @@
       "supports_prompt_caching": false,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "reasoning", "general"]
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general"
+      ]
     },
     {
       "id": "grok-2-vision",
       "name": "Grok 2 Vision",
-      "aliases": ["grok-2-vision-1212", "xai/grok-2-vision"],
+      "aliases": [
+        "grok-2-vision-1212",
+        "xai/grok-2-vision"
+      ],
       "status": "legacy",
       "input_cost_per_million": 2,
       "output_cost_per_million": 10,
@@ -89,7 +118,11 @@
       "supports_prompt_caching": false,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "vision"]
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ]
     }
   ]
 }
