@@ -1,6 +1,6 @@
 {
   "name": "inferwise",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "FinOps CLI for LLM API costs: scan code, estimate token spend, and block over-budget PRs.",
   "private": true,
   "packageManager": "pnpm@9.15.0",

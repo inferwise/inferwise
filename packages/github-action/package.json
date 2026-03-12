@@ -1,6 +1,6 @@
 {
   "name": "@inferwise/github-action",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "description": "GitHub Action for Inferwise — posts LLM cost diff comments on pull requests",
   "type": "module",
   "main": "./dist/index.js",

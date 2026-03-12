@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] - 2026-03-12
+
+First stable release. Production-ready.
+
+### What's included
+- CLI: `init`, `estimate`, `diff`, `audit`, `fix`, `check`, `calibrate`, `price`, `update-pricing`
+- MCP Server: `suggest_model`, `estimate_cost`, `audit`, `apply_recommendations`
+- SDK: `estimate()`, `estimateAndCheck()` for programmatic integration
+- Pricing DB: 35+ models across Anthropic, OpenAI, Google, xAI, Perplexity — updated daily
+- GitHub Action: PR cost comments, labels, reviewer requests, merge blocking
+- OpenTelemetry integration: Grafana Tempo, Prometheus/OTLP backends
+- OpenRouter calibration: all providers in one API call
+- Budget enforcement: warn, block, requireApproval thresholds
+- 381 tests passing on Ubuntu, macOS, Windows
+
 ## [0.3.0] - 2026-03-12
 
 ### Added

@@ -594,7 +594,7 @@ INFERWISE_VOLUME=             # Default daily request volume
 
 ## Current Status
 
-Phase 1 is complete and published (v0.3.0):
+Phase 1 is complete and published (v1.0.0):
 
 1. Pricing database package with all provider JSON files (35+ models, cross-validated in CI)
 2. Capability-based model selection (`inferRequiredCapabilities`, `suggestModelForTask`, `suggestAlternatives`)
