@@ -71,7 +71,10 @@ interface ModelSyncConfig {
 
 const SYNC_CONFIG: Record<string, ModelSyncConfig[]> = {
   anthropic: [
-    { id: "claude-opus-4-6", litellmKeys: ["claude-opus-4-6"] },
+    {
+      id: "claude-opus-4-6",
+      litellmKeys: ["claude-opus-4-6", "claude-opus-4-6-20260205"],
+    },
     { id: "claude-sonnet-4-6", litellmKeys: ["claude-sonnet-4-6"] },
     {
       id: "claude-haiku-4-5-20251001",
@@ -91,20 +94,66 @@ const SYNC_CONFIG: Record<string, ModelSyncConfig[]> = {
     },
     {
       id: "claude-sonnet-4-20250514",
-      litellmKeys: ["claude-sonnet-4-20250514", "claude-sonnet-4-0"],
+      litellmKeys: ["claude-sonnet-4-20250514", "claude-sonnet-4-0", "claude-4-sonnet-20250514"],
     },
     {
       id: "claude-opus-4-20250514",
-      litellmKeys: ["claude-opus-4-20250514", "claude-opus-4-0"],
+      litellmKeys: ["claude-opus-4-20250514", "claude-opus-4-0", "claude-4-opus-20250514"],
     },
     { id: "claude-3-haiku-20240307", litellmKeys: ["claude-3-haiku-20240307"] },
+    {
+      id: "claude-3-7-sonnet-20250219",
+      litellmKeys: ["claude-3-7-sonnet-20250219", "claude-3-7-sonnet"],
+    },
+    {
+      id: "claude-3-5-sonnet-20241022",
+      litellmKeys: ["claude-3-5-sonnet-20241022", "claude-3-5-sonnet-v2-20241022"],
+    },
+    {
+      id: "claude-3-5-sonnet-20240620",
+      litellmKeys: ["claude-3-5-sonnet-20240620"],
+    },
+    {
+      id: "claude-3-opus-20240229",
+      litellmKeys: ["claude-3-opus-20240229"],
+    },
+    {
+      id: "claude-3-sonnet-20240229",
+      litellmKeys: ["claude-3-sonnet-20240229"],
+    },
+    {
+      id: "claude-3-5-haiku-20241022",
+      litellmKeys: ["claude-3-5-haiku-20241022"],
+    },
   ],
   openai: [
-    { id: "gpt-4o", litellmKeys: ["gpt-4o", "gpt-4o-2024-11-20"] },
+    {
+      id: "gpt-4o",
+      litellmKeys: ["gpt-4o", "gpt-4o-2024-11-20", "gpt-4o-2024-05-13", "gpt-4o-2024-08-06"],
+    },
     { id: "gpt-4o-mini", litellmKeys: ["gpt-4o-mini", "gpt-4o-mini-2024-07-18"] },
     { id: "gpt-4.1", litellmKeys: ["gpt-4.1", "gpt-4.1-2025-04-14"] },
     { id: "gpt-4.1-mini", litellmKeys: ["gpt-4.1-mini", "gpt-4.1-mini-2025-04-14"] },
     { id: "gpt-4.1-nano", litellmKeys: ["gpt-4.1-nano", "gpt-4.1-nano-2025-04-14"] },
+    {
+      id: "gpt-5",
+      litellmKeys: ["gpt-5", "gpt-5-2025-08-07", "gpt-5-chat", "gpt-5-chat-latest"],
+    },
+    { id: "gpt-5-mini", litellmKeys: ["gpt-5-mini", "gpt-5-mini-2025-08-07"] },
+    { id: "gpt-5-nano", litellmKeys: ["gpt-5-nano", "gpt-5-nano-2025-08-07"] },
+    {
+      id: "gpt-5.1",
+      litellmKeys: ["gpt-5.1", "gpt-5.1-2025-11-13", "gpt-5.1-chat-latest"],
+    },
+    {
+      id: "gpt-5.2",
+      litellmKeys: ["gpt-5.2", "gpt-5.2-2025-12-11", "gpt-5.2-chat-latest", "gpt-5.3-chat-latest"],
+    },
+    { id: "gpt-5.4", litellmKeys: ["gpt-5.4", "gpt-5.4-2026-03-05"] },
+    {
+      id: "gpt-4.5-preview",
+      litellmKeys: ["gpt-4.5-preview", "gpt-4.5-preview-2025-02-27"],
+    },
     { id: "o3", litellmKeys: ["o3", "o3-2025-04-16"] },
     { id: "o3-mini", litellmKeys: ["o3-mini", "o3-mini-2025-01-31"] },
     { id: "o4-mini", litellmKeys: ["o4-mini", "o4-mini-2025-04-16"] },
@@ -115,7 +164,16 @@ const SYNC_CONFIG: Record<string, ModelSyncConfig[]> = {
   google: [
     {
       id: "gemini-3.1-pro-preview",
-      litellmKeys: ["gemini/gemini-3.1-pro-preview", "gemini-3.1-pro-preview", "gemini-3.1-pro"],
+      litellmKeys: [
+        "gemini/gemini-3.1-pro-preview",
+        "gemini-3.1-pro-preview",
+        "gemini-3.1-pro",
+        "gemini/gemini-3.1-pro-preview-customtools",
+      ],
+    },
+    {
+      id: "gemini-3-pro-preview",
+      litellmKeys: ["gemini/gemini-3-pro-preview", "gemini-3-pro-preview"],
     },
     {
       id: "gemini-3-flash-preview",
@@ -131,32 +189,139 @@ const SYNC_CONFIG: Record<string, ModelSyncConfig[]> = {
     },
     {
       id: "gemini-2.5-flash-lite",
-      litellmKeys: ["gemini/gemini-2.5-flash-lite", "gemini-2.5-flash-lite"],
+      litellmKeys: [
+        "gemini/gemini-2.5-flash-lite",
+        "gemini-2.5-flash-lite",
+        "gemini/gemini-2.5-flash-lite-preview-06-17",
+        "gemini/gemini-2.5-flash-lite-preview-09-2025",
+        "gemini/gemini-flash-lite-latest",
+      ],
     },
-    { id: "gemini-2.5-pro", litellmKeys: ["gemini/gemini-2.5-pro", "gemini-2.5-pro"] },
-    { id: "gemini-2.5-flash", litellmKeys: ["gemini/gemini-2.5-flash", "gemini-2.5-flash"] },
-    { id: "gemini-2.0-flash", litellmKeys: ["gemini/gemini-2.0-flash", "gemini-2.0-flash"] },
+    {
+      id: "gemini-2.5-pro",
+      litellmKeys: [
+        "gemini/gemini-2.5-pro",
+        "gemini-2.5-pro",
+        "gemini/gemini-2.5-pro-preview-03-25",
+        "gemini/gemini-2.5-pro-preview-05-06",
+        "gemini/gemini-2.5-pro-preview-06-05",
+        "gemini/gemini-pro-latest",
+      ],
+    },
+    {
+      id: "gemini-2.5-flash",
+      litellmKeys: [
+        "gemini/gemini-2.5-flash",
+        "gemini-2.5-flash",
+        "gemini/gemini-2.5-flash-preview-05-20",
+        "gemini/gemini-2.5-flash-preview-09-2025",
+        "gemini/gemini-flash-latest",
+      ],
+    },
+    {
+      id: "gemini-2.0-flash",
+      litellmKeys: [
+        "gemini/gemini-2.0-flash",
+        "gemini-2.0-flash",
+        "gemini/gemini-2.0-flash-001",
+        "gemini/gemini-2.0-flash-preview-image-generation",
+      ],
+    },
     {
       id: "gemini-2.0-flash-lite",
-      litellmKeys: ["gemini/gemini-2.0-flash-lite", "gemini-2.0-flash-lite"],
+      litellmKeys: [
+        "gemini/gemini-2.0-flash-lite",
+        "gemini-2.0-flash-lite",
+        "gemini/gemini-2.0-flash-lite-001",
+        "gemini/gemini-2.0-flash-lite-preview-02-05",
+      ],
     },
     {
       id: "gemini-1.5-pro",
-      litellmKeys: ["gemini/gemini-1.5-pro", "gemini-1.5-pro", "gemini-1.5-pro-002"],
+      litellmKeys: [
+        "gemini/gemini-1.5-pro",
+        "gemini-1.5-pro",
+        "gemini-1.5-pro-002",
+        "gemini/gemini-1.5-pro-001",
+        "gemini/gemini-1.5-pro-latest",
+        "gemini/gemini-1.5-pro-exp-0801",
+      ],
     },
     {
       id: "gemini-1.5-flash",
-      litellmKeys: ["gemini/gemini-1.5-flash", "gemini-1.5-flash", "gemini-1.5-flash-002"],
+      litellmKeys: [
+        "gemini/gemini-1.5-flash",
+        "gemini-1.5-flash",
+        "gemini-1.5-flash-002",
+        "gemini/gemini-1.5-flash-001",
+        "gemini/gemini-1.5-flash-latest",
+      ],
     },
   ],
   xai: [
-    { id: "grok-3", litellmKeys: ["xai/grok-3", "grok-3"] },
-    { id: "grok-3-mini", litellmKeys: ["xai/grok-3-mini", "grok-3-mini"] },
-    { id: "grok-3-vision", litellmKeys: ["xai/grok-3-vision", "grok-3-vision"] },
-    { id: "grok-2", litellmKeys: ["xai/grok-2", "grok-2", "grok-2-1212"] },
+    {
+      id: "grok-3",
+      litellmKeys: ["xai/grok-3", "grok-3", "grok-3-beta", "grok-3-latest"],
+    },
+    {
+      id: "grok-3-mini",
+      litellmKeys: ["xai/grok-3-mini", "grok-3-mini", "grok-3-mini-beta", "grok-3-mini-latest"],
+    },
+    {
+      id: "grok-3-vision",
+      litellmKeys: ["xai/grok-3-vision", "grok-3-vision", "grok-vision-beta"],
+    },
+    {
+      id: "grok-2",
+      litellmKeys: ["xai/grok-2", "grok-2", "grok-2-1212", "grok-2-latest"],
+    },
     {
       id: "grok-2-vision",
-      litellmKeys: ["xai/grok-2-vision", "grok-2-vision", "grok-2-vision-1212"],
+      litellmKeys: [
+        "xai/grok-2-vision",
+        "grok-2-vision",
+        "grok-2-vision-1212",
+        "grok-2-vision-latest",
+      ],
+    },
+    {
+      id: "grok-4",
+      litellmKeys: ["xai/grok-4", "grok-4", "grok-4-0709", "grok-4-latest"],
+    },
+    {
+      id: "grok-3-fast",
+      litellmKeys: ["xai/grok-3-fast-beta", "grok-3-fast-beta", "grok-3-fast-latest"],
+    },
+    {
+      id: "grok-3-mini-fast",
+      litellmKeys: [
+        "xai/grok-3-mini-fast",
+        "grok-3-mini-fast",
+        "grok-3-mini-fast-beta",
+        "grok-3-mini-fast-latest",
+      ],
+    },
+    {
+      id: "grok-code-fast",
+      litellmKeys: [
+        "xai/grok-code-fast",
+        "grok-code-fast",
+        "grok-code-fast-1",
+        "grok-code-fast-1-0825",
+      ],
+    },
+    {
+      id: "grok-4-fast",
+      litellmKeys: [
+        "xai/grok-4-fast-reasoning",
+        "grok-4-fast-reasoning",
+        "grok-4-fast-non-reasoning",
+        "grok-4-1-fast",
+        "grok-4-1-fast-reasoning",
+        "grok-4-1-fast-reasoning-latest",
+        "grok-4-1-fast-non-reasoning",
+        "grok-4-1-fast-non-reasoning-latest",
+      ],
     },
   ],
   perplexity: [
@@ -164,6 +329,10 @@ const SYNC_CONFIG: Record<string, ModelSyncConfig[]> = {
     {
       id: "sonar-reasoning-pro",
       litellmKeys: ["perplexity/sonar-reasoning-pro", "sonar-reasoning-pro"],
+    },
+    {
+      id: "sonar-reasoning",
+      litellmKeys: ["perplexity/sonar-reasoning", "sonar-reasoning"],
     },
     {
       id: "sonar-deep-research",
@@ -332,6 +501,7 @@ const LITELLM_PROVIDER_MAP: Record<string, string[]> = {
 
 /** Model ID patterns to ignore during discovery (non-chat, embedding, deprecated aliases, etc). */
 const IGNORE_PATTERNS = [
+  // OpenAI noise
   /^ft:/,
   /embed/,
   /tts/,
@@ -345,15 +515,58 @@ const IGNORE_PATTERNS = [
   /-image-preview/,
   /gpt-4-\d{4}/,
   /chatgpt-/,
+
+  // Deprecated OpenAI families
+  /^gpt-3\.5/,
+  /^gpt-4-32k/,
+  /^gpt-4(?![\d.o])/,
+  /^o1-preview/,
+
+  // Experimental models
+  /-exp-/,
+  /-thinking-exp/,
+
+  // Google non-production
+  /^gemma-/,
+  /^learnlm-/,
+  /^gemini-pro$/,
+  /^gemini-pro-vision$/,
+  /^gemini-gemma-/,
+  /gemini-1\.5-flash-8b/,
+  /gemini-exp-/,
+  /gemini-2\.0-pro-exp/,
+  /gemini-2\.5-pro-exp/,
+  /gemini-2\.0-flash-exp/,
+  /gemini-2\.0-flash-live/,
+  /gemini-robotics/,
+  /gemini-2\.5-flash-preview-04-17/,
+
+  // xAI deprecated
+  /^grok-beta$/,
+  /^grok-vision-beta$/,
+
+  // Perplexity deprecated / non-sonar
+  /pplx-/,
+  /codellama-/,
+  /llama-2-/,
+  /llama-3\.1-(?!sonar)/,
+  /sonar-(?:small|medium)-/,
+  /sonar-(?:large|huge)-/,
+  /mixtral-/,
+  /mistral-/,
 ];
 
 function shouldIgnore(key: string): boolean {
-  return IGNORE_PATTERNS.some((p) => p.test(key));
+  const bareKey = stripProviderPrefix(key);
+  return IGNORE_PATTERNS.some((p) => p.test(key) || p.test(bareKey));
 }
 
 /** Strip provider prefix from LiteLLM key to get the bare model ID. */
 function stripProviderPrefix(key: string): string {
-  return key.replace(/^(gemini\/|vertex_ai\/|vertex_ai_beta\/|xai\/|openai\/|anthropic\/)/, "");
+  return key.replace(
+    /^(gemini\/|vertex_ai\/|vertex_ai_beta\/|xai\/|openai\/|anthropic\/|perplexity\/)/,
+    "",
+  );
 }
 
 interface DiscoveredModel {

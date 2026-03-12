@@ -37,6 +37,22 @@
       "capabilities": ["reasoning", "search", "general"]
     },
     {
+      "id": "sonar-reasoning",
+      "name": "Sonar Reasoning",
+      "aliases": [],
+      "status": "current",
+      "input_cost_per_million": 1,
+      "output_cost_per_million": 5,
+      "context_window": 128000,
+      "max_output_tokens": 128000,
+      "supports_vision": false,
+      "supports_tools": false,
+      "supports_prompt_caching": false,
+      "supports_reasoning": true,
+      "supports_computer_use": false,
+      "capabilities": ["reasoning", "search", "general"]
+    },
+    {
       "id": "sonar-deep-research",
       "name": "Sonar Deep Research",
       "aliases": [],
