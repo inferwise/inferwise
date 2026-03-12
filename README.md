@@ -4,13 +4,21 @@
 
 # Inferwise
 
-**Smart model selection and cost enforcement for LLM API calls.**
+**Stop overpaying for AI. Catch expensive model calls before they ship.**
 
 [![CI](https://github.com/inferwise/inferwise/actions/workflows/ci.yml/badge.svg)](https://github.com/inferwise/inferwise/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/inferwise)](https://www.npmjs.com/package/inferwise)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 
-Inferwise scans your codebase for LLM API calls, recommends the cheapest model that can handle each task, estimates per-token costs, and enforces budget guardrails — from pre-commit to CI to merge. Whether a human or an AI agent wrote the code, nothing ships without cost visibility and the right model for the job.
+---
+
+## What is Inferwise?
+
+When your application calls an AI model (ChatGPT, Claude, Gemini, Grok), you pay per word processed. A single API call might cost $0.04 — but at 1,000 requests per day, that's **$1,200/month**. Swap to a cheaper model that handles the same task just as well, and it drops to **$180/month**. The problem is nobody notices until the invoice arrives.
+
+Inferwise is a **cost control tool for AI API bills**. It reads your source code, finds every place your app calls an AI model, estimates what those calls will cost, and recommends cheaper models that can do the same job. It runs automatically on every commit and every pull request — if a code change would blow your budget, it blocks the merge before anything reaches production.
+
+Think of it as a **linter for your AI spend** — the same way ESLint catches code bugs, Inferwise catches expensive AI calls. Whether a human or an AI coding agent wrote the code, nothing ships without cost visibility.
 
 ---
 
@@ -28,6 +36,29 @@ An AI coding agent builds a RAG pipeline and picks Opus for every step — embed
 
 ---
 
+## How It Works
+
+Inferwise has six layers, each building on the last:
+
+**1. Code Scanner** — Reads your source files (.ts, .js, .py) and finds every AI API call. For each one, it extracts which provider, which model, the prompt text, and the max token setting. This is static analysis — it reads your code, it doesn't run it. Works offline, no API keys needed.
+
+**2. Cost Estimation** — For each AI call found, Inferwise counts tokens, looks up the model's price from its bundled database (35+ models across 5 providers, updated daily), and projects the monthly cost based on your expected request volume.
+
+**3. Smart Recommendations** — Reads your prompts to figure out what each AI call actually *does* (classification? code generation? creative writing?), then finds cheaper models with the same capabilities. Only suggests alternatives with real savings and no quality downgrade.
+
+**4. Auto-Fix** — Recommendations aren't just reports. `inferwise fix` rewrites model IDs in your source files automatically. AI agents can do the same via the `apply_recommendations` MCP tool — audit the codebase, pick the cheaper models, and apply the changes in one step. Dynamic models (variables, not string literals) are safely skipped.
+
+**5. Enforcement** — Three automatic checkpoints catch expensive code before it ships:
+- **Pre-commit hook** on your machine: "This commit adds $2,400/mo in LLM costs"
+- **CI gate** on pull requests: cost report posted, merge blocked if over budget
+- **Budget policy** in a config file: `warn` at $2K, hard `block` at $50K — code-reviewed like any config
+
+**6. AI Agent Integration** — AI coding tools (Claude Code, Cursor, VS Code) can ask Inferwise directly: "What's the cheapest model for ticket classification?" and get back `gpt-4o-mini` instead of defaulting to the most expensive option. The agent picks the right model *before* writing new code — and can auto-fix existing code via `apply_recommendations`.
+
+**7. Calibration & Telemetry** — For teams that want tighter numbers: fetch real usage data from provider APIs or OpenRouter to correct estimates (within 20%), or connect your existing OpenTelemetry traces for production-accurate numbers (within 10%).
+
+---
+
 ## Quick Start
 
 ```bash
@@ -36,6 +67,9 @@ npx inferwise estimate .
 
 # Get smart model recommendations
 npx inferwise audit .
+
+# Auto-apply cheaper model recommendations
+npx inferwise fix .
 
 # Set up guardrails: config + git hooks + CI
 npx inferwise init
@@ -71,72 +105,42 @@ pnpm add -g inferwise
 
 ---
 
-## How It Works
+## What Ships: Four Packages
 
-Two problems, one tool.
-
-**Wrong model selection.** Teams and agents pick models by name recognition, not by capability match. A classification task gets routed to Opus when `gpt-4o-mini` handles it fine — 90% cost difference for zero quality gain.
-
-**No cost visibility.** Nobody knows what a model swap costs until the invoice arrives. Someone upgrades from Sonnet to Opus and nobody notices until month-end.
-
-Inferwise addresses both:
-
-- **Recommend:** `inferwise audit` and the MCP server analyze what each LLM call does, infer the required capabilities, and suggest the cheapest model that can handle the task — cross-provider, with reasoning.
-- **Enforce:** Pre-commit hooks, CI gates, and budget policies catch expensive code before it ships. If the cost delta exceeds your threshold, the merge is blocked.
+| Package | Who Uses It | What It Does |
+|---------|------------|--------------|
+| [`inferwise`](https://www.npmjs.com/package/inferwise) | Developers, CI, AI agents | CLI + SDK — scan, estimate, diff, check, audit, enforce budgets |
+| [`@inferwise/pricing-db`](packages/pricing-db) | Model routers, cost-aware apps | Bundled pricing for 35+ models across 5 providers, capability-based model selection, updated daily |
+| [`@inferwise/mcp`](packages/mcp-server) | AI agents (Claude Code, Cursor, VS Code, Windsurf) | MCP server — suggest models, estimate costs, audit codebases as AI agent tools |
+| [`inferwise/inferwise-action`](packages/github-action) | GitHub repos | PR cost comments, labels, reviewer requests, merge blocking |
 
 ---
 
-## How Model Selection Works
+## What Inferwise Tracks (and Doesn't)
 
-Inferwise infers what each LLM call needs by analyzing prompts in your code, then ranks alternatives using quality benchmarks from [Chatbot Arena](https://arena.ai/leaderboard):
+Inferwise tracks **pay-as-you-go AI API calls in your source code** — the code your application runs in production that hits provider APIs and gets billed per word (token).
 
-1. **Capability inference.** Keywords in system/user prompts are matched to capabilities: `code`, `reasoning`, `general`, `creative`, `vision`, `search`, `audio`. This is regex-based pattern matching — fast and deterministic, not AI-powered. If no keywords match, it falls back to `general`.
+**Tracked (per-token API costs):**
+- `anthropic.messages.create()` — billed per token to your Anthropic API key
+- `openai.chat.completions.create()` — billed per token to your OpenAI API key
+- `genai.generateContent()` — billed per token to your Google AI API key
+- LangChain / Vercel AI SDK wrappers that call the above APIs
+- Any code that makes HTTP requests to LLM provider APIs
 
-2. **Quality-adjusted ranking.** Models are ranked by *value* (cost / quality), not just cost. Quality scores come from Chatbot Arena human preference rankings, normalized 0-100. A $5/M model with quality 90 beats a $2/M model with quality 40. Candidates must score ≥70% of the current model's quality — prevents recommending a budget model for a premium task.
+**NOT tracked (flat-rate subscriptions):**
+- Claude Code / Claude Pro / Claude Max subscriptions
+- Cursor Pro / Business subscriptions
+- GitHub Copilot subscriptions
+- ChatGPT Plus / Team / Enterprise seats
+- Codex usage (billed through OpenAI's platform, not your API key)
 
-3. **Confidence levels.** Based on what Inferwise can extract from code:
-   - **High** — both system prompt and user prompt found → any tier drop, any provider
-   - **Medium** — one prompt found → max 1 tier drop (premium→mid OK, premium→budget blocked)
-   - **Low** — prompts are dynamic (variables, not string literals) → same provider, same tier only
-
-4. **Minimum threshold.** Only suggests alternatives with >20% savings. No noise.
-
-### Concrete Example
-
-```
-Your code:
-  anthropic.messages.create({
-    model: "claude-opus-4-20250514",
-    system: "Classify tickets into: billing, technical, account",
-    messages: [{ role: "user", content: ticket }],
-  })
-
-Inferwise analyzes:
-  ✓ System prompt extracted → medium confidence
-  ✓ No code/reasoning keywords → capability: [general]
-  ✓ Opus 4 = premium tier, quality: 94/100, $75/M output
-
-Candidates passing quality gate (general, quality ≥ 66):
-  o3           mid tier, quality: 94, $8/M   → quality-adj: $8.51/M  ✓
-  gpt-4.1      mid tier, quality: 90, $8/M   → quality-adj: $8.89/M  ✓
-  gpt-4o       mid tier, quality: 77, $10/M  → quality-adj: $12.99/M ✓
-
-Blocked by quality gate:
-  flash-lite   budget, quality: 52 → 52/94 = 55% < 70% threshold ✗
-
-Result:
-  chat-service.ts:8  claude-opus-4 → o3 (openai)
-    Use case: [general] (medium confidence)
-    Savings: $527/mo — quality: 94 vs 94
-```
-
-Every model in the pricing database is tagged with its capabilities and quality benchmarks. See `packages/pricing-db/providers/` for pricing and `packages/pricing-db/benchmarks.json` for quality scores.
+The distinction: Inferwise doesn't care about the **tool you use to write code** (subscription). It cares about the **AI API calls your code makes** when it runs in production (pay-as-you-go). A Cursor subscription costs a fixed $20/mo regardless of usage. But the `openai.chat.completions.create()` call that Cursor helped you write? That gets billed per token, at scale, and that's what Inferwise estimates and gates.
 
 ---
 
 ## End-to-End Pipeline
 
-Every LLM API call in your codebase can pass through four tiers before it reaches production.
+Every AI API call in your codebase can pass through four tiers before it reaches production.
 
 ```
 Code written (by human or AI agent)
@@ -303,15 +307,18 @@ claude mcp add inferwise -- npx -y @inferwise/mcp
 }
 ```
 
-Once connected, the agent gets three tools:
+Once connected, the agent gets four tools:
 
 | Tool | What It Does |
 |------|-------------|
 | `suggest_model` | Describe a task, get back the cheapest capable model with alternatives and reasoning |
 | `estimate_cost` | Estimate the cost of an LLM API call given provider, model, and token counts |
 | `audit` | Scan a directory for LLM API calls and suggest cheaper capable alternatives |
+| `apply_recommendations` | Auto-apply model swap recommendations to source files (from audit or explicit list) |
 
-**Example flow:** An agent writing a classification pipeline calls `suggest_model` with task "classify support tickets by category" — Inferwise returns `gpt-4o-mini` at $0.60/MTok instead of `gpt-4o` at $10/MTok. The agent writes the code with the right model from the start. No human review needed.
+**Example flow — new code:** An agent writing a classification pipeline calls `suggest_model` with task "classify support tickets by category" — Inferwise returns `gpt-4o-mini` at $0.60/MTok instead of `gpt-4o` at $10/MTok. The agent writes the code with the right model from the start.
+
+**Example flow — existing code:** An agent calls `apply_recommendations` with `{ directory: "." }` — Inferwise audits the codebase, finds that `claude-opus-4` is overkill for a classification task, and rewrites the model ID to `claude-sonnet-4` in the source file. The agent commits the change. No human needed.
 
 The MCP server runs locally as a subprocess — no hosted infrastructure, no API keys needed. It communicates via stdio using JSON-RPC. Works with Claude Code, Cursor, VS Code (1.99+), Windsurf, Cline, and any MCP-compatible tool.
 
@@ -346,36 +353,51 @@ const cost = calculateCost({ model: suggestion.model, inputTokens: 2000, outputT
 
 ---
 
-## What Inferwise Tracks (and Doesn't)
+## How Model Selection Works
 
-Inferwise tracks **pay-as-you-go LLM API calls in your source code** — the code your application runs in production that hits provider APIs and gets billed per token.
+Inferwise infers what each LLM call needs by analyzing prompts in your code, then ranks alternatives using quality benchmarks from [Chatbot Arena](https://arena.ai/leaderboard):
 
-**Tracked (per-token API costs):**
-- `anthropic.messages.create()` — billed per token to your Anthropic API key
-- `openai.chat.completions.create()` — billed per token to your OpenAI API key
-- `genai.generateContent()` — billed per token to your Google AI API key
-- LangChain / Vercel AI SDK wrappers that call the above APIs
-- Any code that makes HTTP requests to LLM provider APIs
+1. **Capability inference.** Keywords in system/user prompts are matched to capabilities: `code`, `reasoning`, `general`, `creative`, `vision`, `search`, `audio`. This is regex-based pattern matching — fast and deterministic, not AI-powered. If no keywords match, it falls back to `general`.
 
-**NOT tracked (flat-rate subscriptions):**
-- Claude Code / Claude Pro / Claude Max subscriptions
-- Cursor Pro / Business subscriptions
-- GitHub Copilot subscriptions
-- ChatGPT Plus / Team / Enterprise seats
-- Codex usage (billed through OpenAI's platform, not your API key)
+2. **Quality-adjusted ranking.** Models are ranked by *value* (cost / quality), not just cost. Quality scores come from Chatbot Arena human preference rankings, normalized 0-100. A $5/M model with quality 90 beats a $2/M model with quality 40. Candidates must score >=70% of the current model's quality — prevents recommending a budget model for a premium task.
 
-The distinction: Inferwise doesn't care about the **tool you use to write code** (subscription). It cares about the **LLM API calls your code makes** when it runs in production (pay-as-you-go). A Cursor subscription costs a fixed $20/mo regardless of usage. But the `openai.chat.completions.create()` call that Cursor helped you write? That gets billed per token, at scale, and that's what Inferwise estimates and gates.
+3. **Confidence levels.** Based on what Inferwise can extract from code:
+   - **High** — both system prompt and user prompt found: any tier drop, any provider
+   - **Medium** — one prompt found: max 1 tier drop (premium to mid OK, premium to budget blocked)
+   - **Low** — prompts are dynamic (variables, not string literals): same provider, same tier only
 
----
+4. **Minimum threshold.** Only suggests alternatives with >20% savings. No noise.
 
-## What Ships: Four Packages
+### Concrete Example
 
-| Package | Who Uses It | What It Does |
-|---------|------------|--------------|
-| [`inferwise`](https://www.npmjs.com/package/inferwise) | Developers, CI, AI agents | CLI + SDK — scan, estimate, diff, check, audit, enforce budgets |
-| [`@inferwise/pricing-db`](packages/pricing-db) | Model routers, cost-aware apps | Bundled pricing for 35+ models across 5 providers, capability-based model selection, updated daily |
-| [`@inferwise/mcp`](packages/mcp-server) | AI agents (Claude Code, Cursor, VS Code, Windsurf) | MCP server — suggest models, estimate costs, audit codebases as AI agent tools |
-| [`inferwise/inferwise-action`](packages/github-action) | GitHub repos | PR cost comments, labels, reviewer requests, merge blocking |
+```
+Your code:
+  anthropic.messages.create({
+    model: "claude-opus-4-20250514",
+    system: "Classify tickets into: billing, technical, account",
+    messages: [{ role: "user", content: ticket }],
+  })
+
+Inferwise analyzes:
+  System prompt extracted -> medium confidence
+  No code/reasoning keywords -> capability: [general]
+  Opus 4 = premium tier, quality: 94/100, $75/M output
+
+Candidates passing quality gate (general, quality >= 66):
+  o3           mid tier, quality: 94, $8/M   -> quality-adj: $8.51/M
+  gpt-4.1      mid tier, quality: 90, $8/M   -> quality-adj: $8.89/M
+  gpt-4o       mid tier, quality: 77, $10/M  -> quality-adj: $12.99/M
+
+Blocked by quality gate:
+  flash-lite   budget, quality: 52 -> 52/94 = 55% < 70% threshold
+
+Result:
+  chat-service.ts:8  claude-opus-4 -> o3 (openai)
+    Use case: [general] (medium confidence)
+    Savings: $527/mo -- quality: 94 vs 94
+```
+
+Every model in the pricing database is tagged with its capabilities and quality benchmarks. See `packages/pricing-db/providers/` for pricing and `packages/pricing-db/benchmarks.json` for quality scores.
 
 ---
 
@@ -417,12 +439,12 @@ inferwise estimate . --format json
 File               Line  Provider   Model              Input    Output   Cost/Call  Monthly
 src/chat.ts        42    anthropic  claude-sonnet-4    1,200    600      $0.0126    $378/mo
 src/summarize.ts   18    openai     gpt-4o              800    400      $0.0064    $192/mo
-src/rag.ts         91    anthropic  claude-opus-4      4,096 ≈  2,048 ≈  $0.0429    $1,287/mo
+src/rag.ts         91    anthropic  claude-opus-4      4,096 ~  2,048 ~  $0.0429    $1,287/mo
 ```
 
 Token source markers:
 - No marker — extracted from code (exact)
-- `≈` — typical estimate (no static prompt or max_tokens found)
+- `~` — typical estimate (no static prompt or max_tokens found)
 - `*` — worst-case ceiling from model spec
 - `~` — calibrated from real provider usage data
 
@@ -496,6 +518,30 @@ inferwise calibrate . --dry-run                               # Preview without 
 Stores correction ratios in `.inferwise/calibration.json`. Future `estimate` runs auto-load these and adjust typical/model-limit values. Only adjusts heuristic estimates — code-extracted values are already exact and left untouched.
 
 **OpenRouter:** Set `OPENROUTER_API_KEY` to calibrate ALL providers in one step — including Google, xAI, and Perplexity which don't have direct usage APIs. OpenRouter data is used as a fallback; direct provider APIs take precedence when both are available.
+
+---
+
+### `inferwise fix [path]`
+
+Auto-apply model swap recommendations from audit. Rewrites model IDs in your source files.
+
+```bash
+inferwise fix .                          # Apply all recommendations
+inferwise fix . --dry-run                # Preview without modifying files
+inferwise fix . --provider anthropic     # Only fix Anthropic models
+inferwise fix . --min-savings 500        # Only apply fixes saving >$500/mo
+inferwise fix . --format json            # JSON output for pipelines
+```
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--dry-run` | off | Preview changes without writing files |
+| `--provider <name>` | all | Only fix models from this provider |
+| `--min-savings <amount>` | `0` | Minimum monthly savings to apply a fix (USD) |
+| `--volume <n>` | `1000` | Requests/day for monthly projection |
+| `--format <table\|json>` | `table` | Output format |
+
+Skips dynamic models (variables, not string literals) and reports why. Safe to run repeatedly — only changes string literals that exactly match the current model.
 
 ---
 
@@ -664,7 +710,7 @@ Inferwise uses static analysis — it reads your source code, not runtime traffi
 | Source | Marker | Accuracy | How |
 |--------|--------|----------|-----|
 | Code-extracted | (none) | Exact | Static prompts tokenized, `max_tokens` read from code |
-| Typical estimate | `≈` | 2-5x of actual | Industry heuristics: 4K input tokens, 5% of max output |
+| Typical estimate | `~` | 2-5x of actual | Industry heuristics: 4K input tokens, 5% of max output |
 | Model limit | `*` | 10-50x of actual | Worst-case ceiling from model spec |
 | Calibrated | `~` | Within 20% | Corrected by real provider usage data |
 
@@ -693,10 +739,10 @@ See [HEURISTICS.md](HEURISTICS.md) for full methodology, data sources, and assum
 
 | Platform | Detected Patterns | Provider Resolution |
 |----------|-------------------|---------------------|
-| AWS Bedrock (boto3) | `invoke_model()`, `invoke_model_with_response_stream()` | Resolved from `modelId` (e.g., `anthropic.claude-sonnet-4` → Anthropic) |
+| AWS Bedrock (boto3) | `invoke_model()`, `invoke_model_with_response_stream()` | Resolved from `modelId` (e.g., `anthropic.claude-sonnet-4` to Anthropic) |
 | AWS Bedrock (LangChain) | `ChatBedrock`, `ChatBedrockConverse` | Resolved from model ID |
-| Azure OpenAI (SDK) | `new AzureOpenAI()` + `.chat.completions.create()` | → OpenAI |
-| Azure OpenAI (LangChain) | `AzureChatOpenAI` | → OpenAI |
+| Azure OpenAI (SDK) | `new AzureOpenAI()` + `.chat.completions.create()` | to OpenAI |
+| Azure OpenAI (LangChain) | `AzureChatOpenAI` | to OpenAI |
 | LiteLLM | `litellm.completion()`, `litellm.acompletion()` | Resolved from model prefix (`bedrock/`, `azure/`, `vertex_ai/`) |
 
 **Abstraction frameworks:**

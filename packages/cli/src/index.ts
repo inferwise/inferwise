@@ -8,6 +8,7 @@ import { calibrateCommand } from "./commands/calibrate.js";
 import { checkCommand } from "./commands/check.js";
 import { diffCommand } from "./commands/diff.js";
 import { estimateCommand } from "./commands/estimate.js";
+import { fixCommand } from "./commands/fix.js";
 import { initCommand } from "./commands/init.js";
 import { priceCommand } from "./commands/price.js";
 import { updatePricingCommand } from "./commands/update-pricing.js";
@@ -60,6 +61,7 @@ program.addCommand(auditCommand());
 program.addCommand(priceCommand());
 program.addCommand(checkCommand());
 program.addCommand(calibrateCommand());
+program.addCommand(fixCommand());
 program.addCommand(updatePricingCommand());
 
 async function main(): Promise<void> {

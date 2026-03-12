@@ -74,6 +74,16 @@ inferwise calibrate . --dry-run
 
 Find cost optimizations with smart, capability-aware model recommendations. Infers what each LLM call does from prompts in your code and suggests cheaper models that can handle the task — with reasoning and confidence levels.
 
+### `inferwise fix [path]`
+
+Auto-apply model swap recommendations from audit. Rewrites model IDs in source files.
+
+```bash
+inferwise fix .                    # Apply all recommendations
+inferwise fix . --dry-run          # Preview without modifying files
+inferwise fix . --min-savings 500  # Only apply fixes saving >$500/mo
+```
+
 ### `inferwise price [provider] [model]`
 
 Look up model pricing. Compare models side-by-side. Designed for humans and AI agents.

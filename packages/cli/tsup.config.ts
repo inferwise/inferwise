@@ -11,7 +11,7 @@ export default defineConfig([
     },
   },
   {
-    entry: ["src/sdk.ts"],
+    entry: ["src/sdk.ts", "src/fix-core.ts"],
     format: ["esm"],
     dts: true,
     clean: false,

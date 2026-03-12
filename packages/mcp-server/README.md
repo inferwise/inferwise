@@ -44,7 +44,7 @@ Add to Cline MCP settings:
 
 ## Tools
 
-Once connected, the AI agent gets three tools:
+Once connected, the AI agent gets four tools:
 
 ### `suggest_model`
 
@@ -85,6 +85,25 @@ Scan a directory for LLM API calls, estimate costs, and suggest cheaper capable 
 - `volume` (number, optional) — Requests per day for monthly projection (default: 1000)
 
 **Returns:** Per-call-site cost estimates, total monthly cost, unknown models, and smart model recommendations with savings percentages.
+
+### `apply_recommendations`
+
+Apply model swap recommendations to source files. Replaces expensive model IDs with cheaper alternatives in-place. Can auto-detect recommendations via audit, or accept explicit swaps.
+
+**Input:**
+- `directory` (string, required) — Absolute path to the project directory
+- `volume` (number, optional) — Requests per day for monthly projection (default: 1000)
+- `dryRun` (boolean, optional) — Preview changes without modifying files (default: false)
+- `recommendations` (array, optional) — Explicit swaps to apply. Each item has `file`, `line`, `currentModel`, `suggestedModel`. If omitted, runs audit and applies all recommendations.
+
+**Returns:** Applied swaps, skipped swaps (with reasons), and estimated monthly savings.
+
+**Example flow:**
+1. Agent calls `audit` → gets recommendations
+2. Agent calls `apply_recommendations` with those recommendations → files are rewritten
+3. Agent commits the changes
+
+Or in one step: call `apply_recommendations` with just `{ directory: "." }` — runs audit + applies all fixes automatically.
 
 ## How It Works
 

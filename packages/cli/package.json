@@ -16,6 +16,10 @@
     "./sdk": {
       "types": "./dist/sdk.d.ts",
       "import": "./dist/sdk.js"
+    },
+    "./fix-core": {
+      "types": "./dist/fix-core.d.ts",
+      "import": "./dist/fix-core.js"
     }
   },
   "files": ["dist", "README.md", "LICENSE"],

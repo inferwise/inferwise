@@ -48,12 +48,13 @@ inferwise/
 ├── packages/
 │   ├── cli/                    # npm package: inferwise
 │   │   └── src/
-│   │       ├── commands/       # init, estimate, diff, audit, price, calibrate, update-pricing
+│   │       ├── commands/       # init, estimate, diff, audit, fix, price, calibrate, update-pricing
 │   │       ├── scanners/       # Regex-based LLM API call detection
 │   │       ├── tokenizers/     # Provider tokenizer wrappers
 │   │       ├── formatters/     # table, markdown, JSON output
 │   │       ├── providers/      # Provider usage API clients (calibrate) — Anthropic, OpenAI, OpenRouter
 │   │       ├── calibration.ts  # Calibration schema, load/save, ratio math
+│   │       ├── fix-core.ts     # Auto-fix: model swap logic shared by CLI + MCP
 │   │       ├── telemetry-client.ts # OTel telemetry client (Grafana Tempo, Prometheus, legacy)
 │   │       ├── config.ts       # Config schema (budgets, overrides, volumes, telemetry)
 │   │       └── index.ts        # CLI entry point
@@ -71,7 +72,7 @@ inferwise/
 │   ├── mcp-server/             # @inferwise/mcp — MCP server for AI agents
 │   │   └── src/
 │   │       ├── index.ts        # Server entry point (stdio transport)
-│   │       └── tools/          # suggest-model, estimate-cost, audit
+│   │       └── tools/          # suggest-model, estimate-cost, audit, apply-recommendations
 │   └── github-action/
 │       ├── action.yml
 │       └── src/index.ts
@@ -176,6 +177,28 @@ Scan for cost optimization opportunities. Produces three types of findings:
 **Prompt caching opportunities:** Detects repeated system prompts across multiple call sites that could benefit from provider caching APIs.
 
 **Batch API opportunities:** Identifies non-latency-sensitive call sites that could use batch API pricing.
+
+### `inferwise fix [path]`
+
+Auto-apply model swap recommendations from audit. Rewrites model IDs in source files.
+
+**Flags:**
+- `--dry-run` — Preview changes without modifying files
+- `--provider <name>` — Only fix models from this provider
+- `--min-savings <amount>` — Minimum monthly savings to apply a fix (USD, default: 0)
+- `--volume <n>` — Requests/day for monthly projection (default: 1000)
+- `--format <table|json>` — Output format (default: table)
+- `--config <path>` — Path to inferwise.config.json
+
+**Behavior:**
+- Runs `detectSmartAlternatives()` on the codebase (same analysis as `audit`)
+- For each recommendation, finds the model string literal on the target line
+- Replaces the model ID in-place, preserving quote style (double, single, or backtick)
+- Processes multiple swaps per file bottom-to-top so line numbers don't shift
+- Skips dynamic models (variables, not string literals) and reports why
+- Reports applied swaps, skipped swaps with reasons, and estimated monthly savings
+
+**MCP equivalent:** The `apply_recommendations` MCP tool provides the same functionality for AI agents. It accepts explicit swaps (cherry-picked from audit) or runs audit internally when no recommendations are provided.
 
 ### `inferwise price [provider] [model]`
 
@@ -593,6 +616,8 @@ Phase 1 is complete and published (v0.3.0):
 16. Published to npm as `inferwise`, `@inferwise/pricing-db`, `@inferwise/mcp`
 17. OpenTelemetry integration — production stats from Grafana Tempo, Prometheus/OTLP, or legacy Inferwise Cloud
 18. OpenRouter calibration provider — calibrate all providers in one command via OpenRouter Activity API
+19. `inferwise fix` command — auto-apply model swap recommendations to source files
+20. MCP `apply_recommendations` tool — AI agents can auto-fix expensive models programmatically
 
 ---
 

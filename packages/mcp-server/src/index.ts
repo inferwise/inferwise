@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
+import { handleApplyRecommendations } from "./tools/apply-recommendations.js";
 import { handleAudit } from "./tools/audit.js";
 import { handleEstimateCost } from "./tools/estimate-cost.js";
 import { handleSuggestModel } from "./tools/suggest-model.js";
@@ -79,6 +80,41 @@ server.tool(
   },
   async (input) => {
     const result = await handleAudit(input);
+    return {
+      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+    };
+  },
+);
+
+// ── apply_recommendations ────────────────────────────────────────────
+
+server.tool(
+  "apply_recommendations",
+  "Apply model swap recommendations to source files. Replaces expensive model IDs with cheaper alternatives in-place. Can auto-detect recommendations via audit, or accept explicit swaps.",
+  {
+    directory: z.string().describe("Absolute path to the project directory"),
+    volume: z
+      .number()
+      .optional()
+      .describe("Requests per day for monthly cost projection (default: 1000)"),
+    dryRun: z
+      .boolean()
+      .optional()
+      .describe("Preview changes without modifying files (default: false)"),
+    recommendations: z
+      .array(
+        z.object({
+          file: z.string().describe("Relative file path from directory"),
+          line: z.number().describe("Line number where the model string appears"),
+          currentModel: z.string().describe("Current model ID to replace"),
+          suggestedModel: z.string().describe("New model ID to use"),
+        }),
+      )
+      .optional()
+      .describe("Explicit swaps to apply. If omitted, runs audit and applies all recommendations."),
+  },
+  async (input) => {
+    const result = await handleApplyRecommendations(input);
     return {
       content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
     };
