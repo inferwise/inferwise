@@ -9,7 +9,7 @@ const client = new OpenAI({
 // Using premium-tier model for maximum reasoning depth
 export async function handleChat(userQuery: string) {
   const response = await client.chat.completions.create({
-    model: "aws/anthropic/bedrock-claude-opus-4-6",
+    model: "claude-opus-4-6",
     messages: [
       {
         role: "system",

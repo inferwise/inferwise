@@ -9,7 +9,7 @@ const client = new OpenAI({
 // Using mid-tier model — good balance of quality and cost
 export async function summarizeDocument(document: string) {
   const response = await client.chat.completions.create({
-    model: "aws/anthropic/bedrock-claude-sonnet-4-6",
+    model: "claude-sonnet-4-6",
     messages: [
       {
         role: "system",
@@ -30,7 +30,7 @@ export async function summarizeBatch(documents: string[]) {
   const results = [];
   for (const doc of documents) {
     const summary = await client.chat.completions.create({
-      model: "aws/anthropic/bedrock-claude-sonnet-4-6",
+      model: "claude-sonnet-4-6",
       messages: [{ role: "user", content: `Summarize briefly: ${doc}` }],
       max_tokens: 256,
     });

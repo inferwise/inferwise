@@ -42,9 +42,9 @@ header "STEP 1: Sample Application"
 
 echo -e "${YELLOW}These are the source files Inferwise will scan:${RESET}"
 echo ""
-echo "  src/chat.ts        — Premium model (Opus)    — complex queries"
-echo "  src/summarize.ts   — Mid-tier (Sonnet)       — document summaries"
-echo "  src/classify.ts    — Budget (Gemini 3 Pro)   — ticket classification"
+echo "  src/chat.ts        — Premium (claude-opus-4-6)    — complex queries"
+echo "  src/summarize.ts   — Mid-tier (claude-sonnet-4-6) — document summaries"
+echo "  src/classify.ts    — Mid-tier (gpt-4o)            — ticket classification"
 echo ""
 echo -e "${YELLOW}Config (inferwise.config.json):${RESET}"
 cat inferwise.config.json

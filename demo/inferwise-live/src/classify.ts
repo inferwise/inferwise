@@ -6,15 +6,15 @@ const client = new OpenAI({
 });
 
 // Ticket classification — routes support tickets to the right team
-// Using budget-tier model — classification is a simple task
+// Using mid-tier model — but this is a simple task, could be cheaper
 export async function classifyTicket(ticketText: string) {
   const response = await client.chat.completions.create({
-    model: "gcp/google/gemini-3-pro",
+    model: "gpt-4o",
     messages: [
       {
         role: "system",
         content:
-          'Classify the support ticket into one of: billing, technical, account, general. Respond with just the category name.',
+          "Classify the support ticket into one of: billing, technical, account, general. Respond with just the category name.",
       },
       { role: "user", content: ticketText },
     ],
