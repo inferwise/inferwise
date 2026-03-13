@@ -2,17 +2,19 @@
 # ============================================================================
 # Inferwise Live Demo — Run each CLI command step by step
 #
-# Prerequisites:
-#   npm install -g inferwise    (or use npx inferwise)
-#
 # Usage:
-#   cd demo/inferwise-live
-#   bash run-demo.sh
+#   bash demo/inferwise-live/run-demo.sh
+#
+# Runs from the monorepo — uses the locally built CLI.
 # ============================================================================
 
 set -euo pipefail
 DEMO_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$DEMO_DIR/../.." && pwd)"
 cd "$DEMO_DIR"
+
+# Use the locally built CLI from the monorepo
+INFERWISE="node $REPO_ROOT/packages/cli/dist/index.js"
 
 # Colors
 BOLD="\033[1m"
@@ -51,33 +53,33 @@ pause
 # ── Step 2: Estimate ────────────────────────────────────────────────────────
 header "STEP 2: inferwise estimate — What will this cost?"
 
-echo -e "${YELLOW}Running: npx inferwise estimate src/ --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise estimate src/ --config inferwise.config.json${RESET}"
 echo ""
-npx inferwise estimate src/ --config inferwise.config.json
+$INFERWISE estimate src/ --config inferwise.config.json
 pause
 
 # ── Step 3: Audit ───────────────────────────────────────────────────────────
 header "STEP 3: inferwise audit — Where can we save money?"
 
-echo -e "${YELLOW}Running: npx inferwise audit src/ --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise audit src/ --config inferwise.config.json${RESET}"
 echo ""
-npx inferwise audit src/ --config inferwise.config.json
+$INFERWISE audit src/ --config inferwise.config.json
 pause
 
 # ── Step 4: Fix (dry run) ──────────────────────────────────────────────────
 header "STEP 4: inferwise fix --dry-run — Preview auto-swaps"
 
-echo -e "${YELLOW}Running: npx inferwise fix src/ --dry-run --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise fix src/ --dry-run --config inferwise.config.json${RESET}"
 echo ""
-npx inferwise fix src/ --dry-run --config inferwise.config.json
+$INFERWISE fix src/ --dry-run --config inferwise.config.json
 pause
 
 # ── Step 5: Fix (apply) ────────────────────────────────────────────────────
 header "STEP 5: inferwise fix — Apply model swaps"
 
-echo -e "${YELLOW}Running: npx inferwise fix src/ --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise fix src/ --config inferwise.config.json${RESET}"
 echo ""
-npx inferwise fix src/ --config inferwise.config.json
+$INFERWISE fix src/ --config inferwise.config.json
 echo ""
 
 echo -e "${GREEN}Changes applied. Let's see the diff:${RESET}"
@@ -88,18 +90,20 @@ pause
 # ── Step 6: Re-estimate after fix ──────────────────────────────────────────
 header "STEP 6: inferwise estimate — Cost after optimization"
 
-echo -e "${YELLOW}Running: npx inferwise estimate src/ --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise estimate src/ --config inferwise.config.json${RESET}"
 echo ""
-npx inferwise estimate src/ --config inferwise.config.json
+$INFERWISE estimate src/ --config inferwise.config.json
 pause
 
 # ── Step 7: Budget check ───────────────────────────────────────────────────
 header "STEP 7: inferwise check — Budget enforcement"
 
-echo -e "${YELLOW}Running: npx inferwise check src/ --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise check src/ --config inferwise.config.json${RESET}"
 echo ""
-npx inferwise check src/ --config inferwise.config.json
+set +e
+$INFERWISE check src/ --config inferwise.config.json
 EXIT_CODE=$?
+set -e
 
 echo ""
 if [ "$EXIT_CODE" -eq 0 ]; then
