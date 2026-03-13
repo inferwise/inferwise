@@ -42,9 +42,11 @@ header "STEP 1: Sample Application"
 
 echo -e "${YELLOW}These are the source files Inferwise will scan:${RESET}"
 echo ""
-echo "  src/chat.ts        — Premium (claude-opus-4-6)    — complex queries"
-echo "  src/summarize.ts   — Mid-tier (claude-sonnet-4-6) — document summaries"
-echo "  src/classify.ts    — Premium (claude-opus-4-6)     — ticket classification (overkill!)"
+echo "  src/chat.ts        — Premium (claude-opus-4-6)     — complex queries"
+echo "  src/summarize.ts   — Mid-tier (claude-sonnet-4-6)  — document summaries"
+echo "  src/classify.ts    — Premium (gpt-4o)              — ticket classification (overkill!)"
+echo "  src/extract.ts     — Premium (gpt-4o)              — invoice & meeting extraction"
+echo "  src/moderate.ts    — Premium (gpt-4o)              — content moderation (overkill!)"
 echo ""
 echo -e "${YELLOW}Config (inferwise.config.json):${RESET}"
 cat inferwise.config.json
@@ -84,7 +86,7 @@ echo ""
 
 echo -e "${GREEN}Changes applied. Let's see the diff:${RESET}"
 echo ""
-git diff src/ 2>/dev/null || diff <(echo "") <(echo "") # show diff if in git repo
+git --no-pager diff src/ 2>/dev/null || true # show diff if in git repo
 pause
 
 # ── Step 6: Re-estimate after fix ──────────────────────────────────────────
@@ -153,10 +155,10 @@ echo "  └───────────────────────
 echo ""
 echo -e "${BOLD}Key numbers from this demo:${RESET}"
 echo ""
-echo "  Total monthly spend (before):  ~\$487,000/mo"
-echo "  Potential savings found:        ~\$137,000/mo"
-echo "  Model swaps applied:            4 (gpt-4o → o3)"
-echo "  Batch API savings:              ~\$104,000/mo (50% off non-latency calls)"
+echo "  Total monthly spend (before):  ~\$232,000/mo"
+echo "  Potential savings found:        ~\$264,000/mo"
+echo "  Model swaps applied:            7 (cross-provider, high confidence)"
+echo "  Batch API savings:              ~\$37,000/mo (50% off non-latency calls)"
 echo ""
 echo -e "${GREEN}  Inferwise catches these costs at code review time —${RESET}"
 echo -e "${GREEN}  before they hit production.${RESET}"

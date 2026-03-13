@@ -11,11 +11,7 @@ export async function handleChat(userQuery: string) {
   const response = await client.chat.completions.create({
     model: "claude-opus-4-6",
     messages: [
-      {
-        role: "system",
-        content:
-          "You are an IT cost analyst assistant for a large enterprise. Provide detailed, accurate analysis.",
-      },
+      { role: "system", content: "You are an IT cost analyst assistant for a large enterprise. Provide detailed, accurate analysis." },
       { role: "user", content: userQuery },
     ],
     max_tokens: 2048,

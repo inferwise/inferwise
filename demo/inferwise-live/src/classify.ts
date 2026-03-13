@@ -7,16 +7,12 @@ const client = new OpenAI({
 
 // Ticket classification — routes support tickets to the right team
 // Developer picked GPT-4o for "accuracy" but this is a simple task
-export async function classifyTicket(ticketText: string) {
+export async function classifyTicket() {
   const response = await client.chat.completions.create({
     model: "gpt-4o",
     messages: [
-      {
-        role: "system",
-        content:
-          "Classify the support ticket into one of: billing, technical, account, general. Respond with just the category name.",
-      },
-      { role: "user", content: ticketText },
+      { role: "system", content: "Classify the support ticket into one of: billing, technical, account, general. Respond with just the category name." },
+      { role: "user", content: "I was charged twice for my subscription last month and need a refund. My account number is 4821." },
     ],
     max_tokens: 16,
     temperature: 0,
