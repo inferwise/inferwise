@@ -1,0 +1,20 @@
+{
+  "defaultVolume": 1000,
+  "ignore": ["node_modules", "dist", "*.test.ts", "*.spec.ts"],
+  "overrides": [
+    {
+      "pattern": "src/chat.ts",
+      "volume": 5000
+    },
+    {
+      "pattern": "src/classify.ts",
+      "volume": 10000
+    }
+  ],
+  "budgets": {
+    "warn": 2000,
+    "block": 50000,
+    "requireApproval": 10000,
+    "approvers": ["platform-eng", "@infra-team"]
+  }
+}
