@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "GitHub Action for Inferwise — posts LLM cost diff comments on pull requests",
   "type": "module",
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "files": ["dist", "action.yml", "README.md", "LICENSE"],
   "engines": {
     "node": ">=20"
@@ -21,7 +21,7 @@
     "directory": "packages/github-action"
   },
   "scripts": {
-    "build": "ncc build src/index.ts -o dist --source-map --license licenses.txt",
+    "build": "tsup",
     "dev": "tsup src/index.ts --format esm --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
