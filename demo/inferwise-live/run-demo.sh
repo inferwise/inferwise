@@ -44,7 +44,7 @@ echo -e "${YELLOW}These are the source files Inferwise will scan:${RESET}"
 echo ""
 echo "  src/chat.ts        — Premium (claude-opus-4-6)    — complex queries"
 echo "  src/summarize.ts   — Mid-tier (claude-sonnet-4-6) — document summaries"
-echo "  src/classify.ts    — Mid-tier (gpt-4o)            — ticket classification"
+echo "  src/classify.ts    — Premium (claude-opus-4-6)     — ticket classification (overkill!)"
 echo ""
 echo -e "${YELLOW}Config (inferwise.config.json):${RESET}"
 cat inferwise.config.json
@@ -53,33 +53,33 @@ pause
 # ── Step 2: Estimate ────────────────────────────────────────────────────────
 header "STEP 2: inferwise estimate — What will this cost?"
 
-echo -e "${YELLOW}Running: inferwise estimate src/ --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise estimate src/ --volume 100000 --config inferwise.config.json${RESET}"
 echo ""
-$INFERWISE estimate src/ --config inferwise.config.json
+$INFERWISE estimate src/ --volume 100000 --config inferwise.config.json
 pause
 
 # ── Step 3: Audit ───────────────────────────────────────────────────────────
 header "STEP 3: inferwise audit — Where can we save money?"
 
-echo -e "${YELLOW}Running: inferwise audit src/ --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise audit src/ --volume 100000 --config inferwise.config.json${RESET}"
 echo ""
-$INFERWISE audit src/ --config inferwise.config.json
+$INFERWISE audit src/ --volume 100000 --config inferwise.config.json
 pause
 
 # ── Step 4: Fix (dry run) ──────────────────────────────────────────────────
 header "STEP 4: inferwise fix --dry-run — Preview auto-swaps"
 
-echo -e "${YELLOW}Running: inferwise fix src/ --dry-run --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise fix src/ --dry-run --volume 100000 --config inferwise.config.json${RESET}"
 echo ""
-$INFERWISE fix src/ --dry-run --config inferwise.config.json
+$INFERWISE fix src/ --dry-run --volume 100000 --config inferwise.config.json
 pause
 
 # ── Step 5: Fix (apply) ────────────────────────────────────────────────────
 header "STEP 5: inferwise fix — Apply model swaps"
 
-echo -e "${YELLOW}Running: inferwise fix src/ --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise fix src/ --volume 100000 --config inferwise.config.json${RESET}"
 echo ""
-$INFERWISE fix src/ --config inferwise.config.json
+$INFERWISE fix src/ --volume 100000 --config inferwise.config.json
 echo ""
 
 echo -e "${GREEN}Changes applied. Let's see the diff:${RESET}"
@@ -90,18 +90,18 @@ pause
 # ── Step 6: Re-estimate after fix ──────────────────────────────────────────
 header "STEP 6: inferwise estimate — Cost after optimization"
 
-echo -e "${YELLOW}Running: inferwise estimate src/ --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise estimate src/ --volume 100000 --config inferwise.config.json${RESET}"
 echo ""
-$INFERWISE estimate src/ --config inferwise.config.json
+$INFERWISE estimate src/ --volume 100000 --config inferwise.config.json
 pause
 
 # ── Step 7: Budget check ───────────────────────────────────────────────────
 header "STEP 7: inferwise check — Budget enforcement"
 
-echo -e "${YELLOW}Running: inferwise check src/ --config inferwise.config.json${RESET}"
+echo -e "${YELLOW}Running: inferwise check src/ --volume 100000 --config inferwise.config.json${RESET}"
 echo ""
 set +e
-$INFERWISE check src/ --config inferwise.config.json
+$INFERWISE check src/ --volume 100000 --config inferwise.config.json
 EXIT_CODE=$?
 set -e
 

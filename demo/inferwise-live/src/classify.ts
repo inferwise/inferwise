@@ -6,7 +6,7 @@ const client = new OpenAI({
 });
 
 // Ticket classification — routes support tickets to the right team
-// Using mid-tier model — but this is a simple task, could be cheaper
+// Developer picked GPT-4o for "accuracy" but this is a simple task
 export async function classifyTicket(ticketText: string) {
   const response = await client.chat.completions.create({
     model: "gpt-4o",
