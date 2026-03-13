@@ -12,7 +12,7 @@
     "url": "https://github.com/inferwise/inferwise"
   },
   "scripts": {
-    "build": "pnpm -r build",
+    "build": "pnpm --filter @inferwise/pricing-db build && pnpm --filter inferwise build && pnpm --filter @inferwise/mcp --filter @inferwise/github-action build",
     "test": "pnpm -r test",
     "lint": "biome check --write .",
     "lint:ci": "biome ci .",
