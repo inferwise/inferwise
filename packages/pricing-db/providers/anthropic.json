@@ -1,13 +1,16 @@
 {
   "provider": "anthropic",
   "last_updated": "2026-03-07",
-  "last_verified": "2026-03-12",
+  "last_verified": "2026-03-13",
   "source": "https://platform.claude.com/docs/en/docs/about-claude/models/overview",
   "models": [
     {
       "id": "claude-opus-4-6",
       "name": "Claude Opus 4.6",
-      "aliases": ["claude-opus-4-6-20250805", "claude-opus-4-6-20260205"],
+      "aliases": [
+        "claude-opus-4-6-20250805",
+        "claude-opus-4-6-20260205"
+      ],
       "status": "current",
       "input_cost_per_million": 5,
       "output_cost_per_million": 25,
@@ -26,7 +29,13 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "capabilities": ["code", "reasoning", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2025-05-01"
     },
     {
@@ -49,13 +58,21 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "capabilities": ["code", "reasoning", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2025-08-01"
     },
     {
       "id": "claude-haiku-4-5-20251001",
       "name": "Claude Haiku 4.5",
-      "aliases": ["claude-haiku-4-5"],
+      "aliases": [
+        "claude-haiku-4-5"
+      ],
       "status": "current",
       "input_cost_per_million": 1,
       "output_cost_per_million": 5,
@@ -70,13 +87,19 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "capabilities": ["code", "general", "vision"],
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ],
       "knowledge_cutoff": "2025-02-01"
     },
     {
       "id": "claude-sonnet-4-5-20250929",
       "name": "Claude Sonnet 4.5",
-      "aliases": ["claude-sonnet-4-5"],
+      "aliases": [
+        "claude-sonnet-4-5"
+      ],
       "status": "legacy",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -93,13 +116,21 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "capabilities": ["code", "reasoning", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2025-01-01"
     },
     {
       "id": "claude-opus-4-5-20251101",
       "name": "Claude Opus 4.5",
-      "aliases": ["claude-opus-4-5"],
+      "aliases": [
+        "claude-opus-4-5"
+      ],
       "status": "legacy",
       "input_cost_per_million": 5,
       "output_cost_per_million": 25,
@@ -114,13 +145,21 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "capabilities": ["code", "reasoning", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2025-05-01"
     },
     {
       "id": "claude-opus-4-1-20250805",
       "name": "Claude Opus 4.1",
-      "aliases": ["claude-opus-4-1"],
+      "aliases": [
+        "claude-opus-4-1"
+      ],
       "status": "legacy",
       "input_cost_per_million": 15,
       "output_cost_per_million": 75,
@@ -135,13 +174,23 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "capabilities": ["code", "reasoning", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2025-01-01"
     },
     {
       "id": "claude-sonnet-4-20250514",
       "name": "Claude Sonnet 4",
-      "aliases": ["claude-sonnet-4-0", "claude-sonnet-4", "claude-4-sonnet-20250514"],
+      "aliases": [
+        "claude-sonnet-4-0",
+        "claude-sonnet-4",
+        "claude-4-sonnet-20250514"
+      ],
       "status": "legacy",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -158,13 +207,23 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "capabilities": ["code", "reasoning", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2025-01-01"
     },
     {
       "id": "claude-opus-4-20250514",
       "name": "Claude Opus 4",
-      "aliases": ["claude-opus-4-0", "claude-opus-4", "claude-4-opus-20250514"],
+      "aliases": [
+        "claude-opus-4-0",
+        "claude-opus-4",
+        "claude-4-opus-20250514"
+      ],
       "status": "legacy",
       "input_cost_per_million": 15,
       "output_cost_per_million": 75,
@@ -179,13 +238,22 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "capabilities": ["code", "reasoning", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2025-01-01"
     },
     {
       "id": "claude-3-7-sonnet-20250219",
       "name": "Claude Sonnet 3.7",
-      "aliases": ["claude-3-7-sonnet", "claude-3.7-sonnet"],
+      "aliases": [
+        "claude-3-7-sonnet",
+        "claude-3.7-sonnet"
+      ],
       "status": "deprecated",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -194,13 +262,19 @@
       "batch_input_cost_per_million": 1.5,
       "batch_output_cost_per_million": 7.5,
       "context_window": 200000,
-      "max_output_tokens": 16384,
+      "max_output_tokens": 64000,
       "supports_vision": true,
       "supports_tools": true,
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": true,
-      "capabilities": ["code", "reasoning", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2025-02-01"
     },
     {
@@ -226,13 +300,21 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "vision"],
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ],
       "knowledge_cutoff": "2024-07-01"
     },
     {
       "id": "claude-3-5-sonnet-20241022",
       "name": "Claude Sonnet 3.5 v2",
-      "aliases": ["claude-3-5-sonnet", "claude-3.5-sonnet", "claude-3-5-sonnet-v2"],
+      "aliases": [
+        "claude-3-5-sonnet",
+        "claude-3.5-sonnet",
+        "claude-3-5-sonnet-v2"
+      ],
       "status": "deprecated",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -247,13 +329,21 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": true,
-      "capabilities": ["code", "reasoning", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2024-04-01"
     },
     {
       "id": "claude-3-5-sonnet-20240620",
       "name": "Claude Sonnet 3.5",
-      "aliases": ["claude-3-5-sonnet-v1"],
+      "aliases": [
+        "claude-3-5-sonnet-v1"
+      ],
       "status": "deprecated",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -268,13 +358,20 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2024-04-01"
     },
     {
       "id": "claude-3-opus-20240229",
       "name": "Claude Opus 3",
-      "aliases": ["claude-3-opus"],
+      "aliases": [
+        "claude-3-opus"
+      ],
       "status": "deprecated",
       "input_cost_per_million": 15,
       "output_cost_per_million": 75,
@@ -289,13 +386,21 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "reasoning", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2023-08-01"
     },
     {
       "id": "claude-3-sonnet-20240229",
       "name": "Claude Sonnet 3",
-      "aliases": ["claude-3-sonnet"],
+      "aliases": [
+        "claude-3-sonnet"
+      ],
       "status": "deprecated",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -308,13 +413,20 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "creative", "vision"],
+      "capabilities": [
+        "code",
+        "general",
+        "creative",
+        "vision"
+      ],
       "knowledge_cutoff": "2023-08-01"
     },
     {
       "id": "claude-3-haiku-20240307",
       "name": "Claude Haiku 3",
-      "aliases": ["claude-3-haiku"],
+      "aliases": [
+        "claude-3-haiku"
+      ],
       "status": "deprecated",
       "input_cost_per_million": 0.25,
       "output_cost_per_million": 1.25,
@@ -329,7 +441,11 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "vision"],
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ],
       "knowledge_cutoff": "2023-08-01"
     }
   ]
