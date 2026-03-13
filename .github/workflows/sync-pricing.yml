@@ -7,7 +7,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
   issues: write
 
 jobs:
@@ -34,72 +33,19 @@ jobs:
           echo "::warning::Pricing sync failed (upstream may be unavailable). Skipping PR/issue creation."
           exit 0
 
-      - name: Classify changes
+      - name: Auto-commit all changes
         if: steps.sync.outcome == 'success'
-        id: diff
         run: |
           if git diff --quiet packages/pricing-db/providers/; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "prices_changed=false" >> "$GITHUB_OUTPUT"
             echo "No changes detected."
           else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            # Check if only last_verified/last_updated changed (no actual price diffs)
-            # Strip date fields and compare — if identical, only timestamps changed
-            PRICE_DIFF=$(git diff packages/pricing-db/providers/ | grep '^[+-]' | grep -v '^[+-][+-][+-]' | grep -v 'last_verified' | grep -v 'last_updated' | head -1)
-            if [ -z "$PRICE_DIFF" ]; then
-              echo "prices_changed=false" >> "$GITHUB_OUTPUT"
-              echo "Only last_verified/last_updated changed (no price changes)."
-            else
-              echo "prices_changed=true" >> "$GITHUB_OUTPUT"
-              echo "Actual pricing changes detected:"
-              git diff --stat packages/pricing-db/providers/
-            fi
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add packages/pricing-db/providers/
+            git diff --cached --stat
+            git commit -m "chore(pricing): sync provider pricing (${{ github.run_started_at }})"
+            git push
           fi
-
-      - name: Auto-commit last_verified update
-        if: steps.diff.outputs.changed == 'true' && steps.diff.outputs.prices_changed == 'false'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add packages/pricing-db/providers/
-          git commit -m "chore(pricing): verify provider pricing (${{ github.run_started_at }})"
-          git push
-
-      - name: Ensure labels exist
-        if: steps.diff.outputs.prices_changed == 'true'
-        continue-on-error: true
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const labels = [
-              { name: 'pricing', color: '0e8a16', description: 'Pricing database changes' },
-              { name: 'automated', color: 'bfdadc', description: 'Automated by CI' },
-            ];
-            for (const label of labels) {
-              try {
-                await github.rest.issues.getLabel({ ...context.repo, name: label.name });
-              } catch {
-                await github.rest.issues.createLabel({ ...context.repo, ...label });
-                console.log(`Created label: ${label.name}`);
-              }
-            }
-
-      - name: Create PR if pricing changed
-        if: steps.diff.outputs.prices_changed == 'true'
-        continue-on-error: true
-        uses: peter-evans/create-pull-request@v7
-        with:
-          commit-message: "chore(pricing): sync provider pricing ${{ github.run_started_at }}"
-          title: "chore(pricing): update provider pricing data"
-          body: |
-            Automated pricing data sync — **actual price changes detected**.
-
-            This PR was created automatically by the daily sync workflow.
-            Review the changes and merge to update bundled pricing data.
-          branch: chore/sync-pricing
-          delete-branch: true
-          labels: pricing,automated
 
       - name: Check for new models
         if: steps.sync.outcome == 'success'
