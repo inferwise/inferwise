@@ -20,6 +20,17 @@
   "publishConfig": {
     "access": "public"
   },
+  "homepage": "https://inferwise.dev",
+  "bugs": {
+    "url": "https://github.com/inferwise/inferwise/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/inferwise/inferwise",
+    "directory": "packages/mcp-server"
+  },
+  "keywords": ["mcp", "llm", "cost", "finops", "ai", "model-context-protocol", "devtools"],
+  "author": "Peter Kim",
   "scripts": {
     "build": "tsup",
     "test": "vitest run",
