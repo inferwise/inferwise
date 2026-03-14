@@ -1,13 +1,17 @@
 {
   "provider": "xai",
   "last_updated": "2026-03-07",
-  "last_verified": "2026-03-12",
+  "last_verified": "2026-03-14",
   "source": "https://docs.x.ai/docs/models",
   "models": [
     {
       "id": "grok-3",
       "name": "Grok 3",
-      "aliases": ["xai/grok-3", "grok-3-beta", "grok-3-latest"],
+      "aliases": [
+        "xai/grok-3",
+        "grok-3-beta",
+        "grok-3-latest"
+      ],
       "status": "current",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -21,12 +25,21 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "reasoning", "general", "creative"]
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative"
+      ]
     },
     {
       "id": "grok-3-mini",
       "name": "Grok 3 Mini",
-      "aliases": ["xai/grok-3-mini", "grok-3-mini-beta", "grok-3-mini-latest"],
+      "aliases": [
+        "xai/grok-3-mini",
+        "grok-3-mini-beta",
+        "grok-3-mini-latest"
+      ],
       "status": "current",
       "input_cost_per_million": 0.3,
       "output_cost_per_million": 0.5,
@@ -40,12 +53,19 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "reasoning"]
+      "capabilities": [
+        "code",
+        "general",
+        "reasoning"
+      ]
     },
     {
       "id": "grok-3-vision",
       "name": "Grok 3 Vision",
-      "aliases": ["xai/grok-3-vision", "grok-vision-beta"],
+      "aliases": [
+        "xai/grok-3-vision",
+        "grok-vision-beta"
+      ],
       "status": "current",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
@@ -57,12 +77,20 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "vision"]
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ]
     },
     {
       "id": "grok-2",
       "name": "Grok 2",
-      "aliases": ["grok-2-1212", "xai/grok-2", "grok-2-latest"],
+      "aliases": [
+        "grok-2-1212",
+        "xai/grok-2",
+        "grok-2-latest"
+      ],
       "status": "legacy",
       "input_cost_per_million": 2,
       "output_cost_per_million": 10,
@@ -73,12 +101,20 @@
       "supports_prompt_caching": false,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "reasoning", "general"]
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general"
+      ]
     },
     {
       "id": "grok-2-vision",
       "name": "Grok 2 Vision",
-      "aliases": ["grok-2-vision-1212", "xai/grok-2-vision", "grok-2-vision-latest"],
+      "aliases": [
+        "grok-2-vision-1212",
+        "xai/grok-2-vision",
+        "grok-2-vision-latest"
+      ],
       "status": "legacy",
       "input_cost_per_million": 2,
       "output_cost_per_million": 10,
@@ -89,28 +125,45 @@
       "supports_prompt_caching": false,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "vision"]
+      "capabilities": [
+        "code",
+        "general",
+        "vision"
+      ]
     },
     {
       "id": "grok-4",
       "name": "Grok 4",
-      "aliases": ["xai/grok-4", "grok-4-0709", "grok-4-latest"],
+      "aliases": [
+        "xai/grok-4",
+        "grok-4-0709",
+        "grok-4-latest"
+      ],
       "status": "current",
       "input_cost_per_million": 3,
       "output_cost_per_million": 15,
-      "context_window": 131072,
-      "max_output_tokens": 131072,
+      "context_window": 256000,
+      "max_output_tokens": 256000,
       "supports_vision": false,
       "supports_tools": true,
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": ["code", "reasoning", "general", "creative"]
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general",
+        "creative"
+      ]
     },
     {
       "id": "grok-3-fast",
       "name": "Grok 3 Fast",
-      "aliases": ["xai/grok-3-fast-beta", "grok-3-fast-beta", "grok-3-fast-latest"],
+      "aliases": [
+        "xai/grok-3-fast-beta",
+        "grok-3-fast-beta",
+        "grok-3-fast-latest"
+      ],
       "status": "current",
       "input_cost_per_million": 5,
       "output_cost_per_million": 25,
@@ -121,12 +174,21 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["code", "reasoning", "general"]
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general"
+      ],
+      "cache_read_input_cost_per_million": 1.25
     },
     {
       "id": "grok-3-mini-fast",
       "name": "Grok 3 Mini Fast",
-      "aliases": ["xai/grok-3-mini-fast", "grok-3-mini-fast-beta", "grok-3-mini-fast-latest"],
+      "aliases": [
+        "xai/grok-3-mini-fast",
+        "grok-3-mini-fast-beta",
+        "grok-3-mini-fast-latest"
+      ],
       "status": "current",
       "input_cost_per_million": 0.6,
       "output_cost_per_million": 4,
@@ -137,23 +199,35 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": ["code", "general", "reasoning"]
+      "capabilities": [
+        "code",
+        "general",
+        "reasoning"
+      ],
+      "cache_read_input_cost_per_million": 0.15
     },
     {
       "id": "grok-code-fast",
       "name": "Grok Code Fast",
-      "aliases": ["xai/grok-code-fast", "grok-code-fast-1", "grok-code-fast-1-0825"],
+      "aliases": [
+        "xai/grok-code-fast",
+        "grok-code-fast-1",
+        "grok-code-fast-1-0825"
+      ],
       "status": "current",
       "input_cost_per_million": 0.2,
       "output_cost_per_million": 1.5,
-      "context_window": 131072,
-      "max_output_tokens": 131072,
+      "context_window": 256000,
+      "max_output_tokens": 256000,
       "supports_vision": false,
       "supports_tools": true,
       "supports_prompt_caching": true,
-      "supports_reasoning": false,
+      "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": ["code"]
+      "capabilities": [
+        "code"
+      ],
+      "cache_read_input_cost_per_million": 0.02
     },
     {
       "id": "grok-4-fast",
@@ -171,14 +245,19 @@
       "status": "current",
       "input_cost_per_million": 0.2,
       "output_cost_per_million": 0.5,
-      "context_window": 131072,
-      "max_output_tokens": 131072,
+      "context_window": 2000000,
+      "max_output_tokens": 2000000,
       "supports_vision": false,
       "supports_tools": true,
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": ["code", "reasoning", "general"]
+      "capabilities": [
+        "code",
+        "reasoning",
+        "general"
+      ],
+      "cache_read_input_cost_per_million": 0.05
     }
   ]
 }
