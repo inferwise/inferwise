@@ -1,0 +1,270 @@
+# =============================================================================
+# GitLab CI/CD for Inferwise
+#
+# Mirrors the GitHub Actions workflows for independent operation on GitLab.
+#
+# Required CI/CD Variables (Settings > CI/CD > Variables):
+#   GITLAB_TOKEN  — Project Access Token with api + write_repository scope
+#                   (used for auto-commits, MR creation, issue creation)
+#
+# Required Pipeline Schedules (Settings > CI/CD > Pipeline Schedules):
+#   1. "Sync Pricing"    — cron: 0 6 * * *   — variable: SCHEDULE_TYPE = sync-pricing
+#   2. "Sync Benchmarks" — cron: 0 8 * * 1   — variable: SCHEDULE_TYPE = sync-benchmarks
+# =============================================================================
+
+stages:
+  - build
+  - test
+  - sync
+  - notify
+
+variables:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "9.15.0"
+
+# ---------------------------------------------------------------------------
+# Reusable setup template
+# ---------------------------------------------------------------------------
+.node-setup: &node-setup
+  image: node:${NODE_VERSION}
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@${PNPM_VERSION} --activate
+    - pnpm install --frozen-lockfile
+
+# ===========================================================================
+# CI — Build & Test (push to main + merge requests)
+# ===========================================================================
+build-and-test:
+  <<: *node-setup
+  stage: build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # Also run on schedule so sync jobs can depend on a successful build
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+  script:
+    - pnpm lint:ci
+    - pnpm build
+    - pnpm typecheck
+    - pnpm test
+    - node packages/cli/dist/index.js estimate smoke-test/ --format json | node smoke-test/validate.mjs
+
+# ===========================================================================
+# Cost Diff — Post MR comment with cost impact (merge requests only)
+# ===========================================================================
+cost-diff:
+  <<: *node-setup
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  variables:
+    GIT_DEPTH: 0  # Full history needed for diff
+  script:
+    - pnpm --filter @inferwise/pricing-db build
+    - pnpm --filter inferwise build
+    - |
+      # Generate cost diff report
+      node packages/cli/dist/index.js diff \
+        --base "origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}" \
+        --head "${CI_COMMIT_SHA}" \
+        --volume 1000 \
+        --format markdown > /tmp/cost-report.md 2>/dev/null || true
+
+      MARKER="<!-- inferwise-cost-diff -->"
+
+      # Build comment body as a file (avoids shell quoting issues)
+      echo "$MARKER" > /tmp/comment-body.txt
+      if [ -s /tmp/cost-report.md ]; then
+        cat /tmp/cost-report.md >> /tmp/comment-body.txt
+      else
+        echo "No cost changes detected." >> /tmp/comment-body.txt
+      fi
+
+      # Use python to safely JSON-encode and post via GitLab API
+      python3 << 'PYEOF'
+      import json, urllib.request, os
+
+      api_url = os.environ["CI_API_V4_URL"]
+      project_id = os.environ["CI_PROJECT_ID"]
+      mr_iid = os.environ["CI_MERGE_REQUEST_IID"]
+      token = os.environ.get("GITLAB_TOKEN", "")
+      marker = "<!-- inferwise-cost-diff -->"
+
+      with open("/tmp/comment-body.txt") as f:
+          body = f.read()
+
+      headers = {"PRIVATE-TOKEN": token, "Content-Type": "application/json"}
+      base = f"{api_url}/projects/{project_id}/merge_requests/{mr_iid}/notes"
+
+      # Find existing comment
+      existing_id = None
+      try:
+          req = urllib.request.Request(f"{base}?per_page=100", headers={"PRIVATE-TOKEN": token})
+          with urllib.request.urlopen(req) as resp:
+              notes = json.loads(resp.read())
+              for n in notes:
+                  if marker in n.get("body", ""):
+                      existing_id = n["id"]
+                      break
+      except Exception:
+          pass
+
+      # Post or update comment
+      data = json.dumps({"body": body}).encode()
+      try:
+          if existing_id:
+              req = urllib.request.Request(f"{base}/{existing_id}", data=data, headers=headers, method="PUT")
+          else:
+              req = urllib.request.Request(base, data=data, headers=headers, method="POST")
+          urllib.request.urlopen(req)
+          print(f"Cost diff comment posted to MR !{mr_iid}")
+      except Exception as e:
+          print(f"Warning: Failed to post MR comment: {e}")
+      PYEOF
+
+# ===========================================================================
+# Sync Pricing — Daily scheduled pipeline
+# ===========================================================================
+sync-pricing:
+  <<: *node-setup
+  stage: sync
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "sync-pricing"
+  script:
+    # Run pricing sync
+    - npx tsx scripts/sync-pricing.ts || SYNC_FAILED=1
+
+    - |
+      if [ "${SYNC_FAILED}" = "1" ]; then
+        echo "Pricing sync failed (upstream may be unavailable). Skipping."
+        exit 0
+      fi
+
+      # Check for changes
+      if git diff --quiet packages/pricing-db/providers/; then
+        echo "No pricing changes detected."
+      else
+        echo "Pricing changes detected — committing..."
+        git config user.name "gitlab-ci[bot]"
+        git config user.email "gitlab-ci[bot]@${CI_SERVER_HOST}"
+        git remote set-url origin "https://gitlab-ci-token:${GITLAB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+        git add packages/pricing-db/providers/
+        git diff --cached --stat
+        git commit -m "chore(pricing): sync provider pricing ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+        git push origin HEAD:${CI_DEFAULT_BRANCH}
+      fi
+
+      # Check for new models report
+      if [ -f new-models-report.txt ]; then
+        echo "New models detected — creating/updating issue..."
+        REPORT_BODY=$(cat new-models-report.txt)
+
+        # Search for existing open issue with "new-models" label
+        EXISTING_ISSUE=$(curl -sf \
+          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/issues?labels=new-models&state=opened&per_page=1" \
+          | python3 -c "import json,sys; issues=json.load(sys.stdin); print(issues[0]['iid'] if issues else '')" 2>/dev/null) || true
+
+        if [ -n "$EXISTING_ISSUE" ]; then
+          # Add comment to existing issue
+          curl -sf --request POST \
+            --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$(python3 -c "
+      import json
+      report = open('new-models-report.txt').read()
+      print(json.dumps({'body': 'Updated discovery report:\n\n\`\`\`\n' + report + '\n\`\`\`'}))" 2>/dev/null)" \
+            "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/issues/${EXISTING_ISSUE}/notes" \
+            > /dev/null || true
+          echo "Updated existing issue #${EXISTING_ISSUE}"
+        else
+          # Create new issue
+          curl -sf --request POST \
+            --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data "$(python3 -c "
+      import json
+      report = open('new-models-report.txt').read()
+      print(json.dumps({
+        'title': 'New LLM models detected — pricing database update needed',
+        'description': 'The daily pricing sync detected new models not yet in our database.\n\n\`\`\`\n' + report + '\n\`\`\`\n\nAdd these models to \`scripts/sync-pricing.ts\` SYNC_CONFIG and the corresponding provider JSON files.',
+        'labels': 'new-models,pricing'
+      }))" 2>/dev/null)" \
+            "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/issues" \
+            > /dev/null || true
+          echo "Created new issue for new models"
+        fi
+      fi
+
+# ===========================================================================
+# Sync Benchmarks — Weekly scheduled pipeline (Mondays)
+# ===========================================================================
+sync-benchmarks:
+  image: node:${NODE_VERSION}
+  stage: sync
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "sync-benchmarks"
+  before_script:
+    - corepack enable
+    - corepack prepare pnpm@${PNPM_VERSION} --activate
+    - pnpm install --frozen-lockfile
+    # Benchmarks need Python + pandas
+    - apt-get update -qq && apt-get install -y -qq python3 python3-pip > /dev/null 2>&1
+    - pip3 install --break-system-packages pandas > /dev/null 2>&1
+  script:
+    # Run benchmark sync
+    - npx tsx scripts/sync-benchmarks.ts || SYNC_FAILED=1
+
+    - |
+      if [ "${SYNC_FAILED}" = "1" ]; then
+        echo "Benchmark sync failed (Arena API may be unavailable). Skipping."
+        exit 0
+      fi
+
+      # Classify changes
+      if git diff --quiet packages/pricing-db/benchmarks.json; then
+        echo "No benchmark changes detected."
+        exit 0
+      fi
+
+      # Check if only metadata changed vs actual scores
+      SCORE_DIFF=$(git diff packages/pricing-db/benchmarks.json | grep '^[+-]' | grep -v '^[+-][+-][+-]' | grep -v 'last_synced' | grep -v 'synced_at' | head -1)
+
+      git config user.name "gitlab-ci[bot]"
+      git config user.email "gitlab-ci[bot]@${CI_SERVER_HOST}"
+      git remote set-url origin "https://gitlab-ci-token:${GITLAB_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git"
+
+      if [ -z "$SCORE_DIFF" ]; then
+        # Only metadata changed — auto-commit directly
+        echo "Only metadata changed (no score changes). Auto-committing."
+        git add packages/pricing-db/benchmarks.json
+        git commit -m "chore(benchmarks): verify Arena scores ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
+        git push origin HEAD:${CI_DEFAULT_BRANCH}
+      else
+        # Actual score changes — create MR for review
+        echo "Benchmark score changes detected. Creating MR..."
+        BRANCH="chore/sync-benchmarks-$(date -u +%Y%m%d)"
+        git checkout -b "$BRANCH"
+        git add packages/pricing-db/benchmarks.json
+        git commit -m "chore(benchmarks): sync Arena quality scores $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        git push origin "$BRANCH"
+
+        # Create merge request via API
+        curl -sf --request POST \
+          --header "PRIVATE-TOKEN: ${GITLAB_TOKEN}" \
+          --header "Content-Type: application/json" \
+          --data "$(python3 -c "
+      import json
+      print(json.dumps({
+        'source_branch': '${BRANCH}',
+        'target_branch': '$(git remote show origin | grep HEAD | awk \"{print \\$NF}\" 2>/dev/null || echo main)',
+        'title': 'chore(benchmarks): update Chatbot Arena quality scores',
+        'description': 'Automated benchmark data sync from Chatbot Arena — **actual score changes detected**.\n\nThis MR was created automatically by the weekly sync pipeline.\nReview the score changes and merge to update bundled benchmark data.',
+        'labels': 'benchmarks,automated',
+        'remove_source_branch': True
+      }))" 2>/dev/null)" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests" || true
+
+        echo "MR created from branch ${BRANCH}"
+      fi
