@@ -25,23 +25,13 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "reasoning",
-        "general",
-        "creative",
-        "vision",
-        "search"
-      ],
+      "capabilities": ["code", "reasoning", "general", "creative", "vision", "search"],
       "knowledge_cutoff": "2025-01-01"
     },
     {
       "id": "gemini-3-pro-preview",
       "name": "Gemini 3 Pro",
-      "aliases": [
-        "gemini-3-pro",
-        "models/gemini-3-pro-preview"
-      ],
+      "aliases": ["gemini-3-pro", "models/gemini-3-pro-preview"],
       "status": "current",
       "input_cost_per_million": 2,
       "output_cost_per_million": 12,
@@ -53,14 +43,7 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "reasoning",
-        "general",
-        "creative",
-        "vision",
-        "search"
-      ],
+      "capabilities": ["code", "reasoning", "general", "creative", "vision", "search"],
       "knowledge_cutoff": "2025-01-01",
       "input_cost_above_200k_per_million": 4,
       "output_cost_above_200k_per_million": 18
@@ -68,10 +51,7 @@
     {
       "id": "gemini-3-flash-preview",
       "name": "Gemini 3 Flash",
-      "aliases": [
-        "gemini-3-flash",
-        "models/gemini-3-flash-preview"
-      ],
+      "aliases": ["gemini-3-flash", "models/gemini-3-flash-preview"],
       "status": "current",
       "input_cost_per_million": 0.5,
       "output_cost_per_million": 3,
@@ -83,22 +63,13 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "reasoning",
-        "general",
-        "vision",
-        "search"
-      ],
+      "capabilities": ["code", "reasoning", "general", "vision", "search"],
       "knowledge_cutoff": "2025-01-01"
     },
     {
       "id": "gemini-3.1-flash-lite-preview",
       "name": "Gemini 3.1 Flash-Lite",
-      "aliases": [
-        "gemini-3.1-flash-lite",
-        "models/gemini-3.1-flash-lite-preview"
-      ],
+      "aliases": ["gemini-3.1-flash-lite", "models/gemini-3.1-flash-lite-preview"],
       "status": "current",
       "input_cost_per_million": 0.25,
       "output_cost_per_million": 1.5,
@@ -110,11 +81,7 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "general",
-        "vision"
-      ],
+      "capabilities": ["code", "general", "vision"],
       "knowledge_cutoff": "2025-01-01"
     },
     {
@@ -137,11 +104,7 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "general",
-        "vision"
-      ]
+      "capabilities": ["code", "general", "vision"]
     },
     {
       "id": "gemini-2.5-pro",
@@ -167,13 +130,7 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "reasoning",
-        "general",
-        "creative",
-        "vision"
-      ]
+      "capabilities": ["code", "reasoning", "general", "creative", "vision"]
     },
     {
       "id": "gemini-2.5-flash",
@@ -196,12 +153,7 @@
       "supports_prompt_caching": true,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "general",
-        "vision",
-        "reasoning"
-      ]
+      "capabilities": ["code", "general", "vision", "reasoning"]
     },
     {
       "id": "gemini-2.0-flash",
@@ -223,11 +175,7 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "general",
-        "vision"
-      ]
+      "capabilities": ["code", "general", "vision"]
     },
     {
       "id": "gemini-2.0-flash-lite",
@@ -248,11 +196,7 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "general",
-        "vision"
-      ],
+      "capabilities": ["code", "general", "vision"],
       "cache_read_input_cost_per_million": 0.0188
     },
     {
@@ -279,13 +223,7 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "reasoning",
-        "general",
-        "creative",
-        "vision"
-      ]
+      "capabilities": ["code", "reasoning", "general", "creative", "vision"]
     },
     {
       "id": "gemini-1.5-flash",
@@ -308,11 +246,7 @@
       "supports_prompt_caching": true,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": [
-        "code",
-        "general",
-        "vision"
-      ]
+      "capabilities": ["code", "general", "vision"]
     }
   ]
 }
