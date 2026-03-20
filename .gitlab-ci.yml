@@ -141,6 +141,9 @@ sync-pricing:
         exit 0
       fi
 
+      # Format synced JSON so it passes biome ci
+      npx biome format --write packages/pricing-db/providers/
+
       # Check for changes
       if git diff --quiet packages/pricing-db/providers/; then
         echo "No pricing changes detected."
@@ -221,6 +224,9 @@ sync-benchmarks:
         echo "Benchmark sync failed (Arena API may be unavailable). Skipping."
         exit 0
       fi
+
+      # Format synced JSON so it passes biome ci
+      npx biome format --write packages/pricing-db/benchmarks.json
 
       # Classify changes
       if git diff --quiet packages/pricing-db/benchmarks.json; then
