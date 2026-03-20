@@ -18,7 +18,10 @@
       "supports_prompt_caching": false,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["search", "general"]
+      "capabilities": [
+        "search",
+        "general"
+      ]
     },
     {
       "id": "sonar-reasoning-pro",
@@ -34,7 +37,11 @@
       "supports_prompt_caching": false,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": ["reasoning", "search", "general"]
+      "capabilities": [
+        "reasoning",
+        "search",
+        "general"
+      ]
     },
     {
       "id": "sonar-reasoning",
@@ -50,7 +57,11 @@
       "supports_prompt_caching": false,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": ["reasoning", "search", "general"]
+      "capabilities": [
+        "reasoning",
+        "search",
+        "general"
+      ]
     },
     {
       "id": "sonar-deep-research",
@@ -66,7 +77,11 @@
       "supports_prompt_caching": false,
       "supports_reasoning": true,
       "supports_computer_use": false,
-      "capabilities": ["reasoning", "search", "general"]
+      "capabilities": [
+        "reasoning",
+        "search",
+        "general"
+      ]
     },
     {
       "id": "sonar",
@@ -82,7 +97,10 @@
       "supports_prompt_caching": false,
       "supports_reasoning": false,
       "supports_computer_use": false,
-      "capabilities": ["search", "general"]
+      "capabilities": [
+        "search",
+        "general"
+      ]
     }
   ]
 }
