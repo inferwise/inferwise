@@ -24822,35 +24822,37 @@ function getOctokit(token, options, ...additionalPlugins) {
 // ../pricing-db/dist/index.js
 var benchmarks_default = {
   version: 1,
-  last_updated: "2026-03-11",
-  total_models_ranked: 618,
+  last_updated: "2026-03-20",
+  total_models_ranked: 242,
   sources: [
     {
       name: "chatbot-arena",
       url: "https://arena.ai/leaderboard",
-      description: "Human preference rankings from Chatbot Arena (LMSYS). Scores normalized 0-100 from rank position across 618 models."
+      description: "Human preference rankings from Chatbot Arena (LMSYS). Scores normalized 0-100 from rank position across 242 models."
     }
   ],
   models: {
     "anthropic/claude-opus-4-6": {
-      overall: 100,
-      coding: 100,
-      reasoning: 100,
-      math: 100,
-      creative_writing: 99,
-      instruction_following: 100,
-      arena_rank: 1,
-      primary_source: "chatbot-arena"
+      overall: 93,
+      primary_source: "chatbot-arena",
+      arena_elo: 1406.3,
+      arena_rank: 19,
+      coding: 99,
+      reasoning: 98,
+      math: 97,
+      creative_writing: 97,
+      instruction_following: 99
     },
     "anthropic/claude-opus-4-20250514": {
-      overall: 94,
-      coding: 93,
-      reasoning: 94,
-      math: 93,
-      creative_writing: 93,
-      instruction_following: 94,
+      overall: 83,
       primary_source: "chatbot-arena",
-      note: "Claude Opus 4.0 (legacy). Slightly below 4.6 on Arena."
+      arena_elo: 1362.4,
+      arena_rank: 41,
+      coding: 87,
+      reasoning: 88,
+      math: 84,
+      creative_writing: 92,
+      instruction_following: 91
     },
     "anthropic/claude-sonnet-4-6": {
       overall: 98,
@@ -24863,157 +24865,147 @@ var benchmarks_default = {
       primary_source: "chatbot-arena"
     },
     "anthropic/claude-sonnet-4-20250514": {
-      overall: 92,
-      coding: 91,
-      reasoning: 92,
-      math: 91,
-      creative_writing: 91,
-      instruction_following: 92,
+      overall: 76,
       primary_source: "chatbot-arena",
-      note: "Claude Sonnet 4.0 (legacy). Below 4.6 on Arena."
+      arena_elo: 1333.8,
+      arena_rank: 58,
+      coding: 83,
+      reasoning: 80,
+      math: 80,
+      creative_writing: 84,
+      instruction_following: 85
     },
     "anthropic/claude-haiku-4-5-20251001": {
-      overall: 89,
-      coding: 94,
-      reasoning: 91,
-      math: 86,
-      creative_writing: 90,
-      instruction_following: 92,
-      arena_rank: 71,
-      primary_source: "chatbot-arena"
-    },
-    "anthropic/claude-3-5-haiku-20241022": {
-      overall: 89,
-      coding: 94,
-      reasoning: 91,
-      math: 86,
-      creative_writing: 90,
-      instruction_following: 92,
-      arena_rank: 71,
+      overall: 51,
       primary_source: "chatbot-arena",
-      note: "Uses claude-haiku-4-5 scores (same model, older ID)"
+      arena_elo: 1256.4,
+      arena_rank: 120,
+      coding: 57,
+      reasoning: 53,
+      math: 51,
+      creative_writing: 50,
+      instruction_following: 53
     },
     "openai/gpt-4o": {
-      overall: 77,
-      coding: 75,
-      reasoning: 75,
-      math: 74,
-      creative_writing: 82,
-      instruction_following: 77,
-      arena_rank: 141,
-      primary_source: "chatbot-arena"
+      overall: 67,
+      primary_source: "chatbot-arena",
+      arena_elo: 1302.7,
+      arena_rank: 81,
+      coding: 64,
+      reasoning: 64,
+      math: 66,
+      creative_writing: 73,
+      instruction_following: 67
     },
     "openai/gpt-4o-mini": {
-      overall: 71,
-      coding: 71,
-      reasoning: 69,
-      math: 69,
-      creative_writing: 74,
-      instruction_following: 70,
-      arena_rank: 178,
-      primary_source: "chatbot-arena"
+      overall: 63,
+      primary_source: "chatbot-arena",
+      arena_elo: 1289.2,
+      arena_rank: 91,
+      coding: 61,
+      reasoning: 60,
+      math: 56,
+      creative_writing: 64,
+      instruction_following: 60
     },
     "openai/gpt-4.1": {
-      overall: 90,
-      coding: 89,
-      reasoning: 90,
-      math: 82,
-      creative_writing: 93,
-      instruction_following: 89,
-      arena_rank: 63,
-      primary_source: "chatbot-arena"
+      overall: 89,
+      primary_source: "chatbot-arena",
+      arena_elo: 1380.7,
+      arena_rank: 27,
+      coding: 86,
+      reasoning: 88,
+      math: 78,
+      creative_writing: 90,
+      instruction_following: 90
     },
     "openai/gpt-4.1-mini": {
-      overall: 83,
-      coding: 85,
-      reasoning: 84,
-      math: 79,
-      creative_writing: 84,
-      instruction_following: 84,
-      arena_rank: 103,
-      primary_source: "chatbot-arena"
+      overall: 79,
+      primary_source: "chatbot-arena",
+      arena_elo: 1341.5,
+      arena_rank: 51,
+      coding: 80,
+      reasoning: 80,
+      math: 76,
+      creative_writing: 74,
+      instruction_following: 80
     },
     "openai/gpt-4.1-nano": {
-      overall: 73,
-      coding: 76,
-      reasoning: 74,
-      math: 69,
-      creative_writing: 77,
-      instruction_following: 72,
-      arena_rank: 169,
-      primary_source: "chatbot-arena"
+      overall: 62,
+      primary_source: "chatbot-arena",
+      arena_elo: 1287.5,
+      arena_rank: 93,
+      coding: 67,
+      reasoning: 65,
+      math: 61,
+      creative_writing: 61,
+      instruction_following: 64
     },
     "openai/o3": {
-      overall: 94,
-      coding: 90,
-      reasoning: 92,
+      overall: 96,
+      primary_source: "chatbot-arena",
+      arena_elo: 1420.7,
+      arena_rank: 10,
+      coding: 96,
+      reasoning: 94,
       math: 97,
-      creative_writing: 90,
-      instruction_following: 90,
-      arena_rank: 38,
-      primary_source: "chatbot-arena"
+      creative_writing: 92,
+      instruction_following: 92
     },
     "openai/o3-mini": {
-      overall: 79,
-      coding: 82,
-      reasoning: 80,
-      math: 83,
-      creative_writing: 75,
-      instruction_following: 80,
-      arena_rank: 133,
+      overall: 78,
       primary_source: "chatbot-arena",
-      note: "Average of o3-mini and o3-mini-high ranks"
+      arena_elo: 1338.3,
+      arena_rank: 55,
+      coding: 83,
+      reasoning: 84,
+      math: 88,
+      creative_writing: 71,
+      instruction_following: 82
     },
     "openai/o4-mini": {
-      overall: 86,
+      overall: 83,
+      primary_source: "chatbot-arena",
+      arena_elo: 1359,
+      arena_rank: 42,
       coding: 84,
-      reasoning: 85,
-      math: 91,
-      creative_writing: 82,
-      instruction_following: 83,
-      arena_rank: 90,
-      primary_source: "chatbot-arena"
+      reasoning: 81,
+      math: 90,
+      creative_writing: 76,
+      instruction_following: 80
     },
     "google/gemini-2.0-flash": {
-      overall: 81,
-      coding: 74,
-      reasoning: 78,
+      overall: 82,
+      primary_source: "chatbot-arena",
+      arena_elo: 1358.2,
+      arena_rank: 45,
+      coding: 78,
+      reasoning: 80,
       math: 79,
-      creative_writing: 84,
-      instruction_following: 80,
-      arena_rank: 121,
-      primary_source: "chatbot-arena"
+      creative_writing: 85,
+      instruction_following: 82
     },
     "google/gemini-2.0-flash-lite": {
-      overall: 80,
-      coding: 70,
-      reasoning: 76,
-      math: 77,
-      creative_writing: 83,
-      instruction_following: 77,
-      arena_rank: 127,
-      primary_source: "chatbot-arena"
-    },
-    "google/gemini-2.5-flash-lite": {
-      overall: 80,
-      coding: 70,
-      reasoning: 76,
-      math: 77,
-      creative_writing: 83,
-      instruction_following: 77,
+      overall: 75,
       primary_source: "chatbot-arena",
-      note: "Uses gemini-2.0-flash-lite scores as proxy (similar tier)"
+      arena_elo: 1330.8,
+      arena_rank: 62,
+      coding: 71,
+      reasoning: 74,
+      math: 72,
+      creative_writing: 80,
+      instruction_following: 75
     },
     "google/gemini-2.5-flash": {
-      overall: 89,
-      coding: 83,
-      reasoning: 88,
-      math: 90,
-      creative_writing: 93,
-      instruction_following: 90,
-      arena_rank: 66,
+      overall: 93,
       primary_source: "chatbot-arena",
-      note: "Arena lists gemini-2.5-flash with thinking enabled"
+      arena_elo: 1408.9,
+      arena_rank: 18,
+      coding: 92,
+      reasoning: 93,
+      math: 96,
+      creative_writing: 98,
+      instruction_following: 95
     },
     "google/gemini-3-flash-preview": {
       overall: 99,
@@ -25046,34 +25038,73 @@ var benchmarks_default = {
       primary_source: "chatbot-arena"
     },
     "xai/grok-3": {
-      overall: 89,
-      coding: 89,
-      reasoning: 88,
-      math: 82,
-      creative_writing: 93,
-      instruction_following: 89,
+      overall: 97,
       primary_source: "chatbot-arena",
-      note: "Estimated from grok-3-preview-02-24 (rank ~65)"
+      arena_elo: 1423.1,
+      arena_rank: 8,
+      coding: 96,
+      reasoning: 98,
+      math: 87,
+      creative_writing: 100,
+      instruction_following: 98
     },
     "xai/grok-3-mini": {
-      overall: 80,
-      coding: 78,
-      reasoning: 80,
-      math: 83,
-      creative_writing: 81,
-      instruction_following: 82,
+      overall: 85,
       primary_source: "chatbot-arena",
-      note: "Average of grok-3-mini-beta and grok-3-mini-high"
+      arena_elo: 1366.4,
+      arena_rank: 37,
+      coding: 82,
+      reasoning: 85,
+      math: 85,
+      creative_writing: 86,
+      instruction_following: 86
+    },
+    "google/gemini-2.5-pro": {
+      overall: 100,
+      primary_source: "chatbot-arena",
+      arena_elo: 1466.2,
+      arena_rank: 1,
+      coding: 100,
+      reasoning: 100,
+      math: 100,
+      creative_writing: 100,
+      instruction_following: 100
+    },
+    "anthropic/claude-3-5-haiku-20241022": {
+      overall: 51,
+      primary_source: "chatbot-arena",
+      arena_elo: 1256.4,
+      arena_rank: 120,
+      coding: 57,
+      reasoning: 53,
+      math: 51,
+      creative_writing: 50,
+      instruction_following: 53,
+      note: "Uses claude-haiku-4-5-20251001 scores (same model, older ID)"
     },
     "xai/grok-3-vision": {
-      overall: 89,
-      coding: 89,
-      reasoning: 88,
-      math: 82,
-      creative_writing: 93,
-      instruction_following: 89,
+      overall: 97,
       primary_source: "chatbot-arena",
-      note: "Uses grok-3 scores as proxy (vision variant not separately ranked)"
+      arena_elo: 1423.1,
+      arena_rank: 8,
+      coding: 96,
+      reasoning: 98,
+      math: 87,
+      creative_writing: 100,
+      instruction_following: 98,
+      note: "Uses grok-3 scores (same model, older ID)"
+    },
+    "google/gemini-2.5-flash-lite": {
+      overall: 75,
+      primary_source: "chatbot-arena",
+      arena_elo: 1330.8,
+      arena_rank: 62,
+      coding: 71,
+      reasoning: 74,
+      math: 72,
+      creative_writing: 80,
+      instruction_following: 75,
+      note: "Uses gemini-2.0-flash-lite scores (same model, older ID)"
     },
     "perplexity/sonar": {
       overall: 70,
@@ -25082,7 +25113,7 @@ var benchmarks_default = {
       creative_writing: 72,
       instruction_following: 70,
       primary_source: "estimate",
-      note: "Not ranked on Arena. Estimated from similar-tier search-focused models."
+      note: "Not ranked on Arena. Estimated from similar-tier models."
     },
     "perplexity/sonar-pro": {
       overall: 78,
@@ -25091,7 +25122,7 @@ var benchmarks_default = {
       creative_writing: 78,
       instruction_following: 76,
       primary_source: "estimate",
-      note: "Not ranked on Arena. Estimated from similar-tier search-focused models."
+      note: "Not ranked on Arena. Estimated from similar-tier models."
     },
     "perplexity/sonar-reasoning-pro": {
       overall: 82,
@@ -25100,7 +25131,7 @@ var benchmarks_default = {
       creative_writing: 78,
       instruction_following: 80,
       primary_source: "estimate",
-      note: "Not ranked on Arena. Estimated with reasoning bonus."
+      note: "Not ranked on Arena. Estimated from similar-tier models."
     },
     "perplexity/sonar-deep-research": {
       overall: 82,
@@ -25109,14 +25140,14 @@ var benchmarks_default = {
       creative_writing: 78,
       instruction_following: 80,
       primary_source: "estimate",
-      note: "Not ranked on Arena. Estimated with reasoning bonus."
+      note: "Not ranked on Arena. Estimated from similar-tier models."
     }
   }
 };
 var anthropic_default = {
   provider: "anthropic",
   last_updated: "2026-03-07",
-  last_verified: "2026-03-12",
+  last_verified: "2026-03-20",
   source: "https://platform.claude.com/docs/en/docs/about-claude/models/overview",
   models: [
     {
@@ -25309,7 +25340,7 @@ var anthropic_default = {
       batch_input_cost_per_million: 1.5,
       batch_output_cost_per_million: 7.5,
       context_window: 2e5,
-      max_output_tokens: 16384,
+      max_output_tokens: 64e3,
       supports_vision: true,
       supports_tools: true,
       supports_prompt_caching: true,
@@ -25451,8 +25482,8 @@ var anthropic_default = {
 };
 var google_default = {
   provider: "google",
-  last_updated: "2026-03-08",
-  last_verified: "2026-03-12",
+  last_updated: "2026-03-14",
+  last_verified: "2026-03-20",
   source: "https://ai.google.dev/gemini-api/docs/pricing",
   models: [
     {
@@ -25484,18 +25515,20 @@ var google_default = {
       name: "Gemini 3 Pro",
       aliases: ["gemini-3-pro", "models/gemini-3-pro-preview"],
       status: "current",
-      input_cost_per_million: 1.25,
-      output_cost_per_million: 10,
-      cache_read_input_cost_per_million: 0.125,
+      input_cost_per_million: 2,
+      output_cost_per_million: 12,
+      cache_read_input_cost_per_million: 0.2,
       context_window: 1048576,
-      max_output_tokens: 65536,
+      max_output_tokens: 65535,
       supports_vision: true,
       supports_tools: true,
       supports_prompt_caching: true,
       supports_reasoning: true,
       supports_computer_use: false,
       capabilities: ["code", "reasoning", "general", "creative", "vision", "search"],
-      knowledge_cutoff: "2025-01-01"
+      knowledge_cutoff: "2025-01-01",
+      input_cost_above_200k_per_million: 4,
+      output_cost_above_200k_per_million: 18
     },
     {
       id: "gemini-3-flash-preview",
@@ -25506,7 +25539,7 @@ var google_default = {
       output_cost_per_million: 3,
       cache_read_input_cost_per_million: 0.05,
       context_window: 1048576,
-      max_output_tokens: 65536,
+      max_output_tokens: 65535,
       supports_vision: true,
       supports_tools: true,
       supports_prompt_caching: true,
@@ -25547,7 +25580,7 @@ var google_default = {
       output_cost_per_million: 0.4,
       cache_read_input_cost_per_million: 0.01,
       context_window: 1048576,
-      max_output_tokens: 65536,
+      max_output_tokens: 65535,
       supports_vision: true,
       supports_tools: true,
       supports_prompt_caching: true,
@@ -25702,7 +25735,7 @@ var google_default = {
 var openai_default = {
   provider: "openai",
   last_updated: "2026-03-07",
-  last_verified: "2026-03-12",
+  last_verified: "2026-03-20",
   source: "https://platform.openai.com/docs/pricing",
   models: [
     {
@@ -25807,14 +25840,15 @@ var openai_default = {
       status: "current",
       input_cost_per_million: 1.25,
       output_cost_per_million: 10,
-      context_window: 128e3,
-      max_output_tokens: 32768,
+      context_window: 272e3,
+      max_output_tokens: 128e3,
       supports_vision: true,
       supports_tools: true,
       supports_prompt_caching: true,
-      supports_reasoning: false,
+      supports_reasoning: true,
       supports_computer_use: false,
-      capabilities: ["code", "reasoning", "general", "creative", "vision"]
+      capabilities: ["code", "reasoning", "general", "creative", "vision"],
+      cache_read_input_cost_per_million: 0.125
     },
     {
       id: "gpt-5-mini",
@@ -25823,14 +25857,15 @@ var openai_default = {
       status: "current",
       input_cost_per_million: 0.25,
       output_cost_per_million: 2,
-      context_window: 128e3,
-      max_output_tokens: 32768,
+      context_window: 272e3,
+      max_output_tokens: 128e3,
       supports_vision: true,
       supports_tools: true,
       supports_prompt_caching: true,
-      supports_reasoning: false,
+      supports_reasoning: true,
       supports_computer_use: false,
-      capabilities: ["code", "general", "vision"]
+      capabilities: ["code", "general", "vision"],
+      cache_read_input_cost_per_million: 0.025
     },
     {
       id: "gpt-5-nano",
@@ -25839,14 +25874,15 @@ var openai_default = {
       status: "current",
       input_cost_per_million: 0.05,
       output_cost_per_million: 0.4,
-      context_window: 128e3,
-      max_output_tokens: 32768,
+      context_window: 272e3,
+      max_output_tokens: 128e3,
       supports_vision: true,
       supports_tools: true,
       supports_prompt_caching: true,
-      supports_reasoning: false,
+      supports_reasoning: true,
       supports_computer_use: false,
-      capabilities: ["code", "general", "vision"]
+      capabilities: ["code", "general", "vision"],
+      cache_read_input_cost_per_million: 5e-3
     },
     {
       id: "gpt-5.1",
@@ -25855,14 +25891,15 @@ var openai_default = {
       status: "current",
       input_cost_per_million: 1.25,
       output_cost_per_million: 10,
-      context_window: 128e3,
-      max_output_tokens: 32768,
+      context_window: 272e3,
+      max_output_tokens: 128e3,
       supports_vision: true,
       supports_tools: true,
       supports_prompt_caching: true,
-      supports_reasoning: false,
+      supports_reasoning: true,
       supports_computer_use: false,
-      capabilities: ["code", "reasoning", "general", "creative", "vision"]
+      capabilities: ["code", "reasoning", "general", "creative", "vision"],
+      cache_read_input_cost_per_million: 0.125
     },
     {
       id: "gpt-5.2",
@@ -25871,14 +25908,15 @@ var openai_default = {
       status: "current",
       input_cost_per_million: 1.75,
       output_cost_per_million: 14,
-      context_window: 128e3,
-      max_output_tokens: 32768,
+      context_window: 272e3,
+      max_output_tokens: 128e3,
       supports_vision: true,
       supports_tools: true,
       supports_prompt_caching: true,
-      supports_reasoning: false,
+      supports_reasoning: true,
       supports_computer_use: false,
-      capabilities: ["code", "reasoning", "general", "creative", "vision"]
+      capabilities: ["code", "reasoning", "general", "creative", "vision"],
+      cache_read_input_cost_per_million: 0.175
     },
     {
       id: "gpt-5.4",
@@ -25887,14 +25925,15 @@ var openai_default = {
       status: "current",
       input_cost_per_million: 2.5,
       output_cost_per_million: 15,
-      context_window: 128e3,
-      max_output_tokens: 32768,
+      context_window: 105e4,
+      max_output_tokens: 128e3,
       supports_vision: true,
       supports_tools: true,
       supports_prompt_caching: true,
-      supports_reasoning: false,
+      supports_reasoning: true,
       supports_computer_use: false,
-      capabilities: ["code", "reasoning", "general", "creative", "vision"]
+      capabilities: ["code", "reasoning", "general", "creative", "vision"],
+      cache_read_input_cost_per_million: 0.25
     },
     {
       id: "gpt-4.5-preview",
@@ -26058,7 +26097,7 @@ var openai_default = {
 var perplexity_default = {
   provider: "perplexity",
   last_updated: "2026-03-09",
-  last_verified: "2026-03-12",
+  last_verified: "2026-03-20",
   source: "https://docs.perplexity.ai/guides/pricing",
   models: [
     {
@@ -26069,7 +26108,7 @@ var perplexity_default = {
       input_cost_per_million: 3,
       output_cost_per_million: 15,
       context_window: 2e5,
-      max_output_tokens: 128e3,
+      max_output_tokens: 8e3,
       supports_vision: false,
       supports_tools: false,
       supports_prompt_caching: false,
@@ -26146,7 +26185,7 @@ var perplexity_default = {
 var xai_default = {
   provider: "xai",
   last_updated: "2026-03-07",
-  last_verified: "2026-03-12",
+  last_verified: "2026-03-20",
   source: "https://docs.x.ai/docs/models",
   models: [
     {
@@ -26243,8 +26282,8 @@ var xai_default = {
       status: "current",
       input_cost_per_million: 3,
       output_cost_per_million: 15,
-      context_window: 131072,
-      max_output_tokens: 131072,
+      context_window: 256e3,
+      max_output_tokens: 256e3,
       supports_vision: false,
       supports_tools: true,
       supports_prompt_caching: true,
@@ -26266,7 +26305,8 @@ var xai_default = {
       supports_prompt_caching: true,
       supports_reasoning: false,
       supports_computer_use: false,
-      capabilities: ["code", "reasoning", "general"]
+      capabilities: ["code", "reasoning", "general"],
+      cache_read_input_cost_per_million: 1.25
     },
     {
       id: "grok-3-mini-fast",
@@ -26282,7 +26322,8 @@ var xai_default = {
       supports_prompt_caching: true,
       supports_reasoning: true,
       supports_computer_use: false,
-      capabilities: ["code", "general", "reasoning"]
+      capabilities: ["code", "general", "reasoning"],
+      cache_read_input_cost_per_million: 0.15
     },
     {
       id: "grok-code-fast",
@@ -26291,14 +26332,15 @@ var xai_default = {
       status: "current",
       input_cost_per_million: 0.2,
       output_cost_per_million: 1.5,
-      context_window: 131072,
-      max_output_tokens: 131072,
+      context_window: 256e3,
+      max_output_tokens: 256e3,
       supports_vision: false,
       supports_tools: true,
       supports_prompt_caching: true,
-      supports_reasoning: false,
+      supports_reasoning: true,
       supports_computer_use: false,
-      capabilities: ["code"]
+      capabilities: ["code"],
+      cache_read_input_cost_per_million: 0.02
     },
     {
       id: "grok-4-fast",
@@ -26316,14 +26358,15 @@ var xai_default = {
       status: "current",
       input_cost_per_million: 0.2,
       output_cost_per_million: 0.5,
-      context_window: 131072,
-      max_output_tokens: 131072,
+      context_window: 2e6,
+      max_output_tokens: 2e6,
       supports_vision: false,
       supports_tools: true,
       supports_prompt_caching: true,
       supports_reasoning: true,
       supports_computer_use: false,
-      capabilities: ["code", "reasoning", "general"]
+      capabilities: ["code", "reasoning", "general"],
+      cache_read_input_cost_per_million: 0.05
     }
   ]
 };
