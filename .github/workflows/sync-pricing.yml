@@ -33,6 +33,10 @@ jobs:
           echo "::warning::Pricing sync failed (upstream may be unavailable). Skipping PR/issue creation."
           exit 0
 
+      - name: Format synced JSON
+        if: steps.sync.outcome == 'success'
+        run: npx @biomejs/biome format --write packages/pricing-db/providers/
+
       - name: Auto-commit all changes
         if: steps.sync.outcome == 'success'
         run: |

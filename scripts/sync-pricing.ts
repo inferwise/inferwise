@@ -69,6 +69,31 @@ interface ModelSyncConfig {
   preserveFields?: string[];
 }
 
+/**
+ * Manual overrides for fields where LiteLLM is known to be wrong.
+ *
+ * LiteLLM often uses Bedrock/Vertex metadata which can differ from
+ * the 1P API (e.g., Sonnet 4.6 is 200k on Bedrock but 1M on the
+ * Anthropic API). These overrides take precedence over LiteLLM values
+ * and are applied AFTER the sync merges LiteLLM data.
+ *
+ * Key = model ID, value = fields to force-set.
+ */
+const MANUAL_OVERRIDES: Record<string, Partial<ExistingModel>> = {
+  // Sonnet 4.6: 1M context on 1P API, no above-200k premium pricing
+  "claude-sonnet-4-6": {
+    context_window: 1_000_000,
+  },
+  // Opus 4.6: 1M context on 1P API
+  "claude-opus-4-6": {
+    context_window: 1_000_000,
+  },
+  // Sonnet 4 had 1M via beta header — our DB reflects max capability
+  "claude-sonnet-4-20250514": {
+    context_window: 1_000_000,
+  },
+};
+
 const SYNC_CONFIG: Record<string, ModelSyncConfig[]> = {
   anthropic: [
     {
@@ -465,6 +490,12 @@ async function syncProvider(provider: string, prices: LiteLLMPrices): Promise<vo
       updated.supports_reasoning = entry.supports_reasoning;
     if (entry.supports_computer_use !== undefined)
       updated.supports_computer_use = entry.supports_computer_use;
+
+    // Apply manual overrides (trumps LiteLLM when we know it's wrong)
+    const overrides = MANUAL_OVERRIDES[model.id];
+    if (overrides) {
+      Object.assign(updated, overrides);
+    }
 
     return updated;
   });

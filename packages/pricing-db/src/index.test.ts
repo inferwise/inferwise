@@ -621,6 +621,147 @@ describe("suggestAlternatives", () => {
   });
 });
 
+/**
+ * Pricing invariants — hard assertions on values we know to be correct
+ * from official provider pricing pages. If the automated sync (LiteLLM)
+ * pushes wrong data, these tests catch it before it ships.
+ *
+ * Update this table when providers announce pricing/spec changes.
+ */
+describe("pricing invariants (guards against bad sync data)", () => {
+  const invariants: Array<{
+    provider: Parameters<typeof getModel>[0];
+    id: string;
+    input: number;
+    output: number;
+    context: number;
+    maxOutput: number;
+  }> = [
+    // Anthropic — from https://platform.claude.com/docs/en/about-claude/pricing
+    {
+      provider: "anthropic",
+      id: "claude-opus-4-6",
+      input: 5,
+      output: 25,
+      context: 1_000_000,
+      maxOutput: 128_000,
+    },
+    {
+      provider: "anthropic",
+      id: "claude-sonnet-4-6",
+      input: 3,
+      output: 15,
+      context: 1_000_000,
+      maxOutput: 64_000,
+    },
+    {
+      provider: "anthropic",
+      id: "claude-haiku-4-5-20251001",
+      input: 1,
+      output: 5,
+      context: 200_000,
+      maxOutput: 64_000,
+    },
+    {
+      provider: "anthropic",
+      id: "claude-opus-4-1-20250805",
+      input: 15,
+      output: 75,
+      context: 200_000,
+      maxOutput: 32_000,
+    },
+    {
+      provider: "anthropic",
+      id: "claude-sonnet-4-20250514",
+      input: 3,
+      output: 15,
+      context: 1_000_000,
+      maxOutput: 64_000,
+    },
+    {
+      provider: "anthropic",
+      id: "claude-opus-4-20250514",
+      input: 15,
+      output: 75,
+      context: 200_000,
+      maxOutput: 32_000,
+    },
+    {
+      provider: "anthropic",
+      id: "claude-3-haiku-20240307",
+      input: 0.25,
+      output: 1.25,
+      context: 200_000,
+      maxOutput: 4_096,
+    },
+    // OpenAI — from https://platform.openai.com/docs/pricing
+    {
+      provider: "openai",
+      id: "gpt-4o",
+      input: 2.5,
+      output: 10,
+      context: 128_000,
+      maxOutput: 16_384,
+    },
+    {
+      provider: "openai",
+      id: "gpt-4.1",
+      input: 2,
+      output: 8,
+      context: 1_047_576,
+      maxOutput: 32_768,
+    },
+    { provider: "openai", id: "o3", input: 2, output: 8, context: 200_000, maxOutput: 100_000 },
+    // Google — from https://ai.google.dev/gemini-api/docs/pricing
+    {
+      provider: "google",
+      id: "gemini-2.5-pro",
+      input: 1.25,
+      output: 10,
+      context: 1_048_576,
+      maxOutput: 65_535,
+    },
+    {
+      provider: "google",
+      id: "gemini-2.5-flash",
+      input: 0.3,
+      output: 2.5,
+      context: 1_048_576,
+      maxOutput: 65_535,
+    },
+    // Perplexity — from https://docs.perplexity.ai/guides/pricing
+    {
+      provider: "perplexity",
+      id: "sonar-pro",
+      input: 3,
+      output: 15,
+      context: 200_000,
+      maxOutput: 8_000,
+    },
+    {
+      provider: "perplexity",
+      id: "sonar",
+      input: 1,
+      output: 1,
+      context: 128_000,
+      maxOutput: 128_000,
+    },
+  ];
+
+  for (const inv of invariants) {
+    it(`${inv.provider}/${inv.id} matches official pricing`, () => {
+      const model = getModel(inv.provider, inv.id);
+      expect(model, `model ${inv.provider}/${inv.id} not found`).toBeDefined();
+      if (!model) return;
+
+      expect(model.input_cost_per_million, `${inv.id} input cost`).toBe(inv.input);
+      expect(model.output_cost_per_million, `${inv.id} output cost`).toBe(inv.output);
+      expect(model.context_window, `${inv.id} context window`).toBe(inv.context);
+      expect(model.max_output_tokens, `${inv.id} max output`).toBe(inv.maxOutput);
+    });
+  }
+});
+
 describe("suggestModelForTask", () => {
   it("returns a model with reasoning for a task description", () => {
     const result = suggestModelForTask("classify customer support tickets");

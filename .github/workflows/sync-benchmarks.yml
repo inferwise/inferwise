@@ -41,6 +41,10 @@ jobs:
           echo "::warning::Benchmark sync failed (Arena API may be unavailable). Skipping PR creation."
           exit 0
 
+      - name: Format synced JSON
+        if: steps.sync.outcome == 'success'
+        run: npx @biomejs/biome format --write packages/pricing-db/benchmarks.json
+
       - name: Classify changes
         if: steps.sync.outcome == 'success'
         id: diff
