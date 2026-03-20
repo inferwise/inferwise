@@ -25146,7 +25146,7 @@ var benchmarks_default = {
 };
 var anthropic_default = {
   provider: "anthropic",
-  last_updated: "2026-03-07",
+  last_updated: "2026-03-20",
   last_verified: "2026-03-20",
   source: "https://platform.claude.com/docs/en/docs/about-claude/models/overview",
   models: [
@@ -25186,9 +25186,7 @@ var anthropic_default = {
       cache_write_input_cost_per_million: 3.75,
       batch_input_cost_per_million: 1.5,
       batch_output_cost_per_million: 7.5,
-      input_cost_above_200k_per_million: 6,
-      output_cost_above_200k_per_million: 22.5,
-      context_window: 2e5,
+      context_window: 1e6,
       max_output_tokens: 64e3,
       supports_vision: true,
       supports_tools: true,
