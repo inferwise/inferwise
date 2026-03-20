@@ -51,7 +51,13 @@ const alts = suggestAlternatives("claude-opus-4-20250514", "anthropic", ["code"]
 
 ## Pricing Data
 
-JSON files in `providers/` are validated against `schema.json` in CI. Community contributions welcome — see [CONTRIBUTING.md](../../CONTRIBUTING.md).
+JSON files in `providers/` are validated against `schema.json` in CI. Pricing is synced daily from LiteLLM with three integrity layers:
+
+1. **`MANUAL_OVERRIDES`** in `scripts/sync-pricing.ts` — corrects known-wrong LiteLLM values (e.g., Bedrock context windows vs 1P API)
+2. **Biome formatting** — sync pipelines auto-format JSON before committing
+3. **Pricing invariant tests** — hard assertions on critical models' costs, context windows, and output limits
+
+Community contributions welcome — see [CONTRIBUTING.md](../../CONTRIBUTING.md).
 
 ## License
 

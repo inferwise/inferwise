@@ -23,8 +23,9 @@ inferwise/
 │   ├── pricing-db/       # @inferwise/pricing-db — bundled pricing JSON
 │   ├── mcp-server/       # @inferwise/mcp — MCP server for AI agent tools
 │   └── github-action/    # Standalone GitHub Action
-├── scripts/              # Maintenance scripts (pricing sync)
-└── .github/workflows/    # CI, cost-diff, pricing sync, publish
+├── scripts/              # Maintenance scripts (pricing sync, benchmark sync)
+├── .github/workflows/    # CI, cost-diff, pricing sync, benchmark sync, publish
+└── .gitlab-ci.yml        # GitLab CI (mirrors GitHub Actions for internal use)
 ```
 
 ## Development Workflow
@@ -91,14 +92,18 @@ refactor: simplify scanner regex patterns
 
 The pricing database is community-maintained. This is one of the highest-impact contributions you can make.
 
-**Files:** `packages/pricing-db/providers/{anthropic,openai,google,xai}.json`
+**Files:** `packages/pricing-db/providers/{anthropic,openai,google,xai,perplexity}.json`
 
 1. Edit the relevant provider JSON file
 2. All files must conform to [`schema.json`](packages/pricing-db/schema.json) — CI validates automatically
-3. Update `last_verified` to today's date
+3. Update `last_verified` to today's date and `last_updated` if prices changed
 4. Keep the official pricing page URL in `source`
-5. Run `pnpm test` to verify schema validation passes
-6. Open a PR with a link to the official pricing page as evidence
+5. Run `pnpm test` to verify schema validation and pricing invariant tests pass
+6. If changing a model tracked in `MANUAL_OVERRIDES` (in `scripts/sync-pricing.ts`), update the override too
+7. Update the invariant test table in `packages/pricing-db/src/index.test.ts` if costs, context window, or max output changed
+8. Open a PR with a link to the official pricing page as evidence
+
+**Automated syncs:** Pricing syncs daily from LiteLLM via GitHub Actions and GitLab CI. The sync applies `MANUAL_OVERRIDES` for fields where LiteLLM is known to be wrong (e.g., Bedrock context windows vs 1P API). Pricing invariant tests in CI catch any bad data before it lands on main.
 
 ### New Provider Support
 
@@ -152,6 +157,7 @@ pnpm -r typecheck                             # Typecheck all packages
 - **Regex over AST:** Scanner uses regex for speed. Accuracy is good enough for estimation; AST parsing may come later.
 - **Per-million pricing:** All costs stored as USD per million tokens for consistency across providers.
 - **Schema-validated:** Every provider JSON is validated against `schema.json` in CI. No malformed data ships.
+- **Three-layer sync integrity:** (1) LiteLLM daily sync with `MANUAL_OVERRIDES` for known-wrong values, (2) `biome format` before committing to prevent lint failures, (3) pricing invariant tests that assert critical models match official pricing pages.
 
 ## License
 

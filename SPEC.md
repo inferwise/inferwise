@@ -301,22 +301,24 @@ const configSchema = z.object({
 ```json
 {
   "provider": "anthropic",
-  "last_verified": "2026-03-09",
+  "last_updated": "2026-03-20",
+  "last_verified": "2026-03-20",
+  "source": "https://platform.claude.com/docs/en/docs/about-claude/pricing",
   "models": [
     {
-      "id": "claude-sonnet-4-20250514",
-      "name": "Claude Sonnet 4",
+      "id": "claude-sonnet-4-6",
+      "name": "Claude Sonnet 4.6",
       "input_cost_per_million": 3.00,
       "output_cost_per_million": 15.00,
       "cache_read_input_cost_per_million": 0.30,
       "cache_write_input_cost_per_million": 3.75,
-      "context_window": 200000,
-      "max_output_tokens": 16384,
+      "context_window": 1000000,
+      "max_output_tokens": 64000,
       "supports_vision": true,
       "supports_tools": true,
       "supports_prompt_caching": true,
       "tier": "mid",
-      "capabilities": ["code", "reasoning", "general", "creative"]
+      "capabilities": ["code", "reasoning", "general", "creative", "vision"]
     }
   ]
 }
@@ -325,6 +327,14 @@ const configSchema = z.object({
 Note: `tier` is auto-derived from pricing data by `computeTier()` in the pricing-db package.
 
 Always validate against `packages/pricing-db/schema.json` when updating pricing files.
+
+### Data Integrity
+
+Pricing data is protected by three layers:
+
+1. **LiteLLM sync + `MANUAL_OVERRIDES`**: Daily sync from LiteLLM's community DB, with a manual overrides table in `scripts/sync-pricing.ts` that corrects known-wrong values (e.g., LiteLLM reports Bedrock context windows which differ from 1P API limits).
+2. **Biome formatting**: Sync pipelines auto-format JSON before committing so lint never breaks.
+3. **Pricing invariant tests**: Hard assertions in `packages/pricing-db/src/index.test.ts` check critical models' costs, context windows, and output limits against official provider pricing pages. CI fails if any invariant is violated.
 
 ---
 

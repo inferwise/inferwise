@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.1] - 2026-03-20
+
+### Fixed
+- GitLab and GitHub sync pipelines now run `biome format --write` on synced JSON before committing, preventing lint failures on the next CI run
+- Corrected `claude-sonnet-4-6` context window from 200k to 1M (LiteLLM had Bedrock value, not 1P API)
+- Removed incorrect above-200k premium pricing fields from `claude-sonnet-4-6` (Sonnet 4.6 includes full 1M at standard pricing)
+
+### Added
+- `MANUAL_OVERRIDES` in `scripts/sync-pricing.ts` — force-sets known-correct values that LiteLLM gets wrong (Bedrock vs 1P API context windows)
+- Pricing invariant test suite (14 assertions) — validates critical models' costs, context windows, and output limits against official provider pages in CI
+
 ## [1.0.0] - 2026-03-12
 
 First stable release. Production-ready.
