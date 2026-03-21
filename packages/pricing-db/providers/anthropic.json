@@ -1,7 +1,7 @@
 {
   "provider": "anthropic",
   "last_updated": "2026-03-20",
-  "last_verified": "2026-03-20",
+  "last_verified": "2026-03-21",
   "source": "https://platform.claude.com/docs/en/docs/about-claude/models/overview",
   "models": [
     {
@@ -48,7 +48,9 @@
       "supports_reasoning": true,
       "supports_computer_use": true,
       "capabilities": ["code", "reasoning", "general", "creative", "vision"],
-      "knowledge_cutoff": "2025-08-01"
+      "knowledge_cutoff": "2025-08-01",
+      "input_cost_above_200k_per_million": 6,
+      "output_cost_above_200k_per_million": 22.5
     },
     {
       "id": "claude-haiku-4-5-20251001",
