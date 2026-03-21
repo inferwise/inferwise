@@ -1,3 +1,4 @@
+import { createRequire } from "node:module";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -6,7 +7,6 @@ import { handleAudit } from "./tools/audit.js";
 import { handleEstimateCost } from "./tools/estimate-cost.js";
 import { handleSuggestModel } from "./tools/suggest-model.js";
 
-import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json") as { version: string };
 

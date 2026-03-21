@@ -12,7 +12,13 @@
     },
     "./providers/*": "./providers/*"
   },
-  "files": ["dist", "providers", "schema.json", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "providers",
+    "schema.json",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -34,7 +40,15 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
-  "keywords": ["llm", "pricing", "tokens", "cost", "ai", "models", "finops"],
+  "keywords": [
+    "llm",
+    "pricing",
+    "tokens",
+    "cost",
+    "ai",
+    "models",
+    "finops"
+  ],
   "author": "Peter Kim",
   "license": "Apache-2.0",
   "devDependencies": {

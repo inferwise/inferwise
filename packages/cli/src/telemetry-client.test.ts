@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildLegacyTelemetryConfig, fetchProductionStats } from "./telemetry-client.js";
 import type { TelemetryConfig } from "./telemetry-client.js";
+import { buildLegacyTelemetryConfig, fetchProductionStats } from "./telemetry-client.js";
 
 describe("telemetry-client", () => {
   afterEach(() => {

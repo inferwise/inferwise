@@ -1,11 +1,11 @@
 import type { Provider } from "@inferwise/pricing-db";
 import {
   type AlternativeSuggestion,
-  type TaskSuggestion,
   getAllProviders,
   getMinQualityScore,
   suggestAlternatives,
   suggestModelForTask,
+  type TaskSuggestion,
 } from "@inferwise/pricing-db";
 
 export interface SuggestModelInput {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type DiffRow, type FileCost, buildDiff, classifyChange } from "./diff.js";
+import { buildDiff, classifyChange, type DiffRow, type FileCost } from "./diff.js";
 
 // ── classifyChange ──────────────────────────────────────────────────
 

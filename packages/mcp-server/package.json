@@ -13,7 +13,11 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -29,7 +33,15 @@
     "url": "https://github.com/inferwise/inferwise",
     "directory": "packages/mcp-server"
   },
-  "keywords": ["mcp", "llm", "cost", "finops", "ai", "model-context-protocol", "devtools"],
+  "keywords": [
+    "mcp",
+    "llm",
+    "cost",
+    "finops",
+    "ai",
+    "model-context-protocol",
+    "devtools"
+  ],
   "author": "Peter Kim",
   "scripts": {
     "build": "tsup",

@@ -1,5 +1,5 @@
 import type { Provider } from "@inferwise/pricing-db";
-import { type Tiktoken, type TiktokenModel, encoding_for_model, get_encoding } from "tiktoken";
+import { encoding_for_model, get_encoding, type Tiktoken, type TiktokenModel } from "tiktoken";
 
 // Cache encoders keyed by encoding name — creating them is expensive (WASM init).
 // Multiple models share the same encoding (e.g. gpt-4o and gpt-4 both use o200k_base),

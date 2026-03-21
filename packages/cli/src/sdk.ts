@@ -14,8 +14,8 @@ import { buildEstimateRows } from "./estimate-core.js";
 import type { EstimateRow } from "./formatters/index.js";
 import { scanDirectory } from "./scanners/index.js";
 
-export { scanDirectory } from "./scanners/index.js";
 export type { ScanResult } from "./scanners/index.js";
+export { scanDirectory } from "./scanners/index.js";
 
 /** Options for estimate and check functions. */
 export interface EstimateOptions {

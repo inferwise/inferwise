@@ -22,6 +22,12 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -30,20 +36,33 @@ jobs:
       - name: Install pandas
         run: pip install pandas
 
-      - name: Run benchmark sync
+      - name: Run benchmark sync (with retry)
         id: sync
         continue-on-error: true
-        run: npx tsx scripts/sync-benchmarks.ts
+        run: |
+          for attempt in 1 2 3; do
+            echo "Attempt $attempt of 3..."
+            if pnpm --filter @inferwise/scripts sync-benchmarks; then
+              echo "outcome=success" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              echo "::warning::Attempt $attempt failed. Retrying in 30s..."
+              sleep 30
+            fi
+          done
+          echo "outcome=failure" >> "$GITHUB_OUTPUT"
+          exit 1
 
       - name: Abort on sync failure
         if: steps.sync.outcome == 'failure'
         run: |
-          echo "::warning::Benchmark sync failed (Arena API may be unavailable). Skipping PR creation."
+          echo "::warning::Benchmark sync failed after 3 attempts (Arena API may be unavailable). Skipping PR creation."
           exit 0
 
       - name: Format synced JSON
         if: steps.sync.outcome == 'success'
-        run: npx @biomejs/biome format --write packages/pricing-db/benchmarks.json
+        run: pnpm biome format --write packages/pricing-db/benchmarks.json
 
       - name: Classify changes
         if: steps.sync.outcome == 'success'

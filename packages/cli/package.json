@@ -22,7 +22,11 @@
       "import": "./dist/fix-core.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -45,7 +49,14 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
-  "keywords": ["llm", "tokens", "cost", "finops", "ai", "cli"],
+  "keywords": [
+    "llm",
+    "tokens",
+    "cost",
+    "finops",
+    "ai",
+    "cli"
+  ],
   "author": "Peter Kim",
   "license": "Apache-2.0",
   "dependencies": {

@@ -3,10 +3,10 @@ import type { ScanResult } from "../scanners/index.js";
 import {
   type BatchFinding,
   type CachingFinding,
-  type SmartAlternativeFinding,
   detectBatchOpportunities,
   detectCachingOpportunities,
   detectSmartAlternatives,
+  type SmartAlternativeFinding,
 } from "./audit.js";
 
 const VOLUME = 1000;

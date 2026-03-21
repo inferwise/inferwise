@@ -1,8 +1,6 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.6/schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
+  "$schema": "https://biomejs.dev/schemas/2.4.8/schema.json",
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "linter": {
     "enabled": true,
     "rules": {
@@ -30,17 +28,17 @@
     }
   },
   "files": {
-    "include": [
+    "includes": [
       "packages/*/src/**",
       "scripts/**",
-      "*.json",
+      "**/*.json",
       "packages/*/tsup.config.ts",
       "packages/*/vitest.config.ts"
     ]
   },
   "overrides": [
     {
-      "include": ["packages/*/tsup.config.ts", "packages/*/vitest.config.ts"],
+      "includes": ["packages/*/tsup.config.ts", "packages/*/vitest.config.ts"],
       "linter": {
         "rules": {
           "style": {

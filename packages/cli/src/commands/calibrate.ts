@@ -9,10 +9,10 @@ import { loadConfig } from "../config.js";
 import { typicalInputTokens, typicalOutputTokens } from "../estimate-core.js";
 import type { ProviderUsageResult } from "../providers/index.js";
 import {
-  PROVIDER_ENV_KEYS,
-  SUPPORTED_PROVIDERS,
   fetchOpenRouterUsage,
   fetchProviderUsage,
+  PROVIDER_ENV_KEYS,
+  SUPPORTED_PROVIDERS,
 } from "../providers/index.js";
 import type { ScanResult } from "../scanners/index.js";
 import { scanDirectory } from "../scanners/index.js";
