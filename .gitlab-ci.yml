@@ -132,17 +132,29 @@ sync-pricing:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "sync-pricing"
   script:
-    # Run pricing sync
-    - npx tsx scripts/sync-pricing.ts || SYNC_FAILED=1
+    # Run pricing sync with retry
+    - |
+      SYNC_FAILED=1
+      for attempt in 1 2 3; do
+        echo "Attempt $attempt of 3..."
+        if pnpm --filter @inferwise/scripts sync-pricing; then
+          SYNC_FAILED=0
+          break
+        fi
+        if [ "$attempt" -lt 3 ]; then
+          echo "Attempt $attempt failed. Retrying in 30s..."
+          sleep 30
+        fi
+      done
 
     - |
       if [ "${SYNC_FAILED}" = "1" ]; then
-        echo "Pricing sync failed (upstream may be unavailable). Skipping."
+        echo "Pricing sync failed after 3 attempts (upstream may be unavailable). Skipping."
         exit 0
       fi
 
       # Format synced JSON so it passes biome ci
-      npx biome format --write packages/pricing-db/providers/
+      pnpm biome format --write packages/pricing-db/providers/
 
       # Check for changes
       if git diff --quiet packages/pricing-db/providers/; then
@@ -216,17 +228,29 @@ sync-benchmarks:
     - apt-get update -qq && apt-get install -y -qq python3 python3-pip > /dev/null 2>&1
     - pip3 install --break-system-packages pandas > /dev/null 2>&1
   script:
-    # Run benchmark sync
-    - npx tsx scripts/sync-benchmarks.ts || SYNC_FAILED=1
+    # Run benchmark sync with retry
+    - |
+      SYNC_FAILED=1
+      for attempt in 1 2 3; do
+        echo "Attempt $attempt of 3..."
+        if pnpm --filter @inferwise/scripts sync-benchmarks; then
+          SYNC_FAILED=0
+          break
+        fi
+        if [ "$attempt" -lt 3 ]; then
+          echo "Attempt $attempt failed. Retrying in 30s..."
+          sleep 30
+        fi
+      done
 
     - |
       if [ "${SYNC_FAILED}" = "1" ]; then
-        echo "Benchmark sync failed (Arena API may be unavailable). Skipping."
+        echo "Benchmark sync failed after 3 attempts (Arena API may be unavailable). Skipping."
         exit 0
       fi
 
       # Format synced JSON so it passes biome ci
-      npx biome format --write packages/pricing-db/benchmarks.json
+      pnpm biome format --write packages/pricing-db/benchmarks.json
 
       # Classify changes
       if git diff --quiet packages/pricing-db/benchmarks.json; then
