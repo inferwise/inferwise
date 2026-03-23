@@ -9,6 +9,10 @@ permissions:
   contents: write
   issues: write
 
+concurrency:
+  group: sync-main-push
+  cancel-in-progress: false
+
 jobs:
   sync:
     name: Sync Provider Pricing
@@ -67,6 +71,7 @@ jobs:
             git add packages/pricing-db/providers/
             git diff --cached --stat
             git commit -m "chore(pricing): sync provider pricing (${{ github.run_started_at }})"
+            git pull --rebase origin main
             git push
           fi
 
