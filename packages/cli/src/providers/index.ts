@@ -2,7 +2,6 @@ import type { Provider } from "@inferwise/pricing-db";
 import { fetchAnthropicUsage } from "./anthropic.js";
 import { fetchGoogleUsage } from "./google.js";
 import { fetchOpenAIUsage } from "./openai.js";
-import { fetchOpenRouterUsage } from "./openrouter.js";
 import type { ProviderUsageResult } from "./types.js";
 import { fetchXaiUsage } from "./xai.js";
 

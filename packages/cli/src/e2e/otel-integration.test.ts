@@ -51,15 +51,6 @@ const summary = await openai.chat.completions.create({
 });
 `;
 
-  const GOOGLE_AND_XAI_APP = `
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-const gemini = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-const result = await gemini.generateContent("Summarize this document");
-`;
-
   // -- Grafana Tempo backend e2e --
 
   describe("Grafana Tempo backend", () => {
