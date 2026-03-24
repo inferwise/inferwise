@@ -51,9 +51,11 @@ jobs:
 
       - name: Post PR comment
         uses: actions/github-script@v7
+        env:
+          COST_REPORT: ${{ steps.cost-diff.outputs.report }}
         with:
           script: |
-            const report = `${{ steps.cost-diff.outputs.report }}`;
+            const report = process.env.COST_REPORT || '';
             const marker = '<!-- inferwise-cost-diff -->';
             const body = `${marker}\n${report || 'No cost changes detected.'}`;
 

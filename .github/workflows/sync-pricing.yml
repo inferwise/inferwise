@@ -28,6 +28,8 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -53,8 +55,8 @@ jobs:
       - name: Abort on sync failure
         if: steps.sync.outcome == 'failure'
         run: |
-          echo "::warning::Pricing sync failed after 3 attempts (upstream may be unavailable). Skipping."
-          exit 0
+          echo "::error::Pricing sync failed after 3 attempts (upstream may be unavailable)."
+          exit 1
 
       - name: Format synced JSON
         if: steps.sync.outcome == 'success'
@@ -95,16 +97,17 @@ jobs:
             const report = fs.readFileSync('new-models-report.txt', 'utf8').trim();
             const truncated = report.length > 60000 ? report.slice(0, 60000) + '\n\n... (truncated)' : report;
 
-            // Ensure label exists
-            try {
-              await github.rest.issues.getLabel({ ...context.repo, name: 'new-models' });
-            } catch {
-              await github.rest.issues.createLabel({
-                ...context.repo,
-                name: 'new-models',
-                color: 'd876e3',
-                description: 'New models detected by sync',
-              });
+            // Ensure labels exist
+            const requiredLabels = [
+              { name: 'new-models', color: 'd876e3', description: 'New models detected by sync' },
+              { name: 'pricing', color: '0e8a16', description: 'Pricing data changes' },
+            ];
+            for (const label of requiredLabels) {
+              try {
+                await github.rest.issues.getLabel({ ...context.repo, name: label.name });
+              } catch {
+                await github.rest.issues.createLabel({ ...context.repo, ...label });
+              }
             }
 
             const title = 'New LLM models detected — pricing database update needed';

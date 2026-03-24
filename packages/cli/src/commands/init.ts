@@ -174,6 +174,7 @@ export function initCommand(): Command {
         process.stdout.write(chalk.dim("  GitHub Actions:\n"));
         process.stdout.write(chalk.dim("    - uses: inferwise/inferwise-action@v1\n"));
         process.stdout.write(
+          // biome-ignore lint/suspicious/noTemplateCurlyInString: GitHub Actions expression, not a JS template
           chalk.dim("      with: { github-token: ${{ secrets.GITHUB_TOKEN }} }\n\n"),
         );
         process.stdout.write(chalk.dim("  GitLab CI:\n"));

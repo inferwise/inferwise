@@ -28,6 +28,8 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -61,8 +63,8 @@ jobs:
       - name: Abort on sync failure
         if: steps.sync.outcome == 'failure'
         run: |
-          echo "::warning::Benchmark sync failed after 3 attempts (Arena API may be unavailable). Skipping PR creation."
-          exit 0
+          echo "::error::Benchmark sync failed after 3 attempts (Arena API may be unavailable)."
+          exit 1
 
       - name: Format synced JSON
         if: steps.sync.outcome == 'success'

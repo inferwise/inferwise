@@ -168,14 +168,13 @@ sync-pricing:
         git add packages/pricing-db/providers/
         git diff --cached --stat
         git commit -m "chore(pricing): sync provider pricing ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
-        git pull --rebase origin HEAD:${CI_DEFAULT_BRANCH}
+        git pull --rebase origin ${CI_DEFAULT_BRANCH}
         git push origin HEAD:${CI_DEFAULT_BRANCH}
       fi
 
       # Check for new models report
       if [ -f new-models-report.txt ]; then
         echo "New models detected — creating/updating issue..."
-        REPORT_BODY=$(cat new-models-report.txt)
 
         # Search for existing open issue with "new-models" label
         EXISTING_ISSUE=$(curl -sf \
@@ -273,7 +272,7 @@ sync-benchmarks:
         echo "Only metadata changed (no score changes). Auto-committing."
         git add packages/pricing-db/benchmarks.json
         git commit -m "chore(benchmarks): verify Arena scores ($(date -u +%Y-%m-%dT%H:%M:%SZ))"
-        git pull --rebase origin HEAD:${CI_DEFAULT_BRANCH}
+        git pull --rebase origin ${CI_DEFAULT_BRANCH}
         git push origin HEAD:${CI_DEFAULT_BRANCH}
       else
         # Actual score changes — create MR for review
@@ -282,7 +281,7 @@ sync-benchmarks:
         git checkout -b "$BRANCH"
         git add packages/pricing-db/benchmarks.json
         git commit -m "chore(benchmarks): sync Arena quality scores $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-        git pull --rebase origin HEAD:${CI_DEFAULT_BRANCH}
+        git pull --rebase origin ${CI_DEFAULT_BRANCH}
         git push origin "$BRANCH"
 
         # Create merge request via API
@@ -293,7 +292,7 @@ sync-benchmarks:
       import json
       print(json.dumps({
         'source_branch': '${BRANCH}',
-        'target_branch': '$(git remote show origin | grep HEAD | awk \"{print \\$NF}\" 2>/dev/null || echo main)',
+        'target_branch': '${CI_DEFAULT_BRANCH}',
         'title': 'chore(benchmarks): update Chatbot Arena quality scores',
         'description': 'Automated benchmark data sync from Chatbot Arena — **actual score changes detected**.\n\nThis MR was created automatically by the weekly sync pipeline.\nReview the score changes and merge to update bundled benchmark data.',
         'labels': 'benchmarks,automated',
