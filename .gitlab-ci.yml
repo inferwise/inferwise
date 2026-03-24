@@ -129,6 +129,7 @@ cost-diff:
 sync-pricing:
   <<: *node-setup
   stage: sync
+  resource_group: sync-main-push
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "sync-pricing"
   script:
@@ -219,6 +220,7 @@ sync-pricing:
 sync-benchmarks:
   image: node:${NODE_VERSION}
   stage: sync
+  resource_group: sync-main-push
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule" && $SCHEDULE_TYPE == "sync-benchmarks"
   before_script:
