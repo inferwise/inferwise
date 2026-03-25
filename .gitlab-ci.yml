@@ -27,6 +27,9 @@ variables:
 # ---------------------------------------------------------------------------
 .node-setup: &node-setup
   image: node:${NODE_VERSION}
+  tags:
+    - os/linux
+    - type/docker
   before_script:
     - corepack enable
     - corepack prepare pnpm@${PNPM_VERSION} --activate
@@ -218,6 +221,9 @@ sync-pricing:
 # ===========================================================================
 sync-benchmarks:
   image: node:${NODE_VERSION}
+  tags:
+    - os/linux
+    - type/docker
   stage: sync
   resource_group: sync-main-push
   rules:
