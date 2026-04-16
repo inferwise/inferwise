@@ -42,7 +42,7 @@ header "STEP 1: Sample Application"
 
 echo -e "${YELLOW}These are the source files Inferwise will scan:${RESET}"
 echo ""
-echo "  src/chat.ts        — Premium (claude-opus-4-6)     — complex queries"
+echo "  src/chat.ts        — Premium (claude-opus-4-7)     — complex queries"
 echo "  src/summarize.ts   — Mid-tier (claude-sonnet-4-6)  — document summaries"
 echo "  src/classify.ts    — Premium (gpt-4o)              — ticket classification (overkill!)"
 echo "  src/extract.ts     — Premium (gpt-4o)              — invoice & meeting extraction"

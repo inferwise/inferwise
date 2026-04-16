@@ -9,7 +9,7 @@ const client = new OpenAI({
 // Using premium-tier model for maximum reasoning depth
 export async function handleChat(userQuery: string) {
   const response = await client.chat.completions.create({
-    model: "claude-opus-4-6",
+    model: "claude-opus-4-7",
     messages: [
       { role: "system", content: "You are an IT cost analyst assistant for a large enterprise. Provide detailed, accurate analysis." },
       { role: "user", content: userQuery },
