@@ -1,7 +1,7 @@
 {
   "provider": "openai",
   "last_updated": "2026-03-07",
-  "last_verified": "2026-04-17",
+  "last_verified": "2026-04-18",
   "source": "https://platform.openai.com/docs/pricing",
   "models": [
     {
