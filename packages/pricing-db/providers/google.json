@@ -1,7 +1,7 @@
 {
   "provider": "google",
   "last_updated": "2026-03-14",
-  "last_verified": "2026-04-29",
+  "last_verified": "2026-04-30",
   "source": "https://ai.google.dev/gemini-api/docs/pricing",
   "models": [
     {
