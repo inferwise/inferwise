@@ -1,7 +1,7 @@
 {
   "provider": "anthropic",
   "last_updated": "2026-03-20",
-  "last_verified": "2026-09-16",
+  "last_verified": "2026-09-17",
   "source": "https://platform.claude.com/docs/en/docs/about-claude/models/overview",
   "models": [
     {
@@ -86,7 +86,7 @@
       "batch_output_cost_per_million": 7.5,
       "input_cost_above_200k_per_million": 6,
       "output_cost_above_200k_per_million": 22.5,
-      "context_window": 200000,
+      "context_window": 1000000,
       "max_output_tokens": 64000,
       "supports_vision": true,
       "supports_tools": true,
