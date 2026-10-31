@@ -1,7 +1,7 @@
 {
   "provider": "google",
   "last_updated": "2026-03-14",
-  "last_verified": "2026-10-30",
+  "last_verified": "2026-10-31",
   "source": "https://ai.google.dev/gemini-api/docs/pricing",
   "models": [
     {
@@ -62,7 +62,7 @@
       "supports_tools": true,
       "supports_prompt_caching": true,
       "supports_reasoning": true,
-      "supports_computer_use": false,
+      "supports_computer_use": true,
       "capabilities": ["code", "reasoning", "general", "vision", "search"],
       "knowledge_cutoff": "2025-01-01"
     },
